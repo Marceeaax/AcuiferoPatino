@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visor Acuífero Patiño</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: white;
+      color: black;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark-mode {
+      background-color: #121212;
+      color: white;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem 1.5rem;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      color: #222;
+      transition: color 0.3s;
+    }
+
+    body.dark-mode .header {
+      background-color: #1a1a1a;
+    }
+
+    body.dark-mode .header h1 {
+      color: #f5f5f5;
+    }
+
+    .login-button {
+      background-color: #38ef7d;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      text-decoration: none;
+      margin-left: 1rem;
+      transition: background 0.3s;
+    }
+
+    .login-button:hover {
+      background-color: #2fdc6a;
+    }
+
+    #darkModeToggle {
+      font-size: 1.2rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    #map {
+      height: calc(100vh - 70px);
+      width: 100%;
+    }
+
+    #customLayers {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 9999;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    #customLayers li {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px;
+      cursor: move;
+      background: #f0f0f0;
+      margin: 4px 0;
+      border-radius: 4px;
+    }
+
+    body.dark-mode #customLayers {
+      background: #333;
+      color: white;
+      border-color: #666;
+    }
+
+    body.dark-mode #customLayers li {
+      background: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>Visor de mapas web del Acuífero Patiño</h1>
+    <div>
+      <button id="darkModeToggle" title="Modo noche/día">🌙</button>
+      {% if user.is_authenticated %}
+        <a href="{% url 'logout' %}" class="login-button">Cerrar sesión</a>
+      {% else %}
+        <a href="{% url 'login' %}" class="login-button">Iniciar sesión</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <ul id="customLayers">
+    <li draggable="true" data-layer="WQI">
+      <input type="checkbox" checked /> 🟢 Índice WQI
+    </li>
+    <li draggable="true" data-layer="MUESTREOS">
+      <input type="checkbox" checked /> 🟠 Pozos muestreados
+    </li>
+    <li draggable="true" data-layer="PATINO">
+      <input type="checkbox" checked /> 🟥 Patiño
+    </li>
+  </ul>
+
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([-25.2637, -57.5759], 10);
+    map.createPane('paneWQI');
+    map.createPane('paneMUESTREOS');
+    map.createPane('panePATINO');
+    map.getPane('paneWQI').style.zIndex = 400;
+    map.getPane('panePATINO').style.zIndex = 600;
+    map.getPane('paneMUESTREOS').style.zIndex = 700; // más alto que PATINO
+
+    function format(val) {
+      return val != null && !isNaN(val) ? Number(val).toFixed(3) : "N/D";
+    }
+
+    let baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const rasterOverlay = L.imageOverlay(
+      "/static/mapas/raster/Raster_transparente.png",
+      [[-25.437, -57.6778], [-25.114, -57.3938]],
+      { pane: 'paneWQI', opacity: 0.6 }
+    ).addTo(map);
+
+    const patinoLayer = L.geoJSON({{ patino|safe }}, {
+      pane: 'panePATINO',
+      interactive: false,  // para que no bloquee los clics
+      style: () => ({
+        fillColor: "red",
+        weight: 2,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: 0.4
+      })
+    }).addTo(map);
+
+    const muestreoLayer = L.geoJSON({{ muestreos|safe }}, {
+      pane: 'paneMUESTREOS',
+      renderer: L.canvas({ pane: 'paneMUESTREOS' }),
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 5,
+        fillColor: "orange",
+        color: "black",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }),
+      onEachFeature: function (feature, layer) {
+        const props = feature.properties;
+        const popup = `
+          <strong>${props.nombre || "Sin nombre"}</strong><br/>
+          <b>Fecha de muestreo:</b> ${props.fecha_toma || "Desconocida"}<br/>
+          <b>Nitrato:</b> ${format(props.nitratos)}<br/>
+          <b>pH:</b> ${format(props.ph)}<br/>
+          <b>Conductividad:</b> ${format(props.conductivi)}<br/>
+          <b>Arsénico:</b> ${format(props.arsenico)}<br/>
+          <b>Coliformes fecales:</b> ${format(props.col_fecale)}<br/>
+        `;
+        layer.bindPopup(popup);
+        layer.on("mouseover", () => layer.setStyle({ fillColor: "blue" }));
+        layer.on("mouseout", () => layer.setStyle({ fillColor: "orange" }));
+        layer.on("click", (e) => map.setView(e.latlng, 14));
+      }
+    }).addTo(map);
+
+    const capaMap = {
+      "WQI": { layer: rasterOverlay, pane: 'paneWQI' },
+      "MUESTREOS": { layer: muestreoLayer, pane: 'paneMUESTREOS' },
+      "PATINO": { layer: patinoLayer, pane: 'panePATINO' }
+    };
+
+    document.getElementById('darkModeToggle').addEventListener('click', function () {
+      document.body.classList.toggle('dark-mode');
+      this.textContent = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
+      map.removeLayer(baseLayer);
+      baseLayer = L.tileLayer(
+        document.body.classList.contains('dark-mode')
+          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '© OpenStreetMap / CartoDB'
+        }).addTo(map);
+    });
+
+    document.querySelectorAll("#customLayers input[type='checkbox']").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const id = cb.parentElement.dataset.layer;
+        const capa = capaMap[id]?.layer;
+        if (capa) {
+          cb.checked ? map.addLayer(capa) : map.removeLayer(capa);
+        }
+      });
+    });
+
+    const sorter = document.getElementById("customLayers");
+    sorter.querySelectorAll("li").forEach(li => {
+      li.addEventListener("dragstart", () => li.classList.add("dragging"));
+      li.addEventListener("dragend", () => {
+        li.classList.remove("dragging");
+        updateOrder();
+      });
+    });
+
+    sorter.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      const dragging = document.querySelector(".dragging");
+      const after = [...sorter.querySelectorAll("li:not(.dragging)")].find(li => {
+        const box = li.getBoundingClientRect();
+        return e.clientY < box.top + box.height / 2;
+      });
+      if (after) {
+        sorter.insertBefore(dragging, after);
+      } else {
+        sorter.appendChild(dragging);
+      }
+    });
+
+    function updateOrder() {
+      const ids = [...sorter.querySelectorAll("li")].map(li => li.dataset.layer).reverse();
+      ids.forEach((id, i) => {
+        const paneName = capaMap[id]?.pane;
+        if (paneName) {
+          map.getPane(paneName).style.zIndex = 400 + i;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

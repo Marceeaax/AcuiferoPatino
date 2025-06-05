@@ -1,0 +1,25 @@
+---------------------- HECHO ---------------------------
+- Probar cargar capas rasters (.TIFF) HECHO
+
+- Probar cargar capas de puntos y poligonos HECHO
+--------------------------------------------------------
+
+- Invertir el orden de las capas (en la leyenda tambien). Siempre ver primeramente los puntos y despues de los puntos ver el TIFF y debajo del TIFF, el poligono de patino
+
+- Ver si se pueden hacer cargar mapas con usuario logueado, implementar permisos
+
+- contemplar un login en caso de realizar una carga de puntos, carga dinamicas
+
+- El usuario cargara capas de puntos y se debe ver si es que se puede calcular el indice y ver reflejado en el visor de mapas web
+
+- La carga del usuario puede ser una capa, o un punto, debe ser entrada por teclado 
+
+- Redondear a 3 decimales al momento de visualizar datos de los puntos
+
+- Si el usuario quisiera saber cuales son los nitratos mayores a 45 (ejemplo), ver la manera de colorear los puntos que cumplen la condicion
+
+- Si existen puntos coliformes fecales mayores a 0.0, ver para colorear 
+
+- Implementar buscar puntos de nitratos mayores a 45 (sugerencia), contemplar si el usuario puede escribir o usar una constante 
+
+- Permitir descarga de capas disponibles en el visor web

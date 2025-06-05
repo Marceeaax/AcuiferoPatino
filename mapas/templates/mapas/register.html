@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crear cuenta</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(to right, #11998e, #38ef7d);
+    }
+
+    #back-arrow {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      text-decoration: none;
+      font-size: 1.8rem;
+      color: white;
+      background-color: rgba(0,0,0,0.1);
+      padding: 6px 12px;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: background 0.2s ease;
+    }
+
+    #back-arrow:hover {
+      background-color: rgba(0,0,0,0.3);
+    }
+
+    .register-box {
+      background-color: #ffffff;
+      padding: 2rem 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      width: 360px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #11998e;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      outline-color: #38ef7d;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    .helptext {
+      font-size: 0.85rem;
+      color: #666;
+      margin: -8px 0 10px 0;
+    }
+
+    ul.errorlist, .errorlist {
+      color: red;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    .submit-btn {
+      background-color: #38ef7d;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
+
+    .submit-btn:hover {
+      background-color: #2fdc6a;
+    }
+
+    .links {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .links a {
+      color: #11998e;
+      text-decoration: none;
+    }
+
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <a href="/mapa-muestreo/" id="back-arrow" title="Volver al mapa">←</a>
+
+  <div class="register-box">
+    <h2>Crear cuenta</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      {{ form.username.errors }}
+      <input type="text" name="username" placeholder="Usuario" required id="id_username">
+
+      {{ form.password1.errors }}
+      <input type="password" name="password1" placeholder="Contraseña" required id="id_password1">
+      {% if form.password1.help_text %}
+        <div class="helptext">{{ form.password1.help_text|safe }}</div>
+      {% endif %}
+
+      {{ form.password2.errors }}
+      <input type="password" name="password2" placeholder="Confirmar contraseña" required id="id_password2">
+      {% if form.password2.help_text %}
+        <div class="helptext">{{ form.password2.help_text|safe }}</div>
+      {% endif %}
+
+      <input type="submit" value="Registrarse" class="submit-btn" />
+    </form>
+
+    <div class="links">
+      <a href="{% url 'login' %}">¿Ya tenés cuenta? Inicia sesión</a>
+    </div>
+  </div>
+</body>
+</html>
