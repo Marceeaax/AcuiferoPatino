@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Visor Acuífero Patiño</title>
 
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
@@ -107,6 +110,43 @@
     body.dark-mode #customLayers li {
       background: #555;
     }
+
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #11998e;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 24px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      z-index: 10000;
+    }
+
+    .fab-menu {
+      position: fixed;
+      bottom: 100px;
+      right: 30px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10000;
+    }
+
+    .fab-menu button {
+      background-color: white;
+      color: #11998e;
+      border: 1px solid #ccc;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
   </style>
 </head>
 
@@ -137,132 +177,441 @@
 
   <div id="map"></div>
 
-  <script>
-    const map = L.map('map').setView([-25.2637, -57.5759], 10);
-    map.createPane('paneWQI');
-    map.createPane('paneMUESTREOS');
-    map.createPane('panePATINO');
-    map.getPane('paneWQI').style.zIndex = 400;
-    map.getPane('panePATINO').style.zIndex = 600;
-    map.getPane('paneMUESTREOS').style.zIndex = 700; // más alto que PATINO
+  {% if user.is_authenticated %}
+    <button class="fab" onclick="toggleFabMenu()">＋</button>
+    <div class="fab-menu" id="fabMenu">
+      <button onclick="activarModoCentro()">📍 Establecer centro</button>
+      <button onclick="activarModoNuevoPunto()">➕ Nuevo punto</button>
+      <button onclick="alert('📁 Subir capa GeoJSON')">📁 Subir capa</button>
+    </div>
+  {% endif %}
 
-    function format(val) {
-      return val != null && !isNaN(val) ? Number(val).toFixed(3) : "N/D";
-    }
+<script>
+  // ================================
+  // Función utilitaria CSRF
+  // ================================
+  function getCSRFToken() {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
+  }
+document.addEventListener("DOMContentLoaded", function () {
+  // ================================
+  // Inicialización del mapa
+  // ================================
+  const centro = {{ centro_mapa|default:"null"|safe }};
+  const map = L.map('map').setView(
+    centro ? [centro.lat, centro.lng] : [-25.2637, -57.5759], 10
+  );
 
-    let baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+  // Crear "panes" para controlar el orden de las capas
+  map.createPane('paneWQI');
+  map.createPane('paneMUESTREOS');
+  map.createPane('panePATINO');
+  map.getPane('paneWQI').style.zIndex = 400;
+  map.getPane('panePATINO').style.zIndex = 600;
+  map.getPane('paneMUESTREOS').style.zIndex = 700;
 
-    const rasterOverlay = L.imageOverlay(
-      "/static/mapas/raster/Raster_transparente.png",
-      [[-25.437, -57.6778], [-25.114, -57.3938]],
-      { pane: 'paneWQI', opacity: 0.6 }
-    ).addTo(map);
+  // Formateador de valores numéricos
+  function format(val) {
+    return val != null && !isNaN(val) ? Number(val).toFixed(3) : "N/D";
+  }
 
-    const patinoLayer = L.geoJSON({{ patino|safe }}, {
-      pane: 'panePATINO',
-      interactive: false,  // para que no bloquee los clics
-      style: () => ({
-        fillColor: "red",
-        weight: 2,
-        opacity: 1,
-        color: 'black',
-        fillOpacity: 0.4
-      })
-    }).addTo(map);
+  // Capa base del mapa
+  let baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
 
-    const muestreoLayer = L.geoJSON({{ muestreos|safe }}, {
-      pane: 'paneMUESTREOS',
-      renderer: L.canvas({ pane: 'paneMUESTREOS' }),
-      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+  // ================================
+  // Capas del visor
+  // ================================
+
+  // Capa de imagen raster
+  const rasterOverlay = L.imageOverlay(
+    "/static/mapas/raster/Raster_transparente.png",
+    [[-25.437, -57.6778], [-25.114, -57.3938]],
+    { pane: 'paneWQI', opacity: 0.6 }
+  ).addTo(map);
+
+  // Capa del polígono del Acuífero Patiño
+  const patinoLayer = L.geoJSON({{ patino|safe }}, {
+    pane: 'panePATINO',
+    interactive: false,
+    style: () => ({
+      fillColor: "red",
+      weight: 2,
+      opacity: 1,
+      color: 'black',
+      fillOpacity: 0.4
+    })
+  }).addTo(map);
+
+  // Capa de los puntos de muestreo
+  const muestreoLayer = L.geoJSON({{ muestreos|safe }}, {
+    pane: 'paneMUESTREOS',
+    renderer: L.canvas({ pane: 'paneMUESTREOS' }),
+    pointToLayer: (feature, latlng) => {
+      const esDelUsuario = !!feature.properties.user;  // true si tiene un usuario asignado
+      return L.circleMarker(latlng, {
         radius: 5,
-        fillColor: "orange",
+        fillColor: esDelUsuario ? "#00BCD4" : "orange",  // Azul para el usuario, naranja para público
         color: "black",
         weight: 1,
         opacity: 1,
         fillOpacity: 0.8
-      }),
-      onEachFeature: function (feature, layer) {
-        const props = feature.properties;
-        const popup = `
-          <strong>${props.nombre || "Sin nombre"}</strong><br/>
-          <b>Fecha de muestreo:</b> ${props.fecha_toma || "Desconocida"}<br/>
-          <b>Nitrato:</b> ${format(props.nitratos)}<br/>
-          <b>pH:</b> ${format(props.ph)}<br/>
-          <b>Conductividad:</b> ${format(props.conductivi)}<br/>
-          <b>Arsénico:</b> ${format(props.arsenico)}<br/>
-          <b>Coliformes fecales:</b> ${format(props.col_fecale)}<br/>
-        `;
-        layer.bindPopup(popup);
-        layer.on("mouseover", () => layer.setStyle({ fillColor: "blue" }));
-        layer.on("mouseout", () => layer.setStyle({ fillColor: "orange" }));
-        layer.on("click", (e) => map.setView(e.latlng, 14));
-      }
-    }).addTo(map);
+      });
+    },
+    onEachFeature: function (feature, layer) {
+      const props = feature.properties;
+      
+      // Guardar el color original según el propietario
+      const esDelUsuario = !!props.user;
+      const colorOriginal = esDelUsuario ? "#00BCD4" : "orange";
+     let popup = `
+  <div style="min-width: 220px">
+    <strong>${props.nombre || "Sin nombre"}</strong><br/>
+    <b>Fecha de muestreo:</b> ${props.fecha_toma || "Desconocida"}<br/>
+    <b>Nitrato:</b> ${format(props.nitratos)}<br/>
+    <b>pH:</b> ${format(props.ph)}<br/>
+    <b>Conductividad:</b> ${format(props.conductivi)}<br/>
+    <b>Arsénico:</b> ${format(props.arsenico)}<br/>
+    <b>Coliformes fecales:</b> ${format(props.col_fecale)}<br/>
+`;
 
-    const capaMap = {
-      "WQI": { layer: rasterOverlay, pane: 'paneWQI' },
-      "MUESTREOS": { layer: muestreoLayer, pane: 'paneMUESTREOS' },
-      "PATINO": { layer: patinoLayer, pane: 'panePATINO' }
+if (esDelUsuario && feature.id) {
+  popup += `
+    <div style="margin-top: 12px; text-align: center;">
+  <button class="btn btn-outline-danger eliminar-btn" style="font-size: 0.85rem; padding: 4px 10px;" data-id="${feature.id}">
+    🗑️ Eliminar punto
+  </button>
+</div>
+  `;
+}
+
+popup += `</div>`;
+
+layer.bindPopup(popup);
+
+layer.on("popupopen", () => {
+  const btn = document.querySelector(".eliminar-btn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-id");
+      eliminarPunto(id);
+    });
+  }
+});
+
+
+      layer.on("mouseover", () => layer.setStyle({ fillColor: "blue" }));
+      layer.on("mouseout", () => layer.setStyle({ fillColor: colorOriginal }));
+      layer.on("click", (e) => map.setView(e.latlng, 14));
+    }
+  }).addTo(map);
+
+  // Mapa de capas por nombre para acceso dinámico
+  const capaMap = {
+    "WQI": { layer: rasterOverlay, pane: 'paneWQI' },
+    "MUESTREOS": { layer: muestreoLayer, pane: 'paneMUESTREOS' },
+    "PATINO": { layer: patinoLayer, pane: 'panePATINO' }
+  };
+
+  // ================================
+  // Modo oscuro
+  // ================================
+  document.getElementById('darkModeToggle').addEventListener('click', function () {
+    document.body.classList.toggle('dark-mode');
+    this.textContent = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
+
+    map.removeLayer(baseLayer);
+    baseLayer = L.tileLayer(
+      document.body.classList.contains('dark-mode')
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap / CartoDB'
+      }).addTo(map);
+  });
+
+  // ================================
+  // Visibilidad de capas
+  // ================================
+  document.querySelectorAll("#customLayers input[type='checkbox']").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = cb.parentElement.dataset.layer;
+      const capa = capaMap[id]?.layer;
+      if (capa) {
+        cb.checked ? map.addLayer(capa) : map.removeLayer(capa);
+      }
+    });
+  });
+
+  // ================================
+  // Ordenamiento de capas (drag and drop)
+  // ================================
+  const sorter = document.getElementById("customLayers");
+  sorter.querySelectorAll("li").forEach(li => {
+    li.addEventListener("dragstart", () => li.classList.add("dragging"));
+    li.addEventListener("dragend", () => {
+      li.classList.remove("dragging");
+      updateOrder();
+    });
+  });
+
+  sorter.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const dragging = document.querySelector(".dragging");
+    const after = [...sorter.querySelectorAll("li:not(.dragging)")].find(li => {
+      const box = li.getBoundingClientRect();
+      return e.clientY < box.top + box.height / 2;
+    });
+    if (after) {
+      sorter.insertBefore(dragging, after);
+    } else {
+      sorter.appendChild(dragging);
+    }
+  });
+
+  function updateOrder() {
+    const ids = [...sorter.querySelectorAll("li")].map(li => li.dataset.layer).reverse();
+    ids.forEach((id, i) => {
+      const paneName = capaMap[id]?.pane;
+      if (paneName) {
+        map.getPane(paneName).style.zIndex = 400 + i;
+      }
+    });
+  }
+
+  // ================================
+  // Menú flotante (FAB)
+  // ================================
+  window.toggleFabMenu = function () {
+    const menu = document.getElementById("fabMenu");
+    menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+  };
+
+  // ================================
+  // Guardar punto central del usuario
+  // ================================
+  let seleccionandoCentro = false;
+  let marcadorCentro = null;
+
+  window.activarModoCentro = function () {
+    seleccionandoCentro = true;
+    map.getContainer().style.cursor = 'crosshair';
+    alert("📍 Hacé clic en el mapa para establecer tu punto central.");
+  };
+
+  // Evento para guardar centro del mapa
+  map.on('click', function (e) {
+    if (!seleccionandoCentro) return;
+    seleccionandoCentro = false;
+    map.getContainer().style.cursor = '';
+    const coords = e.latlng;
+
+    if (marcadorCentro) map.removeLayer(marcadorCentro);
+
+    marcadorCentro = L.marker(coords, {
+      draggable: false,
+      title: "Centro elegido"
+    }).addTo(map).bindPopup("📍 Centro establecido").openPopup();
+
+    fetch('/guardar-centro/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        L.popup().setLatLng(coords).setContent('📍 Centro guardado').openOn(map);
+      } else {
+        alert('Error al guardar centro: ' + (data.error || ''));
+      }
+    });
+  });
+
+  // ================================
+  // Agregar punto de muestreo (modal)
+  // ================================
+  let seleccionandoNuevoPunto = false;
+
+  window.activarModoNuevoPunto = function () {
+    seleccionandoNuevoPunto = true;
+    map.getContainer().style.cursor = 'crosshair';
+    alert("🟡 Hacé clic en el mapa para definir la ubicación del nuevo punto.");
+  };
+
+  // Evento click para capturar punto y mostrar modal
+  map.on('click', function (e) {
+    if (!seleccionandoNuevoPunto) return;
+
+    seleccionandoNuevoPunto = false;
+    map.getContainer().style.cursor = '';
+    const coords = e.latlng;
+
+    document.getElementById('lat').value = coords.lat;
+    document.getElementById('lng').value = coords.lng;
+
+    const modal = new bootstrap.Modal(document.getElementById('nuevoPuntoModal'));
+    modal.show();
+  });
+
+  // ================================
+  // Envío de formulario de nuevo punto
+  // ================================
+  document.getElementById("formNuevoPunto").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    console.log("🚀 Envío del formulario capturado");
+
+    const data = {
+      nombre: document.getElementById("nombre").value,
+      fecha_toma: document.getElementById("fecha_toma").value,
+      nitratos: document.getElementById("nitratos").value,
+      ph: document.getElementById("ph").value,
+      conductivi: document.getElementById("conductivi").value,
+      arsenico: document.getElementById("arsenico").value,
+      col_fecale: document.getElementById("col_fecale").value,
+      lat: parseFloat(document.getElementById("lat").value),
+      lng: parseFloat(document.getElementById("lng").value)
     };
 
-    document.getElementById('darkModeToggle').addEventListener('click', function () {
-      document.body.classList.toggle('dark-mode');
-      this.textContent = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
-      map.removeLayer(baseLayer);
-      baseLayer = L.tileLayer(
-        document.body.classList.contains('dark-mode')
-          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18,
-          attribution: '© OpenStreetMap / CartoDB'
-        }).addTo(map);
-    });
+    console.log("📦 Datos a enviar:", data);
 
-    document.querySelectorAll("#customLayers input[type='checkbox']").forEach(cb => {
-      cb.addEventListener("change", () => {
-        const id = cb.parentElement.dataset.layer;
-        const capa = capaMap[id]?.layer;
-        if (capa) {
-          cb.checked ? map.addLayer(capa) : map.removeLayer(capa);
-        }
-      });
-    });
+    fetch('/guardar-nuevo-punto/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(json => {
+      console.log("✅ Respuesta del backend:", json);
+      if (json.success) {
+        const popup = `
+          <strong>${data.nombre}</strong><br/>
+          <b>Fecha de muestreo:</b> ${data.fecha_toma}<br/>
+          <b>Nitrato:</b> ${format(data.nitratos)}<br/>
+          <b>pH:</b> ${format(data.ph)}<br/>
+          <b>Conductividad:</b> ${format(data.conductivi)}<br/>
+          <b>Arsénico:</b> ${format(data.arsenico)}<br/>
+          <b>Coliformes fecales:</b> ${format(data.col_fecale)}<br/>
+        `;
 
-    const sorter = document.getElementById("customLayers");
-    sorter.querySelectorAll("li").forEach(li => {
-      li.addEventListener("dragstart", () => li.classList.add("dragging"));
-      li.addEventListener("dragend", () => {
-        li.classList.remove("dragging");
-        updateOrder();
-      });
-    });
+        L.circleMarker([data.lat, data.lng], {
+          radius: 5,
+          fillColor: "#00BCD4",
+          color: "black",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(map).bindPopup(popup);
 
-    sorter.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      const dragging = document.querySelector(".dragging");
-      const after = [...sorter.querySelectorAll("li:not(.dragging)")].find(li => {
-        const box = li.getBoundingClientRect();
-        return e.clientY < box.top + box.height / 2;
-      });
-      if (after) {
-        sorter.insertBefore(dragging, after);
+        Swal.fire('✅ Punto agregado', 'El nuevo punto fue guardado correctamente.', 'success');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('nuevoPuntoModal'));
+        modal.hide();
+        document.getElementById("formNuevoPunto").reset();
       } else {
-        sorter.appendChild(dragging);
+        Swal.fire('❌ Error', json.error || 'No se pudo guardar el punto', 'error');
       }
     });
+  });
 
-    function updateOrder() {
-      const ids = [...sorter.querySelectorAll("li")].map(li => li.dataset.layer).reverse();
-      ids.forEach((id, i) => {
-        const paneName = capaMap[id]?.pane;
-        if (paneName) {
-          map.getPane(paneName).style.zIndex = 400 + i;
+});
+
+window.eliminarPunto = function(id) {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: 'Este punto será eliminado permanentemente.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#aaa',
+    confirmButtonText: 'Sí, eliminar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      fetch(`/eliminar-punto/${id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        }
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          Swal.fire('✅ Eliminado', 'El punto ha sido borrado.', 'success').then(() => {
+            location.reload(); // O actualizar dinámicamente el mapa
+          });
+        } else {
+          Swal.fire('❌ Error', json.error || 'No se pudo eliminar el punto.', 'error');
         }
       });
     }
-  </script>
+  });
+}
+
+</script>
+
+<!-- Modal Bootstrap completo -->
+<div class="modal fade" id="nuevoPuntoModal" tabindex="-1" aria-labelledby="nuevoPuntoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="nuevoPuntoModalLabel">Nuevo punto de muestreo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formNuevoPunto">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre del punto</label>
+            <input type="text" class="form-control" id="nombre" required>
+          </div>
+          <div class="mb-3">
+            <label for="fecha_toma" class="form-label">Fecha de muestreo</label>
+            <input type="date" class="form-control" id="fecha_toma" required>
+          </div>
+          <div class="mb-3">
+            <label for="nitratos" class="form-label">Nitratos</label>
+            <input type="number" step="any" class="form-control" id="nitratos">
+          </div>
+          <div class="mb-3">
+            <label for="ph" class="form-label">pH</label>
+            <input type="number" step="any" class="form-control" id="ph">
+          </div>
+          <div class="mb-3">
+            <label for="conductivi" class="form-label">Conductividad</label>
+            <input type="number" step="any" class="form-control" id="conductivi">
+          </div>
+          <div class="mb-3">
+            <label for="arsenico" class="form-label">Arsénico</label>
+            <input type="number" step="any" class="form-control" id="arsenico">
+          </div>
+          <div class="mb-3">
+            <label for="col_fecale" class="form-label">Coliformes fecales</label>
+            <input type="number" step="any" class="form-control" id="col_fecale">
+          </div>
+          <input type="hidden" id="lat">
+          <input type="hidden" id="lng">
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" form="formNuevoPunto" class="btn btn-primary">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 </body>
 </html>

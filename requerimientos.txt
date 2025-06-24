@@ -5,21 +5,39 @@
 --------------------------------------------------------
 
 - Invertir el orden de las capas (en la leyenda tambien). Siempre ver primeramente los puntos y despues de los puntos ver el TIFF y debajo del TIFF, el poligono de patino
+(VISITANTE, USUARIO Y ADMIN)
 
-- Ver si se pueden hacer cargar mapas con usuario logueado, implementar permisos
+- Ver si se pueden hacer cargar mapas con usuario logueado (USUARIO Y ADMIN)
 
-- contemplar un login en caso de realizar una carga de puntos, carga dinamicas
+- implementar permisos (ADMIN)
+
+- contemplar un login en caso de realizar una carga de puntos, carga dinamicas (USUARIO Y ADMIN)
+
+- El usuario logueado puede subir capas pero solamente a su entorno, a su usuario. El administrador es el que permite la inclusion
+de capas privadas a la interfaz publica 
+
+- contemplar el modulo para hacer publicas las capas o subir una capa publica (USUARIO)
+
+- Aprobar la publicacion de capas para visualizarlo en la interfaz publica (ADMIN)
 
 - El usuario cargara capas de puntos y se debe ver si es que se puede calcular el indice y ver reflejado en el visor de mapas web
+(USUARIOS Y ADMIN)
 
-- La carga del usuario puede ser una capa, o un punto, debe ser entrada por teclado 
+- La carga del usuario puede ser una capa, o un punto, debe ser entrada por teclado (USUARIO Y ADMIN)
 
-- Redondear a 3 decimales al momento de visualizar datos de los puntos
+- Redondear a 3 decimales al momento de visualizar datos de los puntos (VISITANTE, USUARIO Y ADMIN)
 
 - Si el usuario quisiera saber cuales son los nitratos mayores a 45 (ejemplo), ver la manera de colorear los puntos que cumplen la condicion
+El valor inicial del campo puede ser de 45 y si el usuario quiere, puede modificar este campo
+(VISITANTE, USUARIO Y ADMIN)
 
 - Si existen puntos coliformes fecales mayores a 0.0, ver para colorear 
+(VISITANTE, USUARIO Y ADMIN)
 
-- Implementar buscar puntos de nitratos mayores a 45 (sugerencia), contemplar si el usuario puede escribir o usar una constante 
+- Permitir descarga de capas disponibles en el visor web (USUARIO Y ADMIN)
 
-- Permitir descarga de capas disponibles en el visor web
+- Colocar Nombre y Apellido, correo, institucion a la que pertenece, telefono de contacto, pais, ciudad (Todos los campos
+seran obligatorios)
+
+- No habilitar el campo de registrarse si no se completan todos los campos requeridos para el mismo
+

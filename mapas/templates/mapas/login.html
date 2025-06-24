@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <title>Iniciar sesión</title>
   <style>
     body {
@@ -119,3 +120,15 @@
   </div>
 </body>
 </html>
+
+{% if error %}
+<script>
+  Swal.fire({
+    icon: 'error',
+    title: 'Error de autenticación',
+    text: 'Usuario o contraseña incorrectos.',
+    confirmButtonColor: '#38ef7d',
+    heightAuto: false,
+  });
+</script>
+{% endif %}
