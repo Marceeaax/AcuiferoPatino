@@ -55,9 +55,13 @@ class Muestreo(models.Model):
         return self.nombre or "Muestreo sin nombre"
 
 
-class Patino(models.Model):
+class Capa(models.Model):
     ogc_fid = models.AutoField(primary_key=True)
     wkb_geometry = models.MultiPolygonField(srid=4326)
+    nombre = models.CharField(max_length=100, blank=True, null=True)
+    descripcion = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    fecha_subida = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "patino"

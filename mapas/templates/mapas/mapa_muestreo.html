@@ -182,7 +182,10 @@
     <div class="fab-menu" id="fabMenu">
       <button onclick="activarModoCentro()">📍 Establecer centro</button>
       <button onclick="activarModoNuevoPunto()">➕ Nuevo punto</button>
-      <button onclick="alert('📁 Subir capa GeoJSON')">📁 Subir capa</button>
+      <button onclick="abrirModalCargaGeoJSON()">📁 Subir capa</button>
+      {% if es_admin %}
+        <button onclick="abrirModalUsuarios()">👥 Usuarios</button>
+      {% endif %}
     </div>
   {% endif %}
 
@@ -559,6 +562,95 @@ window.eliminarPunto = function(id) {
   });
 }
 
+function abrirModalCargaGeoJSON() {
+  const modal = new bootstrap.Modal(document.getElementById('modalCargaGeoJSON'));
+  modal.show();
+}
+
+function enviarGeojson() {
+  const form = document.getElementById('formCargaGeojson');
+  const archivo = form.querySelector('input[type=file]').files[0];
+  if (!archivo) {
+    Swal.fire('⚠️ Seleccioná un archivo', '', 'warning');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+
+  fetch('/cargar-capa-patino/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCSRFToken()
+    },
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      Swal.fire('✅ Capa cargada', 'La capa fue guardada exitosamente.', 'success').then(() => location.reload());
+    } else {
+      Swal.fire('❌ Error', data.error || 'No se pudo procesar la capa', 'error');
+    }
+  })
+  .catch(async (error) => {
+  let texto;
+  try {
+    const text = await error.response?.text?.();
+    texto = text || 'No se pudo enviar el archivo';
+  } catch (e) {
+    texto = 'No se pudo enviar el archivo';
+  }
+  Swal.fire('❌ Error', texto, 'error');
+});
+
+}
+
+{% if es_admin %}
+function abrirModalUsuarios() {
+  const modal = new bootstrap.Modal(document.getElementById('modalUsuarios'));
+  const tbody = document.querySelector('#tablaUsuarios tbody');
+  const loader = document.getElementById('usuariosLoader');
+
+  tbody.innerHTML = '';
+  loader.style.display = 'block';
+
+  fetch('/api/usuarios/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(async r => {
+      const ct = r.headers.get('content-type') || '';
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}`);
+      }
+      if (!ct.includes('application/json')) {
+        const txt = await r.text();
+        throw new Error('Respuesta no JSON (¿redirección al admin/login?)');
+      }
+      return r.json();
+    })
+    .then(data => {
+      const rows = (data.results || []).map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.username}</td>
+          <td>${u.email}</td>
+          <td>${(u.groups || []).join(', ')}</td>
+          <td>${u.is_staff ? '✅' : '—'}</td>
+          <td>${u.is_superuser ? '✅' : '—'}</td>
+          <td>${u.last_login ? new Date(u.last_login).toLocaleString() : '—'}</td>
+          <td>${u.date_joined ? new Date(u.date_joined).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+      tbody.innerHTML = rows || `<tr><td colspan="8" class="text-center text-muted">Sin usuarios.</td></tr>`;
+    })
+    .catch(err => {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+    })
+    .finally(() => loader.style.display = 'none');
+
+  modal.show();
+}
+{% endif %}
+
 </script>
 
 <!-- Modal Bootstrap completo -->
@@ -611,7 +703,75 @@ window.eliminarPunto = function(id) {
   </div>
 </div>
 
+<!-- Modal educativo para carga de capas -->
+<div class="modal fade" id="modalCargaGeoJSON" tabindex="-1" aria-labelledby="modalCargaGeoJSONLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalCargaGeoJSONLabel">🧭 Cargar capa GeoJSON</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>¿Qué es una capa GeoJSON?</strong><br>
+        Es un archivo que representa información geoespacial, como polígonos, puntos o líneas. Es utilizado ampliamente en sistemas de información geográfica (GIS).</p>
 
+        <p><strong>🗺️ Sistema de Coordenadas Esperado</strong><br>
+        Este visor trabaja con el sistema de coordenadas <code>EPSG:4326</code>, también conocido como <em>WGS 84</em>, el estándar GPS global. 
+        Asegurate de que tus coordenadas estén en latitud y longitud.</p>
+
+        <p><strong>🔁 ¿Cómo se guarda la capa?</strong><br>
+        Cada geometría del archivo se transforma en un objeto <code>MultiPolygon</code> y se guarda en la base de datos en la tabla <code>patino</code>, usando PostGIS. 
+        Este modelo requiere geometría válida (cerrada, sin errores topológicos).</p>
+
+        <p><strong>📂 Seleccioná tu archivo</strong></p>
+        <form id="formCargaGeojson" enctype="multipart/form-data">
+          <input type="file" name="archivo" accept=".geojson,.json" class="form-control" required />
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="enviarGeojson()">Subir capa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% if es_admin %}
+<div class="modal fade" id="modalUsuarios" tabindex="-1" aria-labelledby="modalUsuariosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalUsuariosLabel">👥 Usuarios registrados</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="usuariosLoader" class="text-center my-3" style="display:none;">Cargando...</div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle" id="tablaUsuarios">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Grupos</th>
+                <th>Staff</th>
+                <th>Superuser</th>
+                <th>Último login</th>
+                <th>Alta</th>
+              </tr>
+            </thead>
+            <tbody><!-- rows dinámicas --></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 </body>
 </html>
