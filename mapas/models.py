@@ -69,6 +69,14 @@ class Capa(models.Model):
 
     def __str__(self):
         return f"Patiño {self.ogc_fid}"
+    
+    ESTADOS = [
+        ('privada', 'Privada'),
+        ('pendiente', 'Pendiente de aprobación'),
+        ('publica', 'Pública'),
+        ('rechazada', 'Rechazada'),
+    ]
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='privada')
 
 
 class PreferenciasMapa(models.Model):

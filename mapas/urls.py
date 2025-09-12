@@ -16,4 +16,10 @@ urlpatterns = [
     path("usuarios/<int:user_id>/make-admin/", views.make_admin, name="make_admin"),
     path("usuarios/<int:user_id>/remove-admin/", views.remove_admin, name="remove_admin"),
     path('api/usuarios/', views.usuarios_list_json, name='usuarios_list_json'),
+    path('eliminar-capa/<int:ogc_fid>/', views.eliminar_capa_view, name='eliminar_capa'),
+    path('api/capas/', views.capas_list_json,name='api_capas'),
+    path('capas/<int:ogc_fid>/hacer-publica/', views.hacer_publica_view, name='capa_hacer_publica'),
+    path("api/mis-capas/", views.mis_capas_list_json, name="mis_capas_list_json"),
+    path("api/solicitar-publicacion/<int:capa_id>/", views.solicitar_publicacion, name="solicitar_publicacion"),
+    path("eliminar-capa/<int:ogc_fid>/", views.eliminar_capa_view, name="eliminar_capa")
 ]
