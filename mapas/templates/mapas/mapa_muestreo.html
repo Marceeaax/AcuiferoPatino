@@ -1,3 +1,5 @@
+  {% load static %}
+  
   <!DOCTYPE html>
   <html lang="es">
   <head>
@@ -146,6 +148,7 @@
 
   <body>
     <div class="header">
+      <div class="header-left"></div>
       <h1>Visor de mapas web del Acuífero Patiño</h1>
       <div>
         <button id="darkModeToggle" title="Modo noche/día">🌙</button>
@@ -185,6 +188,7 @@
       <button onclick="activarModoNuevoPunto()">➕ Nuevo punto</button>
       <button onclick="abrirModalCargaGeoJSON()">📁 Subir capa</button>
       <button onclick="abrirModalMisCapas()">📂 Mis capas</button>
+      <button onclick="abrirModalFiltro()">🔎 Filtrar puntos</button>
       {% if es_admin %}
         <button onclick="abrirModalUsuarios()">👥 Usuarios</button>
         <button onclick="abrirModalCapas()">🗂️ Todas las capas</button>
@@ -204,7 +208,10 @@ function getCSRFToken() {
     ?.split('=')[1];
 }
 
+let muestreoLayer;
+
 document.addEventListener('DOMContentLoaded', function () {
+  
   /* ================================
      Flags del template
   ================================= */
@@ -261,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }).addTo(map);
 
   // Muestreos (puntos)
-  const muestreoLayer = L.geoJSON({{ muestreos|safe }}, {
+   muestreoLayer = L.geoJSON({{ muestreos|safe }}, {
     pane: 'paneMUESTREOS',
     renderer: L.canvas({ pane: 'paneMUESTREOS' }),
     pointToLayer: (feature, latlng) => {
@@ -298,13 +305,233 @@ document.addEventListener('DOMContentLoaded', function () {
             </button>
           </div>`;
       }
-      popup += `</div>`;
+      popup += `
+        <div class="text-center mt-2">
+          <button 
+            class="btn btn-link p-0 ver-mas-btn" 
+            data-feature='${JSON.stringify(p).replace(/'/g, "&apos;")}'>
+            🔍 Ver más
+          </button>
+        </div>
+      `;
       layer.bindPopup(popup);
 
       layer.on("popupopen", () => {
-        const btn = document.querySelector(".eliminar-btn");
-        if (btn) btn.addEventListener("click", () => window.eliminarPunto(btn.getAttribute("data-id")));
+        const btn = document.querySelector(".ver-mas-btn");
+        if (!btn) return;
+
+        btn.addEventListener("click", () => {
+          const data = JSON.parse(btn.dataset.feature);
+          mostrarModalDetallePunto(data);
+        });
+
+        const del = document.querySelector(".eliminar-btn");
+        if (del) {
+          del.addEventListener("click", () =>
+            window.eliminarPunto(del.getAttribute("data-id"))
+          );
+        }
+
+/* ================================
+   Botón Calcular WQI
+================================ */
+
+const btnWQI = document.getElementById("btnCalcularWQI");
+
+if (btnWQI) {
+
+  btnWQI.addEventListener("click", function () {
+
+    if (!puntoActual) return;
+
+    const tbody = document.getElementById("detallePuntoBody");
+    const title = document.getElementById("detallePuntoTitle");
+
+    title.textContent = "Cálculo del Índice de Calidad de Agua (WQI)";
+    tbody.innerHTML = "";
+
+    /* ================================
+       BLOQUE EXPLICATIVO
+    ================================= */
+
+    tbody.innerHTML += `
+      <tr>
+        <td colspan="4">
+          <div class="alert alert-info">
+            <h6><strong>Metodología aplicada</strong></h6>
+            <p>
+              El Índice de Calidad de Agua (WQI) se determina mediante la suma
+              ponderada de subíndices individuales (qi) para cada parámetro evaluado.
+            </p>
+            <p><strong>Fórmulas utilizadas:</strong></p>
+            <ul>
+              <li>qi = (Ci / Si) × 100</li>
+              <li>WQI = Σ (Wi × qi)</li>
+            </ul>
+            <p>
+              Donde:
+              <br>Ci = concentración medida
+              <br>Si = estándar normativo
+              <br>Wi = peso relativo del parámetro
+            </p>
+            <p>
+              El pH se evalúa de forma especial: si se encuentra dentro del rango
+              6.5–8.5, la penalización es mínima. Fuera del rango,
+              aumenta proporcionalmente según su desviación respecto a pH 7.
+            </p>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    /* ================================
+       ENCABEZADO TABLA
+    ================================= */
+
+    tbody.innerHTML += `
+      <tr class="table-secondary">
+        <th>Parámetro</th>
+        <th>Valor medido</th>
+        <th>Subíndice (qi)</th>
+        <th>Aporte ponderado</th>
+      </tr>
+    `;
+
+    /* ================================
+       ESTÁNDARES Y PESOS
+    ================================= */
+
+    const standards = {
+      nitratos: 45,
+      conductivi: 1000,
+      arsenico: 0.01,
+      col_fecale: 1
+    };
+
+    const weights = {
+      nitratos: 0.25,
+      conductivi: 0.20,
+      arsenico: 0.30,
+      col_fecale: 0.15,
+      ph: 0.10
+    };
+
+    let WQI = 0;
+
+    function calcularQi(valor, estandar) {
+      if (valor == null || isNaN(valor)) return 0;
+      return (valor / estandar) * 100;
+    }
+
+    function calcularQiPH(ph) {
+      if (!ph) return 0;
+      if (ph >= 6.5 && ph <= 8.5) return 10;
+      return Math.abs(ph - 7) * 50;
+    }
+
+    const parametros = [
+      { key: "nitratos", nombre: "Nitratos" },
+      { key: "conductivi", nombre: "Conductividad" },
+      { key: "arsenico", nombre: "Arsénico" },
+      { key: "col_fecale", nombre: "Coliformes fecales" }
+    ];
+
+    /* ================================
+       CÁLCULO PARÁMETROS
+    ================================= */
+
+    parametros.forEach(p => {
+
+      const valor = parseFloat(puntoActual[p.key]);
+      const qi = calcularQi(valor, standards[p.key]);
+      const aporte = qi * weights[p.key];
+      WQI += aporte;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.nombre}</td>
+          <td>${valor ?? "N/D"}</td>
+          <td>${qi.toFixed(2)}</td>
+          <td>${aporte.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    /* ================================
+       CÁLCULO pH
+    ================================= */
+
+    const phValor = parseFloat(puntoActual.ph);
+    const qiPH = calcularQiPH(phValor);
+    const aportePH = qiPH * weights.ph;
+    WQI += aportePH;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>pH</td>
+        <td>${phValor ?? "N/D"}</td>
+        <td>${qiPH.toFixed(2)}</td>
+        <td>${aportePH.toFixed(2)}</td>
+      </tr>
+    `;
+
+    /* ================================
+       CLASIFICACIÓN
+    ================================= */
+
+    let clasificacion = "";
+    let interpretacion = "";
+
+    if (WQI <= 50) {
+      clasificacion = "Excelente";
+      interpretacion = "La calidad del agua es óptima y apta para consumo humano sin tratamiento significativo.";
+    }
+    else if (WQI <= 100) {
+      clasificacion = "Buena";
+      interpretacion = "El agua presenta buena calidad, con bajo nivel de contaminación.";
+    }
+    else if (WQI <= 200) {
+      clasificacion = "Deficiente";
+      interpretacion = "Se detecta presencia moderada de contaminantes. Puede requerir tratamiento.";
+    }
+    else if (WQI <= 300) {
+      clasificacion = "Muy deficiente";
+      interpretacion = "La calidad del agua es baja y requiere tratamiento antes de consumo.";
+    }
+    else {
+      clasificacion = "No apta para consumo";
+      interpretacion = "El agua presenta niveles críticos de contaminación y no es apta para consumo humano.";
+    }
+
+    /* ================================
+       RESULTADO FINAL
+    ================================= */
+
+    tbody.innerHTML += `
+      <tr class="table-dark">
+        <td colspan="3"><strong>WQI Final</strong></td>
+        <td><strong>${WQI.toFixed(2)}</strong></td>
+      </tr>
+      <tr class="table-warning">
+        <td colspan="4"><strong>Clasificación: ${clasificacion}</strong></td>
+      </tr>
+      <tr>
+        <td colspan="4">
+          <div class="alert alert-light border">
+            <strong>Interpretación técnica:</strong><br>
+            ${interpretacion}
+          </div>
+        </td>
+      </tr>
+    `;
+
+  });
+
+}
+
+
       });
+
 
       layer.on("mouseover", () => layer.setStyle({ fillColor: "blue" }));
       layer.on("mouseout",  () => layer.setStyle({ fillColor: colorOriginal }));
@@ -833,6 +1060,59 @@ function abrirModalMisCapas() {
   modal.show();
 }
 
+window.abrirModalFiltro = function() {
+  new bootstrap.Modal(document.getElementById('modalFiltro')).show();
+};
+
+window.aplicarFiltro = function() {
+  const campo = document.getElementById("filtroCampo").value;
+  const valor = parseFloat(document.getElementById("filtroValor").value);
+
+  muestreoLayer.eachLayer(layer => {
+    const p = layer.feature.properties;
+    const v = parseFloat(p[campo]);
+
+    if (!isNaN(v) && v > valor) {
+      layer.setStyle({fillColor:'red', color:'red'});
+    } else {
+      layer.setStyle({fillColor:'grey', color:'grey'});
+    }
+  });
+};
+
+window.limpiarFiltro = function() {
+  muestreoLayer.eachLayer(layer => {
+    const p = layer.feature.properties;
+    const esDelUsuario = !!p.user;
+    const colorOriginal = esDelUsuario ? "#00BCD4" : "orange";
+    layer.setStyle({fillColor:colorOriginal, color:'black'});
+  });
+};
+
+let puntoActual = null;
+
+function mostrarModalDetallePunto(props) {
+  puntoActual = props; // guardamos datos globalmente
+
+  const tbody = document.getElementById("detallePuntoBody");
+  const title = document.getElementById("detallePuntoTitle");
+
+  title.textContent = props.nombre || "Detalle del punto";
+  tbody.innerHTML = "";
+
+  Object.entries(props).forEach(([key, value]) => {
+    tbody.innerHTML += `
+      <tr>
+        <th>${key}</th>
+        <td>${value ?? "N/D"}</td>
+      </tr>`;
+  });
+
+  new bootstrap.Modal(document.getElementById("modalDetallePunto")).show();
+}
+
+
+
 </script>
 
 
@@ -1015,6 +1295,53 @@ function abrirModalMisCapas() {
         </div>
       </div>
       <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalFiltro" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Filtrar puntos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label>Campo</label>
+        <select class="form-select" id="filtroCampo">
+          <option value="nitratos">Nitratos</option>
+          <option value="col_fecale">Coliformes</option>
+          <option value="arsenico">Arsénico</option>
+          <option value="ph">pH</option>
+        </select>
+        <label class="mt-2">Mayor que</label>
+        <input type="number" class="form-control" id="filtroValor" step="any">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="limpiarFiltro()">Quitar filtro</button>
+        <button class="btn btn-primary" onclick="aplicarFiltro()">Aplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalDetallePunto" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detallePuntoTitle">Detalle del punto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm table-striped">
+          <tbody id="detallePuntoBody">
+            <!-- filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCalcularWQI">🧮 Calcular WQI</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>

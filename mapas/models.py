@@ -1,6 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 
+
 class Muestreo(models.Model):
     gid = models.AutoField(primary_key=True)
     estacionid = models.CharField(max_length=254, blank=True, null=True)

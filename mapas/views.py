@@ -24,6 +24,12 @@ from .forms import CustomLoginForm
 from .models import Muestreo, Capa, PreferenciasMapa
 from .roles import is_map_admin, get_or_create_map_admin_group
 
+import zipfile
+import tempfile
+import subprocess
+import os
+
+
 
 # =========================
 # Helpers
@@ -384,3 +390,102 @@ def usuarios_list_json(request):
         'date_joined': u.date_joined.isoformat() if u.date_joined else None,
     } for u in users]
     return JsonResponse({'results': results})
+
+@require_POST
+@login_required
+def cargar_capa_shapefile(request):
+    """
+    Recibe un ZIP con Shapefile, valida estructura,
+    reproyecta a EPSG:4326 e inserta en tabla patino.
+    """
+    archivo = request.FILES.get('archivo')
+    if not archivo or not archivo.name.lower().endswith('.zip'):
+        return JsonResponse({'success': False, 'error': 'Debe subir un archivo .zip'}, status=400)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = os.path.join(tmpdir, archivo.name)
+
+        # Guardar ZIP
+        with open(zip_path, 'wb+') as f:
+            for chunk in archivo.chunks():
+                f.write(chunk)
+
+        # Descomprimir
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as z:
+                z.extractall(tmpdir)
+        except zipfile.BadZipFile:
+            return JsonResponse({'success': False, 'error': 'ZIP corrupto'}, status=400)
+
+        # Buscar archivos SHP
+        files = os.listdir(tmpdir)
+        shp = shx = dbf = prj = None
+
+        for f in files:
+            lf = f.lower()
+            if lf.endswith('.shp'):
+                shp = f
+            elif lf.endswith('.shx'):
+                shx = f
+            elif lf.endswith('.dbf'):
+                dbf = f
+            elif lf.endswith('.prj'):
+                prj = f
+
+        faltantes = [e for e, v in {
+            '.shp': shp,
+            '.shx': shx,
+            '.dbf': dbf,
+            '.prj': prj
+        }.items() if v is None]
+
+        if faltantes:
+            return JsonResponse({
+                'success': False,
+                'error': 'Shapefile incompleto',
+                'faltantes': faltantes
+            }, status=400)
+
+        shp_path = os.path.join(tmpdir, shp)
+
+        # Ejecutar ogr2ogr → tabla patino
+        try:
+            cmd = [
+                'ogr2ogr',
+                '-f', 'PostgreSQL',
+                (
+                    f"PG:dbname={connection.settings_dict['NAME']} "
+                    f"user={connection.settings_dict['USER']} "
+                    f"password={connection.settings_dict['PASSWORD']} "
+                    f"host={connection.settings_dict['HOST']} "
+                    f"port={connection.settings_dict.get('PORT', 5432)}"
+                ),
+                shp_path,
+                '-nln', 'patino',
+                '-append',
+                '-lco', 'GEOMETRY_NAME=wkb_geometry',
+                '-t_srs', 'EPSG:4326',
+                '-nlt', 'MULTIPOLYGON'
+            ]
+
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al importar el Shapefile',
+                'detalle': str(e)
+            }, status=500)
+
+        # Asignar usuario a las geometrías recién cargadas
+        with connection.cursor() as cur:
+            cur.execute("""
+                UPDATE patino
+                SET user_id = %s
+                WHERE user_id IS NULL
+                AND fecha_subida IS NULL
+            """, [request.user.id])
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Capa Shapefile cargada correctamente'
+        })
