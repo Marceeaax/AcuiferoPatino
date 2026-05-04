@@ -18,7 +18,10 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point, GEOSGeometry, MultiPolygon
 
+import csv
+import io
 import json
+import re
 
 from .forms import CustomLoginForm
 from .models import Muestreo, Capa, PreferenciasMapa
@@ -41,6 +44,54 @@ def es_admin(user):
     )
 
 
+def normalizar_columna(valor):
+    """Normaliza encabezados de CSV para mapear variantes de nombres."""
+    if valor is None:
+        return ""
+    valor = str(valor).strip().lower()
+    reemplazos = str.maketrans(
+        "áéíóúüñ()/-",
+        "aeiouun    "
+    )
+    valor = valor.translate(reemplazos)
+    valor = valor.replace(".", " ")
+    valor = re.sub(r"[^a-z0-9]+", " ", valor)
+    return " ".join(valor.split())
+
+
+def parsear_decimal(valor):
+    """Convierte números con coma o punto decimal a float."""
+    if valor is None:
+        return None
+
+    texto = str(valor).strip()
+    if not texto:
+        return None
+
+    texto = texto.replace(" ", "")
+
+    if "," in texto and "." in texto:
+        if texto.rfind(",") > texto.rfind("."):
+            texto = texto.replace(".", "").replace(",", ".")
+        else:
+            texto = texto.replace(",", "")
+    elif "," in texto:
+        texto = texto.replace(",", ".")
+
+    try:
+        return float(texto)
+    except ValueError:
+        return None
+
+
+def valor_csv(fila, alias_map, clave):
+    """Devuelve el valor CSV usando el primer alias disponible."""
+    for alias in alias_map.get(clave, []):
+        if alias in fila and str(fila[alias]).strip() != "":
+            return fila[alias]
+    return None
+
+
 # =========================
 # Vistas principales (mapa y auth)
 # =========================
@@ -51,7 +102,10 @@ def mapa_muestreo_view(request):
     además de centro preferido y flag de admin.
     """
     if request.user.is_authenticated:
-        muestreos_qs = Muestreo.objects.filter(Q(user=request.user) | Q(user__isnull=True))
+        muestreos_qs = Muestreo.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True) | Q(publico=True),
+            activo=True
+        ).distinct()
         capas_qs = Capa.objects.filter(Q(user=request.user) | Q(user__isnull=True))
         try:
             pref = PreferenciasMapa.objects.get(user=request.user)
@@ -59,7 +113,10 @@ def mapa_muestreo_view(request):
         except PreferenciasMapa.DoesNotExist:
             centro_mapa = None
     else:
-        muestreos_qs = Muestreo.objects.filter(user__isnull=True)
+        muestreos_qs = Muestreo.objects.filter(
+            Q(user__isnull=True) | Q(publico=True),
+            activo=True
+        ).distinct()
         capas_qs = Capa.objects.filter(user__isnull=True)
         centro_mapa = None
 
@@ -164,6 +221,7 @@ def guardar_nuevo_punto(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            grupo = (data.get('grupo') or 'PATINO1').strip()
             punto = Muestreo(
                 nombre=data.get('nombre'),
                 fecha_toma=data.get('fecha_toma'),
@@ -172,6 +230,9 @@ def guardar_nuevo_punto(request):
                 conductivi=data.get('conductivi') or None,
                 arsenico=data.get('arsenico') or None,
                 col_fecale=data.get('col_fecale') or None,
+                grupo=grupo or 'PATINO1',
+                activo=True,
+                publico=False,
                 geom=Point(float(data.get('lng')), float(data.get('lat'))),
                 user=request.user
             )
@@ -180,6 +241,166 @@ def guardar_nuevo_punto(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@require_POST
+@login_required
+@csrf_protect
+def cargar_puntos_csv(request):
+    """Carga masiva de puntos de muestreo desde CSV/TSV."""
+    archivo = request.FILES.get('archivo')
+    srid_origen = request.POST.get('srid', '32721')
+    grupo = (request.POST.get('grupo') or 'PATINO1').strip() or 'PATINO1'
+
+    if not archivo:
+        return JsonResponse({'success': False, 'error': 'Archivo no recibido.'}, status=400)
+
+    try:
+        srid_origen = int(srid_origen)
+    except (TypeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'SRID de origen invÃ¡lido.'}, status=400)
+
+    try:
+        contenido = archivo.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return JsonResponse({'success': False, 'error': 'No se pudo leer el archivo. Guardalo como CSV UTF-8.'}, status=400)
+
+    try:
+        dialecto = csv.Sniffer().sniff(contenido[:4096], delimiters=';,\t')
+    except csv.Error:
+        dialecto = csv.excel_tab
+        dialecto.delimiter = '\t'
+
+    lector = csv.DictReader(io.StringIO(contenido), dialect=dialecto)
+    if not lector.fieldnames:
+        return JsonResponse({'success': False, 'error': 'El archivo no tiene encabezados.'}, status=400)
+
+    aliases = {
+        'codigo_pozo': ['codigo pozo'],
+        'nombre': ['nombre lugar', 'nombre', 'lugar'],
+        'x': ['x', 'longitud x', 'lon', 'longitude'],
+        'y': ['y', 'latitud y', 'lat', 'latitude'],
+        'fecha_toma': ['fecha muestreo', 'fecha toma', 'fecha'],
+        'n_amoniaca': ['n amoniacal mg l', 'n amoniacal'],
+        'nitritos': ['n nitritos mg l', 'n nitritos', 'nitritos'],
+        'nitratos': ['n nitratos mg l', 'n nitratos', 'nitratos'],
+        'alcalinida': ['alcalinidad total mg l', 'alcalinidad total', 'alcalinidad'],
+        'materia_or': ['materia organica mg l', 'materia organica'],
+        'conductivi': ['conductividad us cm', 'conductividad'],
+        'ph': ['ph'],
+        'bicarbonat': ['bicarbonato mg l', 'bicarbonato'],
+        'carbonatos': ['carbonato mg l', 'carbonato'],
+        'sulfatos': ['sulfato mg l', 'sulfato'],
+        'magnesio': ['magnesio mg l', 'magnesio'],
+        'calcio': ['calcio mg l', 'calcio'],
+        'sodio': ['sodio mg l', 'sodio'],
+        'potasio': ['potasio mg l', 'potasio'],
+        'cloruro': ['cloruro mg l', 'cloruro'],
+        'arsenico': ['arsenico mg l', 'arsenico'],
+        'mercurio': ['mercurio mg l', 'mercurio'],
+        'manganeso': ['manganeso mg l', 'manganeso'],
+        'cobre': ['cobre mg l', 'cobre'],
+        'cromo': ['cromo total mg l', 'cromo total', 'cromo'],
+        'col_fecale': ['coliformes fecales ufc 100 ml', 'coliformes fecales', 'coliformes']
+    }
+
+    filas = [
+        {normalizar_columna(k): v for k, v in fila.items() if k is not None}
+        for fila in lector
+    ]
+
+    if not filas:
+        return JsonResponse({'success': False, 'error': 'El archivo estÃ¡ vacÃ­o.'}, status=400)
+
+    insertados = 0
+    errores = []
+
+    with transaction.atomic():
+        for idx, fila in enumerate(filas, start=2):
+            try:
+                x = parsear_decimal(valor_csv(fila, aliases, 'x'))
+                y = parsear_decimal(valor_csv(fila, aliases, 'y'))
+
+                if x is None or y is None:
+                    errores.append(f'Fila {idx}: coordenadas x/y invÃ¡lidas.')
+                    continue
+
+                geom = Point(x, y, srid=srid_origen)
+                if srid_origen != 4326:
+                    geom.transform(4326)
+
+                Muestreo.objects.create(
+                    estacionid=(valor_csv(fila, aliases, 'codigo_pozo') or None),
+                    nombre=(valor_csv(fila, aliases, 'nombre') or None),
+                    fecha_toma=(valor_csv(fila, aliases, 'fecha_toma') or None),
+                    longitud_x=x,
+                    latitud_y=y,
+                    grupo=grupo,
+                    activo=True,
+                    publico=False,
+                    n_amoniaca=parsear_decimal(valor_csv(fila, aliases, 'n_amoniaca')),
+                    nitritos=parsear_decimal(valor_csv(fila, aliases, 'nitritos')),
+                    nitratos=parsear_decimal(valor_csv(fila, aliases, 'nitratos')),
+                    alcalinida=parsear_decimal(valor_csv(fila, aliases, 'alcalinida')),
+                    materia_or=parsear_decimal(valor_csv(fila, aliases, 'materia_or')),
+                    conductivi=parsear_decimal(valor_csv(fila, aliases, 'conductivi')),
+                    ph=parsear_decimal(valor_csv(fila, aliases, 'ph')),
+                    bicarbonat=parsear_decimal(valor_csv(fila, aliases, 'bicarbonat')),
+                    carbonatos=parsear_decimal(valor_csv(fila, aliases, 'carbonatos')),
+                    sulfatos=parsear_decimal(valor_csv(fila, aliases, 'sulfatos')),
+                    magnesio=parsear_decimal(valor_csv(fila, aliases, 'magnesio')),
+                    calcio=parsear_decimal(valor_csv(fila, aliases, 'calcio')),
+                    sodio=parsear_decimal(valor_csv(fila, aliases, 'sodio')),
+                    potasio=parsear_decimal(valor_csv(fila, aliases, 'potasio')),
+                    cloruro=parsear_decimal(valor_csv(fila, aliases, 'cloruro')),
+                    arsenico=parsear_decimal(valor_csv(fila, aliases, 'arsenico')),
+                    mercurio=parsear_decimal(valor_csv(fila, aliases, 'mercurio')),
+                    manganeso=parsear_decimal(valor_csv(fila, aliases, 'manganeso')),
+                    cobre=parsear_decimal(valor_csv(fila, aliases, 'cobre')),
+                    cromo=parsear_decimal(valor_csv(fila, aliases, 'cromo')),
+                    col_fecale=parsear_decimal(valor_csv(fila, aliases, 'col_fecale')),
+                    geom=geom,
+                    user=request.user
+                )
+                insertados += 1
+            except Exception as e:
+                errores.append(f'Fila {idx}: {e}')
+
+    if insertados == 0:
+        return JsonResponse({'success': False, 'error': 'No se insertÃ³ ningÃºn punto.', 'detalles': errores[:10]}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'insertados': insertados,
+        'omitidos': len(filas) - insertados,
+        'errores': errores[:10]
+    })
+
+
+@require_POST
+@login_required
+@csrf_protect
+def cambiar_publicacion_grupo_puntos(request):
+    """Cambia el estado público de un grupo de puntos del usuario actual."""
+    try:
+        data = json.loads(request.body)
+        grupo = (data.get('grupo') or '').strip()
+        publico = bool(data.get('publico'))
+
+        if not grupo:
+            return JsonResponse({'success': False, 'error': 'Grupo inválido.'}, status=400)
+
+        actualizados = Muestreo.objects.filter(
+            user=request.user,
+            grupo=grupo
+        ).update(publico=publico)
+
+        if actualizados == 0:
+            return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
+
+        return JsonResponse({'success': True, 'grupo': grupo, 'publico': publico, 'actualizados': actualizados})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_POST

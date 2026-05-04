@@ -39,6 +39,9 @@ class Muestreo(models.Model):
     cromo = models.DecimalField(max_digits=65535, decimal_places=65535, blank=True, null=True)
     dureza_cal = models.FloatField(db_column='dureza cal', blank=True, null=True)
     dureza_mag = models.FloatField(db_column='dureza mag', blank=True, null=True)
+    grupo = models.CharField(max_length=50, blank=True, null=True, default='PATINO1')
+    activo = models.BooleanField(default=True)
+    publico = models.BooleanField(default=False)
     geom = models.PointField(blank=True, null=True)
 
     user = models.ForeignKey(
