@@ -92,3 +92,28 @@ class PreferenciasMapa(models.Model):
 
     def __str__(self):
         return f"Centro mapa de {self.user.username}"
+
+
+class CapaRaster(models.Model):
+    MODOS = [
+        ("png", "Imagen PNG"),
+        ("geotiff", "GeoTIFF georreferenciado"),
+    ]
+
+    nombre = models.CharField(max_length=150)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="capas_raster")
+    publico = models.BooleanField(default=False)
+    modo_despliegue = models.CharField(max_length=20, choices=MODOS, default="png")
+    archivo_original = models.FileField(upload_to="rasters/source/")
+    archivo_4326 = models.FileField(upload_to="rasters/processed/")
+    archivo_png = models.FileField(upload_to="rasters/png/", blank=True, null=True)
+    bounds = models.JSONField(default=list)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "capa_raster"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.nombre

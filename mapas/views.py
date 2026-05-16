@@ -6,7 +6,8 @@ Incluye autenticación, gestión de puntos de muestreo, capas, y administración
 
 from django.shortcuts import render, redirect
 from django.core.serializers import serialize
-from django.db import transaction, connection
+from django.conf import settings
+from django.db import transaction, connection, ProgrammingError
 from django.db.models import Q
 from django.http import JsonResponse, Http404
 from django.contrib.auth import authenticate, login, logout
@@ -22,9 +23,12 @@ import csv
 import io
 import json
 import re
+import shutil
+from pathlib import Path
+from uuid import uuid4
 
 from .forms import CustomLoginForm
-from .models import Muestreo, Capa, PreferenciasMapa
+from .models import Muestreo, Capa, PreferenciasMapa, CapaRaster
 from .roles import is_map_admin, get_or_create_map_admin_group
 
 import zipfile
@@ -92,6 +96,116 @@ def valor_csv(fila, alias_map, clave):
     return None
 
 
+def _raster_dirs():
+    media_root = Path(settings.MEDIA_ROOT)
+    return {
+        "tmp": media_root / "rasters" / "tmp",
+        "source": media_root / "rasters" / "source",
+        "processed": media_root / "rasters" / "processed",
+        "png": media_root / "rasters" / "png",
+    }
+
+
+def _ensure_raster_dirs():
+    dirs = _raster_dirs()
+    for path in dirs.values():
+        path.mkdir(parents=True, exist_ok=True)
+    return dirs
+
+
+def _run_command(cmd):
+    return subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def _gdalinfo_json(path):
+    result = _run_command(["gdalinfo", "-json", str(path)])
+    return json.loads(result.stdout)
+
+
+def _bounds_from_gdalinfo(info):
+    corners = info.get("cornerCoordinates", {})
+    upper_left = corners.get("upperLeft")
+    lower_right = corners.get("lowerRight")
+    if not upper_left or not lower_right:
+        raise ValueError("No se pudieron determinar los límites del raster.")
+    return [[lower_right[1], upper_left[0]], [upper_left[1], lower_right[0]]]
+
+
+def _resumen_raster(info):
+    band = (info.get("bands") or [{}])[0]
+    return {
+        "size": info.get("size"),
+        "crs": (((info.get("coordinateSystem") or {}).get("wkt", "").split('"')[1:2]) or [None])[0],
+        "epsg": next(
+            (item.get("code") for item in (info.get("stac") or {}).get("proj:epsg", []) if isinstance(item, dict)),
+            None
+        ) if isinstance((info.get("stac") or {}).get("proj:epsg"), list) else (info.get("stac") or {}).get("proj:epsg"),
+        "band_count": len(info.get("bands") or []),
+        "band_type": band.get("type"),
+        "nodata": band.get("noDataValue"),
+        "pixel_size": info.get("geoTransform")[1:3] if info.get("geoTransform") else None,
+        "bounds": _bounds_from_gdalinfo(info),
+    }
+
+
+def _crear_color_relief(path_txt):
+    path_txt.write_text(
+        "\n".join([
+            "0 46 204 113 0",
+            "50 46 204 113 200",
+            "100 241 196 15 215",
+            "200 230 126 34 230",
+            "300 192 57 43 240",
+            "500 127 0 0 255",
+            "nv 0 0 0 0",
+        ]),
+        encoding="utf-8",
+    )
+
+
+def _procesar_raster(origen_path, base_name):
+    dirs = _ensure_raster_dirs()
+    processed_tif = dirs["processed"] / f"{base_name}_4326.tif"
+    colored_tif = dirs["processed"] / f"{base_name}_colored.tif"
+    png_path = dirs["png"] / f"{base_name}.png"
+    color_map = dirs["tmp"] / f"{base_name}_colormap.txt"
+
+    _run_command([
+        "gdalwarp",
+        "-t_srs", "EPSG:4326",
+        "-dstalpha",
+        "-overwrite",
+        str(origen_path),
+        str(processed_tif),
+    ])
+
+    _crear_color_relief(color_map)
+    _run_command([
+        "gdaldem",
+        "color-relief",
+        str(processed_tif),
+        str(color_map),
+        str(colored_tif),
+        "-alpha",
+    ])
+    _run_command([
+        "gdal_translate",
+        "-of", "PNG",
+        str(colored_tif),
+        str(png_path),
+    ])
+
+    info_4326 = _gdalinfo_json(processed_tif)
+    return {
+        "processed_tif": processed_tif,
+        "png_path": png_path,
+        "colored_tif": colored_tif,
+        "color_map": color_map,
+        "bounds": _bounds_from_gdalinfo(info_4326),
+        "metadata": _resumen_raster(info_4326),
+    }
+
+
 # =========================
 # Vistas principales (mapa y auth)
 # =========================
@@ -108,6 +222,10 @@ def mapa_muestreo_view(request):
         ).distinct()
         capas_qs = Capa.objects.filter(Q(user=request.user) | Q(user__isnull=True))
         try:
+            rasters_qs = list(CapaRaster.objects.filter(Q(user=request.user) | Q(publico=True)))
+        except ProgrammingError:
+            rasters_qs = []
+        try:
             pref = PreferenciasMapa.objects.get(user=request.user)
             centro_mapa = {'lat': pref.centro_mapa.y, 'lng': pref.centro_mapa.x}
         except PreferenciasMapa.DoesNotExist:
@@ -118,6 +236,10 @@ def mapa_muestreo_view(request):
             activo=True
         ).distinct()
         capas_qs = Capa.objects.filter(user__isnull=True)
+        try:
+            rasters_qs = list(CapaRaster.objects.filter(publico=True))
+        except ProgrammingError:
+            rasters_qs = []
         centro_mapa = None
 
     muestreos = serialize(
@@ -144,9 +266,22 @@ def mapa_muestreo_view(request):
             }
         })
 
+    rasters = [{
+        "id": r.id,
+        "nombre": r.nombre,
+        "publico": r.publico,
+        "es_propia": request.user.is_authenticated and r.user_id == request.user.id,
+        "modo_despliegue": r.modo_despliegue,
+        "archivo_png_url": r.archivo_png.url if r.archivo_png else None,
+        "archivo_4326_url": r.archivo_4326.url if r.archivo_4326 else None,
+        "bounds": r.bounds,
+        "metadata": r.metadata,
+    } for r in rasters_qs]
+
     return render(request, 'mapas/mapa_muestreo.html', {
         'muestreos': muestreos,
         'patino': json.dumps(capas_fc),
+        'rasters': json.dumps(rasters),
         'centro_mapa': centro_mapa,
         'es_admin': es_admin(request.user),
     })
@@ -241,6 +376,66 @@ def guardar_nuevo_punto(request):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+@require_POST
+@login_required
+@csrf_protect
+def editar_punto_view(request, id):
+    """Actualiza un punto propio de muestreo."""
+    try:
+        data = json.loads(request.body)
+        punto = Muestreo.objects.get(gid=id, user=request.user)
+
+        punto.estacionid = data.get('estacionid') or None
+        punto.codigoorig = data.get('codigoorig') or None
+        punto.nombre = data.get('nombre')
+        punto.entidad = data.get('entidad') or None
+        punto.fecha_toma = data.get('fecha_toma')
+        punto.grupo = ((data.get('grupo') or 'PATINO1').strip() or 'PATINO1')
+        punto.alcalinida = data.get('alcalinida') or None
+        punto.bicarbonat = data.get('bicarbonat') or None
+        punto.calcio = data.get('calcio') or None
+        punto.carbonatos = data.get('carbonatos') or None
+        punto.cloruro = data.get('cloruro') or None
+        punto.nitratos = data.get('nitratos') or None
+        punto.n_amoniaca = data.get('n_amoniaca') or None
+        punto.nitritos = data.get('nitritos') or None
+        punto.ph = data.get('ph') or None
+        punto.potasio = data.get('potasio') or None
+        punto.sodio = data.get('sodio') or None
+        punto.std = data.get('std') or None
+        punto.sulfatos = data.get('sulfatos') or None
+        punto.temperatur = data.get('temperatur') or None
+        punto.turbidez = data.get('turbidez') or None
+        punto.materia_or = data.get('materia_or') or None
+        punto.conductivi = data.get('conductivi') or None
+        punto.arsenico = data.get('arsenico') or None
+        punto.mercurio = data.get('mercurio') or None
+        punto.manganeso = data.get('manganeso') or None
+        punto.cobre = data.get('cobre') or None
+        punto.cromo = data.get('cromo') or None
+        punto.col_fecale = data.get('col_fecale') or None
+        punto.dureza_tot = data.get('dureza_tot') or None
+        punto.hierro_tot = data.get('hierro_tot') or None
+        punto.magnesio = data.get('magnesio') or None
+        punto.dureza_cal = data.get('dureza_cal') or None
+        punto.dureza_mag = data.get('dureza_mag') or None
+
+        lat = data.get('lat')
+        lng = data.get('lng')
+        if lat is not None and lng is not None and lat != '' and lng != '':
+            punto.geom = Point(float(lng), float(lat))
+            punto.longitud_x = float(lng)
+            punto.latitud_y = float(lat)
+
+        punto.save()
+
+        return JsonResponse({'success': True})
+    except Muestreo.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Punto no encontrado o no autorizado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_POST
@@ -406,6 +601,37 @@ def cambiar_publicacion_grupo_puntos(request):
 @require_POST
 @login_required
 @csrf_protect
+def renombrar_grupo_puntos(request):
+    """Renombra un grupo de puntos propio del usuario actual."""
+    try:
+        data = json.loads(request.body)
+        grupo_actual = (data.get('grupo_actual') or '').strip()
+        grupo_nuevo = (data.get('grupo_nuevo') or '').strip()
+
+        if not grupo_actual or not grupo_nuevo:
+            return JsonResponse({'success': False, 'error': 'Debes indicar el grupo actual y el nuevo nombre.'}, status=400)
+
+        actualizados = Muestreo.objects.filter(
+            user=request.user,
+            grupo=grupo_actual
+        ).update(grupo=grupo_nuevo)
+
+        if actualizados == 0:
+            return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
+
+        return JsonResponse({
+            'success': True,
+            'grupo_actual': grupo_actual,
+            'grupo_nuevo': grupo_nuevo,
+            'actualizados': actualizados
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+@csrf_protect
 def eliminar_punto_view(request, id):
     """Elimina un punto de muestreo si pertenece al usuario actual."""
     try:
@@ -558,6 +784,129 @@ def solicitar_publicacion(request, capa_id):
 
 
 # =========================
+# =========================
+# Capas raster TIFF
+# =========================
+@require_POST
+@login_required
+@csrf_protect
+def preview_capa_tiff(request):
+    """Lee metadatos de un GeoTIFF temporal antes de guardarlo."""
+    archivo = request.FILES.get("archivo")
+    if not archivo or not archivo.name.lower().endswith((".tif", ".tiff")):
+        return JsonResponse({"success": False, "error": "Debes subir un archivo TIFF o TIF."}, status=400)
+
+    dirs = _ensure_raster_dirs()
+    token = uuid4().hex
+    temp_path = dirs["tmp"] / f"{token}.tif"
+
+    with open(temp_path, "wb+") as destino:
+        for chunk in archivo.chunks():
+            destino.write(chunk)
+
+    try:
+        info = _gdalinfo_json(temp_path)
+        resumen = _resumen_raster(info)
+        return JsonResponse({
+            "success": True,
+            "token": token,
+            "preview": resumen,
+        })
+    except Exception as e:
+        if temp_path.exists():
+            temp_path.unlink()
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@require_POST
+@login_required
+@csrf_protect
+def cargar_capa_tiff(request):
+    """Guarda un GeoTIFF, lo normaliza a 4326 y genera una vista PNG coloreada."""
+    token = (request.POST.get("token") or "").strip()
+    nombre = (request.POST.get("nombre") or "").strip()
+    modo_despliegue = (request.POST.get("modo_despliegue") or "png").strip()
+    publico = request.POST.get("publico") == "true"
+
+    if not token or not nombre:
+        return JsonResponse({"success": False, "error": "Nombre o token de preview faltante."}, status=400)
+    if modo_despliegue not in {"png", "geotiff"}:
+        return JsonResponse({"success": False, "error": "Modo de despliegue inválido."}, status=400)
+
+    dirs = _ensure_raster_dirs()
+    temp_path = dirs["tmp"] / f"{token}.tif"
+    if not temp_path.exists():
+        return JsonResponse({"success": False, "error": "La vista previa expiró. Volvé a seleccionar el archivo."}, status=400)
+
+    base_name = uuid4().hex
+    source_path = dirs["source"] / f"{base_name}_{temp_path.name}"
+    shutil.move(str(temp_path), str(source_path))
+
+    try:
+        procesado = _procesar_raster(source_path, base_name)
+        relative_source = source_path.relative_to(settings.MEDIA_ROOT).as_posix()
+        relative_tif = procesado["processed_tif"].relative_to(settings.MEDIA_ROOT).as_posix()
+        relative_png = procesado["png_path"].relative_to(settings.MEDIA_ROOT).as_posix()
+
+        raster = CapaRaster.objects.create(
+            nombre=nombre,
+            user=request.user,
+            publico=publico,
+            modo_despliegue=modo_despliegue,
+            archivo_original=relative_source,
+            archivo_4326=relative_tif,
+            archivo_png=relative_png,
+            bounds=procesado["bounds"],
+            metadata=procesado["metadata"],
+        )
+
+        for temp_artifact in [procesado["colored_tif"], procesado["color_map"]]:
+            temp_artifact = Path(temp_artifact)
+            if temp_artifact.exists():
+                temp_artifact.unlink()
+
+        return JsonResponse({
+            "success": True,
+            "id": raster.id,
+            "nombre": raster.nombre,
+        })
+    except Exception as e:
+        cleanup = [
+            source_path,
+            dirs["processed"] / f"{base_name}_4326.tif",
+            dirs["processed"] / f"{base_name}_colored.tif",
+            dirs["png"] / f"{base_name}.png",
+            dirs["tmp"] / f"{base_name}_colormap.txt",
+        ]
+        for path in cleanup:
+            path = Path(path)
+            if path.exists():
+                path.unlink()
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@require_POST
+@login_required
+@csrf_protect
+def eliminar_capa_tiff(request, raster_id):
+    """Elimina una capa raster propia junto con sus archivos asociados."""
+    try:
+        raster = CapaRaster.objects.get(pk=raster_id, user=request.user)
+    except CapaRaster.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Capa raster no encontrada o no autorizada."}, status=404)
+
+    archivos = [
+        raster.archivo_original.path if raster.archivo_original else None,
+        raster.archivo_4326.path if raster.archivo_4326 else None,
+        raster.archivo_png.path if raster.archivo_png else None,
+    ]
+    raster.delete()
+    for archivo in archivos:
+        if archivo and os.path.exists(archivo):
+            os.remove(archivo)
+    return JsonResponse({"success": True})
+
+
 # Administración de usuarios
 # =========================
 @require_POST
