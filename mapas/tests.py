@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 
 from . import views
-from .models import PreferenciasMapa
+from .models import PreferenciasMapa, SolicitudPublicacion
 
 
 class HelperFunctionsTests(SimpleTestCase):
@@ -36,6 +36,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
 
     @patch("mapas.views.render")
     @patch("mapas.views.serialize")
+    @patch("mapas.views._latest_request_map_for_user", return_value={})
     @patch("mapas.views.CapaRaster.objects.filter")
     @patch("mapas.views.Capa.objects.filter")
     @patch("mapas.views.Muestreo.objects.filter")
@@ -44,6 +45,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
         mock_muestreo_filter,
         mock_capa_filter,
         mock_raster_filter,
+        _mock_latest_requests,
         mock_serialize,
         mock_render,
     ):
@@ -72,6 +74,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
 
     @patch("mapas.views.render")
     @patch("mapas.views.serialize")
+    @patch("mapas.views._latest_request_map_for_user", return_value={})
     @patch("mapas.views.PreferenciasMapa.objects.get")
     @patch("mapas.views.CapaRaster.objects.filter")
     @patch("mapas.views.Capa.objects.filter")
@@ -82,6 +85,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
         mock_capa_filter,
         mock_raster_filter,
         mock_pref_get,
+        _mock_latest_requests,
         mock_serialize,
         mock_render,
     ):
@@ -112,6 +116,67 @@ class MapaMuestreoViewTests(SimpleTestCase):
 
     @patch("mapas.views.render")
     @patch("mapas.views.serialize")
+    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views._latest_request_map_for_user", return_value={})
+    @patch("mapas.views.PreferenciasMapa.objects.get", side_effect=views.PreferenciasMapa.DoesNotExist)
+    @patch("mapas.views.CapaRaster.objects.filter")
+    @patch("mapas.views.Capa.objects.filter")
+    @patch("mapas.views.Muestreo.objects.filter")
+    def test_muestreos_geojson_incluye_nombres_de_auditoria(
+        self,
+        mock_muestreo_filter,
+        mock_capa_filter,
+        mock_raster_filter,
+        _mock_pref_get,
+        _mock_latest_requests,
+        mock_request_filter,
+        mock_serialize,
+        mock_render,
+    ):
+        request = self.factory.get("/mapa-muestreo/")
+        request.user = SimpleNamespace(
+            id=9,
+            is_authenticated=True,
+            is_staff=True,
+            groups=SimpleNamespace(filter=lambda **kwargs: SimpleNamespace(exists=lambda: True)),
+        )
+
+        mock_muestreo_qs = Mock(name="muestreos_qs")
+        mock_muestreo_qs.values.return_value = [
+            {
+                "gid": 15,
+                "usu_insercion__username": "marce",
+                "usu_modificacion__username": "liz",
+            }
+        ]
+        mock_muestreo_filter.return_value.distinct.return_value = mock_muestreo_qs
+        mock_capa_filter.return_value = []
+        mock_raster_filter.return_value = []
+        mock_request_filter.return_value.count.return_value = 0
+        mock_serialize.return_value = json.dumps({
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "15",
+                    "type": "Feature",
+                    "properties": {"nombre": "Pozo 15", "usu_insercion": 3, "usu_modificacion": 5},
+                    "geometry": None,
+                }
+            ],
+        })
+        mock_render.return_value = HttpResponse("ok")
+
+        response = views.mapa_muestreo_view(request)
+        contexto = mock_render.call_args.args[2]
+        muestreos = json.loads(contexto["muestreos"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(muestreos["features"][0]["properties"]["usu_insercion_nombre"], "marce")
+        self.assertEqual(muestreos["features"][0]["properties"]["usu_modificacion_nombre"], "liz")
+
+    @patch("mapas.views.render")
+    @patch("mapas.views.serialize")
+    @patch("mapas.views._latest_request_map_for_user", return_value={})
     @patch("mapas.views.PreferenciasMapa.objects.get", side_effect=views.PreferenciasMapa.DoesNotExist)
     @patch("mapas.views.CapaRaster.objects.filter")
     @patch("mapas.views.Capa.objects.filter")
@@ -122,6 +187,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
         mock_capa_filter,
         mock_raster_filter,
         _mock_pref_get,
+        _mock_latest_requests,
         mock_serialize,
         mock_render,
     ):
@@ -174,10 +240,11 @@ class CargarPuntosCsvTests(SimpleTestCase):
         self.view = inspect.unwrap(views.cargar_puntos_csv)
         self.user = SimpleNamespace(id=7, is_authenticated=True)
 
-    def _request_csv(self, contenido, grupo="PATINO2", srid="32721"):
+    def _request_csv(self, contenido, grupo="PATINO2", srid="32721", filename="muestreo.csv"):
+        payload = contenido.encode("utf-8") if isinstance(contenido, str) else contenido
         archivo = SimpleUploadedFile(
-            "muestreo.csv",
-            contenido.encode("utf-8"),
+            filename,
+            payload,
             content_type="text/csv",
         )
         request = self.factory.post(
@@ -197,6 +264,8 @@ class CargarPuntosCsvTests(SimpleTestCase):
         _mock_atomic,
     ):
         geom = Mock()
+        geom.x = -57.6012
+        geom.y = -25.3001
         mock_point.return_value = geom
 
         request = self._request_csv(
@@ -213,6 +282,13 @@ class CargarPuntosCsvTests(SimpleTestCase):
         self.assertEqual(data["insertados"], 2)
         self.assertEqual(mock_create.call_count, 2)
         self.assertEqual(mock_create.call_args.kwargs["grupo"], "PATINO2")
+        self.assertEqual(mock_create.call_args.kwargs["longitud_x"], -57.6012)
+        self.assertEqual(mock_create.call_args.kwargs["latitud_y"], -25.3001)
+        self.assertEqual(mock_create.call_args.kwargs["srid_origen"], 32721)
+        self.assertEqual(mock_create.call_args.kwargs["archivo_origen"], "muestreo.csv")
+        self.assertIsNotNone(mock_create.call_args.kwargs["lote_carga"])
+        self.assertEqual(mock_create.call_args.kwargs["usu_insercion"], self.user)
+        self.assertEqual(mock_create.call_args.kwargs["usu_modificacion"], self.user)
         geom.transform.assert_called_with(4326)
 
     @patch("mapas.views.transaction.atomic", side_effect=lambda: nullcontext())
@@ -239,6 +315,45 @@ class CargarPuntosCsvTests(SimpleTestCase):
         self.assertEqual(data["omitidos"], 1)
         self.assertEqual(mock_create.call_count, 1)
 
+    def test_carga_csv_rechaza_srid_no_permitido(self):
+        request = self._request_csv(
+            "codigo_pozo;nombre_lugar;x;y\n"
+            "01;Pozo A;444842,95;7196078,49\n",
+            srid="3857",
+        )
+
+        response = self.view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+
+    @patch("mapas.views.transaction.atomic", side_effect=lambda: nullcontext())
+    @patch("mapas.views.Muestreo.objects.create")
+    @patch("mapas.views.Point")
+    def test_carga_csv_acepta_encoding_cp1252(
+        self,
+        mock_point,
+        mock_create,
+        _mock_atomic,
+    ):
+        geom = Mock()
+        geom.x = -57.55
+        geom.y = -25.22
+        mock_point.return_value = geom
+        contenido = (
+            "codigo_pozo;nombre_lugar;x;y\n"
+            "01;Poz\xf3 \xc1;444842,95;7196078,49\n"
+        ).encode("cp1252")
+        request = self._request_csv(contenido, filename="muestreo_cp1252.csv")
+
+        response = self.view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(mock_create.call_args.kwargs["nombre"], "Pozó Á")
+
 
 class CambiarPublicacionGrupoTests(SimpleTestCase):
     def setUp(self):
@@ -246,9 +361,14 @@ class CambiarPublicacionGrupoTests(SimpleTestCase):
         self.view = inspect.unwrap(views.cambiar_publicacion_grupo_puntos)
         self.user = SimpleNamespace(id=3, is_authenticated=True)
 
+    @patch("mapas.views.SolicitudPublicacion.objects.get_or_create")
     @patch("mapas.views.Muestreo.objects.filter")
-    def test_publicar_grupo_actualiza_solo_puntos_del_usuario(self, mock_filter):
-        mock_filter.return_value.update.return_value = 5
+    def test_publicar_grupo_crea_solicitud_pendiente(self, mock_filter, mock_get_or_create):
+        mock_filter.return_value.exists.return_value = True
+        mock_get_or_create.return_value = (
+            SimpleNamespace(estado=SolicitudPublicacion.ESTADO_PENDIENTE, review_comment=""),
+            True,
+        )
         request = self.factory.post(
             "/puntos/grupo-publico/",
             data=json.dumps({"grupo": "PATINO2", "publico": True}),
@@ -262,7 +382,33 @@ class CambiarPublicacionGrupoTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["success"])
         mock_filter.assert_called_once_with(user=self.user, grupo="PATINO2")
-        mock_filter.return_value.update.assert_called_once_with(publico=True)
+        self.assertEqual(data["estado_solicitud"], "pendiente")
+        self.assertTrue(data["solicitud_creada"])
+
+    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views.Muestreo.objects.filter")
+    def test_hacer_privado_grupo_cancela_solicitudes_pendientes(self, mock_filter, mock_requests_filter):
+        mock_filter.return_value.exists.return_value = True
+        mock_filter.return_value.update.return_value = 5
+        request = self.factory.post(
+            "/puntos/grupo-publico/",
+            data=json.dumps({"grupo": "PATINO2", "publico": False}),
+            content_type="application/json",
+        )
+        request.user = self.user
+
+        response = self.view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        mock_filter.assert_called_once_with(user=self.user, grupo="PATINO2")
+        update_kwargs = mock_filter.return_value.update.call_args.kwargs
+        self.assertFalse(update_kwargs["publico"])
+        self.assertEqual(update_kwargs["usu_modificacion_id"], self.user.id)
+        self.assertIsNotNone(update_kwargs["fec_modificacion"])
+        mock_requests_filter.assert_called_once()
+        mock_requests_filter.return_value.delete.assert_called_once()
 
 
 class RenombrarGrupoPuntosTests(SimpleTestCase):
@@ -287,7 +433,10 @@ class RenombrarGrupoPuntosTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["success"])
         mock_filter.assert_called_once_with(user=self.user, grupo="PATINO1")
-        mock_filter.return_value.update.assert_called_once_with(grupo="PATINO2")
+        update_kwargs = mock_filter.return_value.update.call_args.kwargs
+        self.assertEqual(update_kwargs["grupo"], "PATINO2")
+        self.assertEqual(update_kwargs["usu_modificacion_id"], self.user.id)
+        self.assertIsNotNone(update_kwargs["fec_modificacion"])
 
     @patch("mapas.views.Muestreo.objects.filter")
     def test_renombrar_grupo_falla_si_no_hay_puntos_propios(self, mock_filter):
@@ -672,11 +821,12 @@ class CargarCapaPatinoTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["success"])
         mock_multi.assert_called_once_with(polygon)
-        mock_create.assert_called_once_with(
-            wkb_geometry=multipolygon,
-            user=self.user,
-            nombre="Zona 1",
-        )
+        kwargs = mock_create.call_args.kwargs
+        self.assertEqual(kwargs["wkb_geometry"], multipolygon)
+        self.assertEqual(kwargs["user"], self.user)
+        self.assertEqual(kwargs["nombre"], "Zona 1")
+        self.assertEqual(kwargs["usu_insercion"], self.user)
+        self.assertEqual(kwargs["usu_modificacion"], self.user)
 
     def test_rechaza_estructura_geojson_no_reconocida(self):
         request = self._request_geojson(json.dumps({"foo": "bar"}))
@@ -748,8 +898,9 @@ class MisCapasListJsonTests(SimpleTestCase):
         self.view = inspect.unwrap(views.mis_capas_list_json)
         self.user = SimpleNamespace(id=12, is_authenticated=True)
 
+    @patch("mapas.views._latest_request_map_for_user")
     @patch("mapas.views.Capa.objects.filter")
-    def test_lista_solo_capas_propias(self, mock_filter):
+    def test_lista_solo_capas_propias(self, mock_filter, mock_latest_requests):
         fecha = SimpleNamespace(isoformat=lambda: "2026-05-11T10:30:00")
         mock_filter.return_value.order_by.return_value = [
             SimpleNamespace(
@@ -760,6 +911,9 @@ class MisCapasListJsonTests(SimpleTestCase):
                 fecha_subida=fecha,
             )
         ]
+        mock_latest_requests.return_value = {
+            5: SimpleNamespace(estado="pendiente", review_comment="Falta revisar metadatos")
+        }
         request = self.factory.get("/api/mis-capas/")
         request.user = self.user
 
@@ -769,6 +923,8 @@ class MisCapasListJsonTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["nombre"], "Grupo Norte")
+        self.assertEqual(data["results"][0]["estado"], "pendiente")
+        self.assertEqual(data["results"][0]["comentario_revision"], "Falta revisar metadatos")
         mock_filter.assert_called_once_with(user=self.user)
 
 
@@ -778,9 +934,17 @@ class SolicitarPublicacionTests(SimpleTestCase):
         self.view = inspect.unwrap(views.solicitar_publicacion)
         self.user = SimpleNamespace(id=21, is_authenticated=True)
 
+    @patch("mapas.views.SolicitudPublicacion.objects.get_or_create")
     @patch("mapas.views.Capa.objects.get")
-    def test_solicita_publicacion_de_capa_propia(self, mock_get):
+    def test_solicita_publicacion_de_capa_propia(self, mock_get, mock_get_or_create):
         capa = Mock()
+        mock_get_or_create.return_value = (
+            SimpleNamespace(
+                estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+                capa_nombre="Capa de prueba",
+            ),
+            True,
+        )
         mock_get.return_value = capa
         request = self.factory.post("/api/solicitar-publicacion/8/")
         request.user = self.user
@@ -791,8 +955,10 @@ class SolicitarPublicacionTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["success"])
         self.assertEqual(capa.estado, "pendiente")
-        capa.save.assert_called_once_with(update_fields=["estado"])
+        update_fields = capa.save.call_args.kwargs["update_fields"]
+        self.assertCountEqual(update_fields, ["estado", "fec_modificacion", "usu_modificacion"])
         mock_get.assert_called_once_with(pk=8, user=self.user)
+        mock_get_or_create.assert_called_once()
 
     @patch("mapas.views.Capa.objects.get", side_effect=views.Capa.DoesNotExist)
     def test_solicitar_publicacion_devuelve_404_si_no_existe(self, mock_get):
@@ -854,6 +1020,90 @@ class AdminRoleTests(SimpleTestCase):
         target.save.assert_called_once()
 
 
+class SolicitudesPublicacionAdminTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.list_view = inspect.unwrap(views.solicitudes_publicacion_list_json)
+        self.resolve_view = inspect.unwrap(views.resolver_solicitud_publicacion)
+        self.admin = SimpleNamespace(id=2, is_authenticated=True, is_staff=True)
+
+    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views.SolicitudPublicacion.objects.exclude")
+    def test_admin_lista_solicitudes_pendientes_y_resueltas(self, mock_exclude, mock_filter):
+        fecha = SimpleNamespace(isoformat=lambda: "2026-05-18T12:00:00")
+        mock_filter.return_value.select_related.return_value.order_by.return_value = [
+            SimpleNamespace(
+                id=11,
+                tipo=SolicitudPublicacion.TIPO_GRUPO,
+                capa_nombre=None,
+                grupo_nombre="PATINO2",
+                requester=SimpleNamespace(username="marce"),
+                requester_id=3,
+                capa_id=None,
+                review_comment="",
+                created_at=fecha,
+            )
+        ]
+        mock_exclude.return_value.select_related.return_value.order_by.return_value.__getitem__.return_value = [
+            SimpleNamespace(
+                id=12,
+                tipo=SolicitudPublicacion.TIPO_CAPA,
+                estado=SolicitudPublicacion.ESTADO_APROBADA,
+                capa_nombre="Capa publica",
+                grupo_nombre=None,
+                requester=SimpleNamespace(username="liz"),
+                requester_id=5,
+                reviewed_by=SimpleNamespace(username="admin"),
+                review_comment="Aprobada correctamente",
+                created_at=fecha,
+                reviewed_at=fecha,
+            )
+        ]
+        request = self.factory.get("/api/solicitudes-publicacion/")
+        request.user = self.admin
+
+        response = self.list_view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data["pending"]), 1)
+        self.assertEqual(data["pending"][0]["objetivo"], "PATINO2")
+        self.assertEqual(len(data["resolved"]), 1)
+        self.assertEqual(data["resolved"][0]["reviewed_by"], "admin")
+
+    @patch("mapas.views.timezone.now", return_value="ahora")
+    @patch("mapas.views.Muestreo.objects.filter")
+    @patch("mapas.views.SolicitudPublicacion.objects.select_related")
+    def test_admin_aprueba_solicitud_de_grupo(self, mock_select_related, mock_filter, _mock_now):
+        solicitud = Mock(
+            tipo=SolicitudPublicacion.TIPO_GRUPO,
+            requester=SimpleNamespace(id=3),
+            grupo_nombre="PATINO2",
+        )
+        mock_select_related.return_value.get.return_value = solicitud
+        mock_filter.return_value.update.return_value = 7
+        request = self.factory.post(
+            "/api/solicitudes-publicacion/9/resolver/",
+            data=json.dumps({"decision": "aprobar", "comentario": "Publicacion aprobada."}),
+            content_type="application/json",
+        )
+        request.user = self.admin
+
+        response = self.resolve_view(request, 9)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        mock_filter.assert_called_once_with(user=solicitud.requester, grupo="PATINO2")
+        update_kwargs = mock_filter.return_value.update.call_args.kwargs
+        self.assertTrue(update_kwargs["publico"])
+        self.assertEqual(update_kwargs["usu_modificacion_id"], self.admin.id)
+        self.assertEqual(update_kwargs["fec_modificacion"], "ahora")
+        self.assertEqual(solicitud.estado, SolicitudPublicacion.ESTADO_APROBADA)
+        self.assertEqual(solicitud.review_comment, "Publicacion aprobada.")
+        solicitud.save.assert_called_once()
+
+
 class AuthAndPreferencesIntegrationTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -867,6 +1117,27 @@ class AuthAndPreferencesIntegrationTests(TestCase):
             "/login/",
             data={"username": "marce", "password": "ClaveSegura123"},
         )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/mapa-muestreo/")
+
+    def test_login_view_modal_devuelve_json_en_ajax(self):
+        response = self.client.post(
+            "/login/",
+            data={
+                "username": "marce",
+                "password": "ClaveSegura123",
+                "modal_login": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"success": True, "redirect_url": "/mapa-muestreo/"})
+
+    def test_logout_redirige_al_mapa(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/logout/")
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/mapa-muestreo/")

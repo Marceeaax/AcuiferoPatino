@@ -15,6 +15,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.utils import timezone
 
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point, GEOSGeometry, MultiPolygon
@@ -28,13 +29,17 @@ from pathlib import Path
 from uuid import uuid4
 
 from .forms import CustomLoginForm
-from .models import Muestreo, Capa, PreferenciasMapa, CapaRaster
+from .models import Muestreo, Capa, PreferenciasMapa, CapaRaster, SolicitudPublicacion
 from .roles import is_map_admin, get_or_create_map_admin_group
 
 import zipfile
 import tempfile
 import subprocess
 import os
+
+
+ALLOWED_POINT_IMPORT_SRIDS = {4326, 32721}
+POINT_IMPORT_ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
 
 
 
@@ -46,6 +51,24 @@ def es_admin(user):
     return user.is_authenticated and (
         user.is_staff or user.groups.filter(name='map_admin').exists()
     )
+
+
+def _latest_request_map_for_user(user, tipo):
+    """Devuelve el último estado de solicitud por capa o grupo del usuario."""
+    try:
+        solicitudes = SolicitudPublicacion.objects.filter(
+            requester=user,
+            tipo=tipo,
+        ).order_by("-created_at")
+    except ProgrammingError:
+        return {}
+
+    latest = {}
+    for solicitud in solicitudes:
+        key = solicitud.capa_id if tipo == SolicitudPublicacion.TIPO_CAPA else solicitud.grupo_nombre
+        if key and key not in latest:
+            latest[key] = solicitud
+    return latest
 
 
 def normalizar_columna(valor):
@@ -94,6 +117,44 @@ def valor_csv(fila, alias_map, clave):
         if alias in fila and str(fila[alias]).strip() != "":
             return fila[alias]
     return None
+
+
+def leer_texto_subido(archivo, encodings=POINT_IMPORT_ENCODINGS):
+    """Intenta leer un archivo de texto con varios encodings comunes."""
+    contenido_bytes = archivo.read()
+    for encoding in encodings:
+        try:
+            return contenido_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError("No se pudo decodificar el archivo")
+
+
+def timestamp_auditoria():
+    return timezone.now()
+
+
+def audit_create_kwargs(user, when=None):
+    when = when or timestamp_auditoria()
+    return {
+        "fec_insercion": when,
+        "usu_insercion": user,
+        "fec_modificacion": when,
+        "usu_modificacion": user,
+    }
+
+
+def mark_instance_modified(instance, user, when=None):
+    when = when or timestamp_auditoria()
+    instance.fec_modificacion = when
+    instance.usu_modificacion = user
+    return when
+
+
+def audit_update_fields(*field_names):
+    fields = {field for field in field_names if field}
+    fields.update({"fec_modificacion", "usu_modificacion"})
+    return list(fields)
 
 
 def _raster_dirs():
@@ -230,6 +291,29 @@ def mapa_muestreo_view(request):
             centro_mapa = {'lat': pref.centro_mapa.y, 'lng': pref.centro_mapa.x}
         except PreferenciasMapa.DoesNotExist:
             centro_mapa = None
+        group_request_states = {}
+        try:
+            group_request_states = {
+                key: {
+                    "estado": solicitud.estado,
+                    "comentario": solicitud.review_comment or "",
+                }
+                for key, solicitud in _latest_request_map_for_user(
+                    request.user,
+                    SolicitudPublicacion.TIPO_GRUPO,
+                ).items()
+            }
+        except ProgrammingError:
+            group_request_states = {}
+        try:
+            pending_admin_requests_count = (
+                SolicitudPublicacion.objects.filter(
+                    estado=SolicitudPublicacion.ESTADO_PENDIENTE
+                ).count()
+                if es_admin(request.user) else 0
+            )
+        except ProgrammingError:
+            pending_admin_requests_count = 0
     else:
         muestreos_qs = Muestreo.objects.filter(
             Q(user__isnull=True) | Q(publico=True),
@@ -241,6 +325,8 @@ def mapa_muestreo_view(request):
         except ProgrammingError:
             rasters_qs = []
         centro_mapa = None
+        group_request_states = {}
+        pending_admin_requests_count = 0
 
     muestreos = serialize(
         'geojson',
@@ -248,6 +334,27 @@ def mapa_muestreo_view(request):
         geometry_field='geom',
         fields=['id'] + [f.name for f in Muestreo._meta.fields if f.name != 'geom']
     )
+    try:
+        muestreos_fc = json.loads(muestreos)
+        audit_name_map = {
+            str(item["gid"]): {
+                "usu_insercion_nombre": item.get("usu_insercion__username"),
+                "usu_modificacion_nombre": item.get("usu_modificacion__username"),
+            }
+            for item in muestreos_qs.values(
+                "gid",
+                "usu_insercion__username",
+                "usu_modificacion__username",
+            )
+        }
+        for feature in muestreos_fc.get("features", []):
+            feature_id = str(feature.get("id") or feature.get("pk") or "")
+            if not feature_id:
+                continue
+            feature["properties"].update(audit_name_map.get(feature_id, {}))
+        muestreos = json.dumps(muestreos_fc)
+    except Exception:
+        pass
 
     # 🚩 armar geojson manual con flags de propiedad/publicación
     capas_fc = {"type": "FeatureCollection", "features": []}
@@ -284,19 +391,34 @@ def mapa_muestreo_view(request):
         'rasters': json.dumps(rasters),
         'centro_mapa': centro_mapa,
         'es_admin': es_admin(request.user),
+        'solicitudes_grupo': json.dumps(group_request_states),
+        'solicitudes_admin_pendientes_count': pending_admin_requests_count,
+        'login_form': CustomLoginForm(),
     })
 
 
 def login_view(request):
     """Login con formulario customizado."""
     error = False
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.POST.get("modal_login") == "1"
+    )
     if request.method == 'POST':
         form = CustomLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            if wants_json:
+                return JsonResponse({'success': True, 'redirect_url': '/mapa-muestreo/'})
             return redirect('mapa_muestreo')
         else:
+            if wants_json:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Usuario o contraseÃ±a incorrectos.',
+                    'field_errors': form.errors,
+                }, status=400)
             error = True
     else:
         form = CustomLoginForm()
@@ -306,7 +428,7 @@ def login_view(request):
 def logout_view(request):
     """Logout y redirección al login."""
     logout(request)
-    return redirect('login')
+    return redirect('mapa_muestreo')
 
 
 def register(request):
@@ -336,8 +458,14 @@ def guardar_centro_mapa(request):
                 return JsonResponse({'success': False, 'error': 'Coordenadas inválidas'}, status=400)
 
             punto = Point(float(lng), float(lat))
-            preferencias, _ = PreferenciasMapa.objects.get_or_create(user=request.user)
+            ahora = timestamp_auditoria()
+            preferencias, creada = PreferenciasMapa.objects.get_or_create(
+                user=request.user,
+                defaults=audit_create_kwargs(request.user, ahora),
+            )
             preferencias.centro_mapa = punto
+            if not creada:
+                mark_instance_modified(preferencias, request.user, ahora)
             preferencias.save()
             return JsonResponse({'success': True})
         except Exception as e:
@@ -357,6 +485,9 @@ def guardar_nuevo_punto(request):
         try:
             data = json.loads(request.body)
             grupo = (data.get('grupo') or 'PATINO1').strip()
+            lat = float(data.get('lat'))
+            lng = float(data.get('lng'))
+            ahora = timestamp_auditoria()
             punto = Muestreo(
                 nombre=data.get('nombre'),
                 fecha_toma=data.get('fecha_toma'),
@@ -366,10 +497,16 @@ def guardar_nuevo_punto(request):
                 arsenico=data.get('arsenico') or None,
                 col_fecale=data.get('col_fecale') or None,
                 grupo=grupo or 'PATINO1',
+                lote_carga='MANUAL',
+                archivo_origen='manual-web',
+                srid_origen=4326,
                 activo=True,
                 publico=False,
-                geom=Point(float(data.get('lng')), float(data.get('lat'))),
-                user=request.user
+                geom=Point(lng, lat),
+                longitud_x=lng,
+                latitud_y=lat,
+                user=request.user,
+                **audit_create_kwargs(request.user, ahora),
             )
             punto.save()
             return JsonResponse({'success': True})
@@ -386,6 +523,7 @@ def editar_punto_view(request, id):
     try:
         data = json.loads(request.body)
         punto = Muestreo.objects.get(gid=id, user=request.user)
+        mark_instance_modified(punto, request.user)
 
         punto.estacionid = data.get('estacionid') or None
         punto.codigoorig = data.get('codigoorig') or None
@@ -428,6 +566,7 @@ def editar_punto_view(request, id):
             punto.geom = Point(float(lng), float(lat))
             punto.longitud_x = float(lng)
             punto.latitud_y = float(lat)
+            punto.srid_origen = 4326
 
         punto.save()
 
@@ -455,10 +594,14 @@ def cargar_puntos_csv(request):
     except (TypeError, ValueError):
         return JsonResponse({'success': False, 'error': 'SRID de origen invÃ¡lido.'}, status=400)
 
+    if srid_origen not in ALLOWED_POINT_IMPORT_SRIDS:
+        soportados = ", ".join(str(valor) for valor in sorted(ALLOWED_POINT_IMPORT_SRIDS))
+        return JsonResponse({'success': False, 'error': f'SRID no soportado. UsÃ¡ uno de estos valores: {soportados}.'}, status=400)
+
     try:
-        contenido = archivo.read().decode('utf-8-sig')
-    except UnicodeDecodeError:
-        return JsonResponse({'success': False, 'error': 'No se pudo leer el archivo. Guardalo como CSV UTF-8.'}, status=400)
+        contenido = leer_texto_subido(archivo)
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'No se pudo leer el archivo. ProbÃ¡ guardarlo como CSV UTF-8 o CSV ANSI de Excel.'}, status=400)
 
     try:
         dialecto = csv.Sniffer().sniff(contenido[:4096], delimiters=';,\t')
@@ -509,6 +652,8 @@ def cargar_puntos_csv(request):
 
     insertados = 0
     errores = []
+    lote_carga = uuid4().hex
+    archivo_origen = Path(archivo.name).name if getattr(archivo, 'name', None) else None
 
     with transaction.atomic():
         for idx, fila in enumerate(filas, start=2):
@@ -523,14 +668,20 @@ def cargar_puntos_csv(request):
                 geom = Point(x, y, srid=srid_origen)
                 if srid_origen != 4326:
                     geom.transform(4326)
+                longitud_4326 = getattr(geom, 'x', x)
+                latitud_4326 = getattr(geom, 'y', y)
+                ahora = timestamp_auditoria()
 
                 Muestreo.objects.create(
                     estacionid=(valor_csv(fila, aliases, 'codigo_pozo') or None),
                     nombre=(valor_csv(fila, aliases, 'nombre') or None),
                     fecha_toma=(valor_csv(fila, aliases, 'fecha_toma') or None),
-                    longitud_x=x,
-                    latitud_y=y,
+                    longitud_x=longitud_4326,
+                    latitud_y=latitud_4326,
                     grupo=grupo,
+                    lote_carga=lote_carga,
+                    archivo_origen=archivo_origen,
+                    srid_origen=srid_origen,
                     activo=True,
                     publico=False,
                     n_amoniaca=parsear_decimal(valor_csv(fila, aliases, 'n_amoniaca')),
@@ -555,7 +706,8 @@ def cargar_puntos_csv(request):
                     cromo=parsear_decimal(valor_csv(fila, aliases, 'cromo')),
                     col_fecale=parsear_decimal(valor_csv(fila, aliases, 'col_fecale')),
                     geom=geom,
-                    user=request.user
+                    user=request.user,
+                    **audit_create_kwargs(request.user, ahora),
                 )
                 insertados += 1
             except Exception as e:
@@ -576,7 +728,7 @@ def cargar_puntos_csv(request):
 @login_required
 @csrf_protect
 def cambiar_publicacion_grupo_puntos(request):
-    """Cambia el estado público de un grupo de puntos del usuario actual."""
+    """Solicita publicación o vuelve privado un grupo de puntos propio."""
     try:
         data = json.loads(request.body)
         grupo = (data.get('grupo') or '').strip()
@@ -585,15 +737,56 @@ def cambiar_publicacion_grupo_puntos(request):
         if not grupo:
             return JsonResponse({'success': False, 'error': 'Grupo inválido.'}, status=400)
 
-        actualizados = Muestreo.objects.filter(
-            user=request.user,
-            grupo=grupo
-        ).update(publico=publico)
-
-        if actualizados == 0:
+        puntos_qs = Muestreo.objects.filter(user=request.user, grupo=grupo)
+        if not puntos_qs.exists():
             return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
 
-        return JsonResponse({'success': True, 'grupo': grupo, 'publico': publico, 'actualizados': actualizados})
+        if publico:
+            ahora = timestamp_auditoria()
+            solicitud, creada = SolicitudPublicacion.objects.get_or_create(
+                requester=request.user,
+                tipo=SolicitudPublicacion.TIPO_GRUPO,
+                grupo_nombre=grupo,
+                estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+                defaults={
+                    "capa_nombre": None,
+                    "capa_id": None,
+                    **audit_create_kwargs(request.user, ahora),
+                },
+            )
+            if not creada:
+                mark_instance_modified(solicitud, request.user, ahora)
+                solicitud.save(update_fields=audit_update_fields())
+            return JsonResponse({
+                'success': True,
+                'grupo': grupo,
+                'publico': False,
+                'solicitud_creada': creada,
+                'estado_solicitud': solicitud.estado,
+                'comentario_revision': solicitud.review_comment or '',
+                'mensaje': 'La solicitud de publicación fue enviada al administrador.',
+            })
+
+        ahora = timestamp_auditoria()
+        actualizados = puntos_qs.update(
+            publico=False,
+            fec_modificacion=ahora,
+            usu_modificacion_id=request.user.id,
+        )
+        SolicitudPublicacion.objects.filter(
+            requester=request.user,
+            tipo=SolicitudPublicacion.TIPO_GRUPO,
+            grupo_nombre=grupo,
+            estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+        ).delete()
+        return JsonResponse({
+            'success': True,
+            'grupo': grupo,
+            'publico': False,
+            'actualizados': actualizados,
+            'estado_solicitud': None,
+            'comentario_revision': '',
+        })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -611,10 +804,15 @@ def renombrar_grupo_puntos(request):
         if not grupo_actual or not grupo_nuevo:
             return JsonResponse({'success': False, 'error': 'Debes indicar el grupo actual y el nuevo nombre.'}, status=400)
 
+        ahora = timestamp_auditoria()
         actualizados = Muestreo.objects.filter(
             user=request.user,
             grupo=grupo_actual
-        ).update(grupo=grupo_nuevo)
+        ).update(
+            grupo=grupo_nuevo,
+            fec_modificacion=ahora,
+            usu_modificacion_id=request.user.id,
+        )
 
         if actualizados == 0:
             return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
@@ -687,11 +885,13 @@ def cargar_capa_patino(request):
 
                 props = feat.get("properties", {}) or {}
                 nombre = props.get("name") or props.get("Nombre") or "Sin nombre"
+                ahora = timestamp_auditoria()
 
                 Capa.objects.create(
                     wkb_geometry=geom,
                     user=request.user,
-                    nombre=nombre
+                    nombre=nombre,
+                    **audit_create_kwargs(request.user, ahora),
                 )
                 insertados += 1
             except Exception as e:
@@ -752,7 +952,8 @@ def hacer_publica_view(request, ogc_fid: int):
     except Capa.DoesNotExist:
         raise Http404("Capa no encontrada")
     capa.user = None
-    capa.save(update_fields=['user'])
+    mark_instance_modified(capa, request.user)
+    capa.save(update_fields=audit_update_fields('user'))
     return JsonResponse({'success': True})
 
 
@@ -760,11 +961,13 @@ def hacer_publica_view(request, ogc_fid: int):
 def mis_capas_list_json(request):
     """Lista solo las capas propias del usuario logueado."""
     capas = Capa.objects.filter(user=request.user).order_by('-fecha_subida')
+    latest_requests = _latest_request_map_for_user(request.user, SolicitudPublicacion.TIPO_CAPA)
     results = [{
         'id': c.ogc_fid,
         'nombre': c.nombre or 'Sin nombre',
         'descripcion': c.descripcion or '',
-        'estado': c.estado,
+        'estado': (latest_requests.get(c.ogc_fid).estado if latest_requests.get(c.ogc_fid) else getattr(c, 'estado', 'privada')),
+        'comentario_revision': (latest_requests.get(c.ogc_fid).review_comment if latest_requests.get(c.ogc_fid) else ''),
         'fecha_subida': c.fecha_subida.isoformat(),
     } for c in capas]
     return JsonResponse({'results': results})
@@ -773,14 +976,156 @@ def mis_capas_list_json(request):
 @require_POST
 @login_required
 def solicitar_publicacion(request, capa_id):
-    """Marca una capa como pendiente de publicación."""
+    """Crea o mantiene una solicitud pendiente de publicación de capa."""
     try:
         capa = Capa.objects.get(pk=capa_id, user=request.user)
-        capa.estado = 'pendiente'
-        capa.save(update_fields=['estado'])
-        return JsonResponse({'success': True})
+        ahora = timestamp_auditoria()
+        solicitud, creada = SolicitudPublicacion.objects.get_or_create(
+            requester=request.user,
+            tipo=SolicitudPublicacion.TIPO_CAPA,
+            capa_id=capa_id,
+            estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+            defaults={
+                'capa_nombre': capa.nombre or 'Sin nombre',
+                'grupo_nombre': None,
+                **audit_create_kwargs(request.user, ahora),
+            }
+        )
+        if not creada and not solicitud.capa_nombre:
+            solicitud.capa_nombre = capa.nombre or 'Sin nombre'
+            mark_instance_modified(solicitud, request.user, ahora)
+            solicitud.save(update_fields=audit_update_fields('capa_nombre', 'updated_at'))
+
+        try:
+            capa.estado = 'pendiente'
+            mark_instance_modified(capa, request.user, ahora)
+            capa.save(update_fields=audit_update_fields('estado'))
+        except Exception:
+            pass
+
+        return JsonResponse({
+            'success': True,
+            'estado': solicitud.estado,
+            'solicitud_creada': creada,
+        })
     except Capa.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'No encontrado'}, status=404)
+
+
+@require_GET
+@login_required
+@user_passes_test(es_admin)
+def solicitudes_publicacion_list_json(request):
+    """Lista solicitudes de publicación pendientes y resueltas para administradores."""
+    try:
+        pendientes = SolicitudPublicacion.objects.filter(
+            estado=SolicitudPublicacion.ESTADO_PENDIENTE
+        ).select_related('requester').order_by('-created_at')
+        resueltas = SolicitudPublicacion.objects.exclude(
+            estado=SolicitudPublicacion.ESTADO_PENDIENTE
+        ).select_related('requester', 'reviewed_by').order_by('-reviewed_at', '-updated_at', '-created_at')[:50]
+    except ProgrammingError:
+        return JsonResponse({'pending': [], 'resolved': []})
+
+    pending_results = [{
+        'id': s.id,
+        'tipo': s.tipo,
+        'objetivo': s.capa_nombre if s.tipo == SolicitudPublicacion.TIPO_CAPA else s.grupo_nombre,
+        'requester': s.requester.username,
+        'requester_id': s.requester_id,
+        'capa_id': s.capa_id,
+        'grupo_nombre': s.grupo_nombre,
+        'comentario_revision': s.review_comment or '',
+        'created_at': s.created_at.isoformat(),
+    } for s in pendientes]
+    resolved_results = [{
+        'id': s.id,
+        'tipo': s.tipo,
+        'estado': s.estado,
+        'objetivo': s.capa_nombre if s.tipo == SolicitudPublicacion.TIPO_CAPA else s.grupo_nombre,
+        'requester': s.requester.username,
+        'requester_id': s.requester_id,
+        'reviewed_by': s.reviewed_by.username if s.reviewed_by else '',
+        'comentario_revision': s.review_comment or '',
+        'created_at': s.created_at.isoformat(),
+        'reviewed_at': s.reviewed_at.isoformat() if s.reviewed_at else None,
+    } for s in resueltas]
+    return JsonResponse({'pending': pending_results, 'resolved': resolved_results})
+
+
+@require_POST
+@login_required
+@user_passes_test(es_admin)
+@csrf_protect
+def resolver_solicitud_publicacion(request, solicitud_id):
+    """Aprueba o rechaza una solicitud pendiente de publicación."""
+    try:
+        data = json.loads(request.body or '{}')
+        decision = (data.get('decision') or '').strip().lower()
+        review_comment = (data.get('comentario') or '').strip()
+        if decision not in {'aprobar', 'rechazar'}:
+            return JsonResponse({'success': False, 'error': 'Decisión inválida.'}, status=400)
+
+        solicitud = SolicitudPublicacion.objects.select_related('requester').get(
+            pk=solicitud_id,
+            estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+        )
+        ahora = timestamp_auditoria()
+
+        if decision == 'aprobar':
+            if solicitud.tipo == SolicitudPublicacion.TIPO_CAPA:
+                capa = Capa.objects.get(pk=solicitud.capa_id)
+                capa.user = None
+                mark_instance_modified(capa, request.user, ahora)
+                capa.save(update_fields=audit_update_fields('user'))
+                try:
+                    capa.estado = 'publica'
+                    mark_instance_modified(capa, request.user, ahora)
+                    capa.save(update_fields=audit_update_fields('estado'))
+                except Exception:
+                    pass
+            elif solicitud.tipo == SolicitudPublicacion.TIPO_GRUPO:
+                actualizados = Muestreo.objects.filter(
+                    user=solicitud.requester,
+                    grupo=solicitud.grupo_nombre,
+                ).update(
+                    publico=True,
+                    fec_modificacion=ahora,
+                    usu_modificacion_id=request.user.id,
+                )
+                if actualizados == 0:
+                    return JsonResponse({'success': False, 'error': 'No se encontraron puntos para publicar.'}, status=404)
+
+            solicitud.estado = SolicitudPublicacion.ESTADO_APROBADA
+        else:
+            if solicitud.tipo == SolicitudPublicacion.TIPO_CAPA:
+                try:
+                    capa = Capa.objects.get(pk=solicitud.capa_id, user=solicitud.requester)
+                    capa.estado = 'rechazada'
+                    mark_instance_modified(capa, request.user, ahora)
+                    capa.save(update_fields=audit_update_fields('estado'))
+                except Exception:
+                    pass
+            solicitud.estado = SolicitudPublicacion.ESTADO_RECHAZADA
+
+        solicitud.reviewed_by = request.user
+        solicitud.reviewed_at = ahora
+        solicitud.review_comment = review_comment or None
+        mark_instance_modified(solicitud, request.user, ahora)
+        solicitud.save(update_fields=audit_update_fields('estado', 'reviewed_by', 'reviewed_at', 'review_comment', 'updated_at'))
+
+        return JsonResponse({
+            'success': True,
+            'estado': solicitud.estado,
+            'tipo': solicitud.tipo,
+            'comentario_revision': solicitud.review_comment or '',
+        })
+    except SolicitudPublicacion.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Solicitud no encontrada o ya resuelta.'}, status=404)
+    except Capa.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'La capa solicitada ya no existe.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # =========================
@@ -847,6 +1192,7 @@ def cargar_capa_tiff(request):
         relative_source = source_path.relative_to(settings.MEDIA_ROOT).as_posix()
         relative_tif = procesado["processed_tif"].relative_to(settings.MEDIA_ROOT).as_posix()
         relative_png = procesado["png_path"].relative_to(settings.MEDIA_ROOT).as_posix()
+        ahora = timestamp_auditoria()
 
         raster = CapaRaster.objects.create(
             nombre=nombre,
@@ -858,6 +1204,7 @@ def cargar_capa_tiff(request):
             archivo_png=relative_png,
             bounds=procesado["bounds"],
             metadata=procesado["metadata"],
+            **audit_create_kwargs(request.user, ahora),
         )
 
         for temp_artifact in [procesado["colored_tif"], procesado["color_map"]]:
@@ -1047,13 +1394,18 @@ def cargar_capa_shapefile(request):
             }, status=500)
 
         # Asignar usuario a las geometrías recién cargadas
+        ahora = timestamp_auditoria()
         with connection.cursor() as cur:
             cur.execute("""
                 UPDATE patino
-                SET user_id = %s
+                SET user_id = %s,
+                    fec_insercion = COALESCE(fec_insercion, %s),
+                    usu_insercion = COALESCE(usu_insercion, %s),
+                    fec_modificacion = %s,
+                    usu_modificacion = %s
                 WHERE user_id IS NULL
                 AND fecha_subida IS NULL
-            """, [request.user.id])
+            """, [request.user.id, ahora, request.user.id, ahora, request.user.id])
 
         return JsonResponse({
             'success': True,
