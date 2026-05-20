@@ -9,13 +9,14 @@ from django.core.serializers import serialize
 from django.conf import settings
 from django.db import transaction, connection, ProgrammingError
 from django.db.models import Q
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse, FileResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils import timezone
+from django.utils.text import slugify
 
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point, GEOSGeometry, MultiPolygon
@@ -40,6 +41,50 @@ import os
 
 ALLOWED_POINT_IMPORT_SRIDS = {4326, 32721}
 POINT_IMPORT_ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
+POINT_EXPORT_FIELDS = [
+    "gid",
+    "estacionid",
+    "codigoorig",
+    "longitud_x",
+    "latitud_y",
+    "nombre",
+    "entidad",
+    "fecha_toma",
+    "alcalinida",
+    "bicarbonat",
+    "calcio",
+    "carbonatos",
+    "cloruro",
+    "col_fecale",
+    "conductivi",
+    "dureza_tot",
+    "hierro_tot",
+    "magnesio",
+    "n_amoniaca",
+    "nitratos",
+    "nitritos",
+    "ph",
+    "potasio",
+    "sodio",
+    "std",
+    "sulfatos",
+    "temperatur",
+    "turbidez",
+    "materia_or",
+    "arsenico",
+    "mercurio",
+    "manganeso",
+    "cobre",
+    "cromo",
+    "dureza_cal",
+    "dureza_mag",
+    "grupo",
+    "lote_carga",
+    "archivo_origen",
+    "srid_origen",
+    "activo",
+    "publico",
+]
 
 
 
@@ -51,6 +96,51 @@ def es_admin(user):
     return user.is_authenticated and (
         user.is_staff or user.groups.filter(name='map_admin').exists()
     )
+
+
+def muestreos_visibles_qs(user):
+    if user.is_authenticated:
+        return Muestreo.objects.filter(
+            Q(user=user) | Q(user__isnull=True) | Q(publico=True),
+            activo=True
+        ).distinct()
+    return Muestreo.objects.filter(
+        Q(user__isnull=True) | Q(publico=True),
+        activo=True
+    ).distinct()
+
+
+def capas_visibles_qs(user):
+    if user.is_authenticated:
+        return Capa.objects.filter(Q(user=user) | Q(user__isnull=True))
+    return Capa.objects.filter(user__isnull=True)
+
+
+def rasters_visibles_qs(user):
+    if user.is_authenticated:
+        return CapaRaster.objects.filter(Q(user=user) | Q(publico=True))
+    return CapaRaster.objects.filter(publico=True)
+
+
+def build_point_export_filename(group=None, formato="csv"):
+    base = f"puntos_{slugify(group) if group else 'todos'}"
+    ext = "geojson" if formato == "geojson" else "csv"
+    return f"{base}.{ext}"
+
+
+def serialize_points_geojson(qs):
+    return serialize(
+        "geojson",
+        qs,
+        geometry_field="geom",
+        fields=POINT_EXPORT_FIELDS,
+    )
+
+
+def format_export_value(value):
+    if value is None:
+        return ""
+    return str(value)
 
 
 def _latest_request_map_for_user(user, tipo):
@@ -432,8 +522,45 @@ def logout_view(request):
 
 
 def register(request):
-    """Registro básico de usuarios con UserCreationForm."""
+    """Registro de usuarios, con soporte liviano para modal AJAX en desarrollo."""
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.POST.get("modal_register") == "1"
+    )
     if request.method == 'POST':
+        username = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password") or ""
+
+        if wants_json:
+            errors = {}
+            if not username:
+                errors["username"] = ["Debes ingresar un nombre de usuario."]
+            elif User.objects.filter(username=username).exists():
+                errors["username"] = ["Ese nombre de usuario ya existe."]
+
+            if not password:
+                errors["password"] = ["Debes ingresar una contraseña."]
+
+            if errors:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "No se pudo crear la cuenta.",
+                        "field_errors": errors,
+                    },
+                    status=400,
+                )
+
+            user = User.objects.create_user(username=username, password=password)
+            login(request, user)
+            return JsonResponse(
+                {
+                    "success": True,
+                    "redirect_url": "/mapa-muestreo/",
+                    "message": "Cuenta creada correctamente.",
+                }
+            )
+
         form = UserCreationForm(request.POST)
         if form.is_valid():
             form.save()
@@ -441,6 +568,94 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'mapas/register.html', {'form': form})
+
+
+@require_GET
+def descargar_puntos(request):
+    """Descarga puntos visibles como CSV o GeoJSON, opcionalmente filtrados por grupo."""
+    formato = (request.GET.get("formato") or "csv").strip().lower()
+    grupo = (request.GET.get("grupo") or "").strip()
+    if formato not in {"csv", "geojson"}:
+        return JsonResponse({"success": False, "error": "Formato no soportado."}, status=400)
+
+    qs = muestreos_visibles_qs(request.user)
+    if grupo:
+        qs = qs.filter(grupo=grupo)
+
+    if not qs.exists():
+        return JsonResponse({"success": False, "error": "No hay puntos disponibles para descargar."}, status=404)
+
+    if formato == "geojson":
+        payload = serialize_points_geojson(qs)
+        response = HttpResponse(payload, content_type="application/geo+json")
+    else:
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        writer = csv.writer(response)
+        writer.writerow(POINT_EXPORT_FIELDS)
+        for punto in qs:
+            writer.writerow([format_export_value(getattr(punto, field, "")) for field in POINT_EXPORT_FIELDS])
+
+    response["Content-Disposition"] = f'attachment; filename="{build_point_export_filename(grupo or None, formato)}"'
+    return response
+
+
+@require_GET
+def descargar_capa_geojson(request, ogc_fid):
+    """Descarga una capa vectorial visible en formato GeoJSON."""
+    try:
+        capa = capas_visibles_qs(request.user).get(pk=ogc_fid)
+    except Capa.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Capa no encontrada o no autorizada."}, status=404)
+
+    feature_collection = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": json.loads(capa.wkb_geometry.geojson),
+                "properties": {
+                    "id": capa.ogc_fid,
+                    "nombre": capa.nombre or "Sin nombre",
+                    "descripcion": capa.descripcion or "",
+                    "publica": capa.user_id is None,
+                },
+            }
+        ],
+    }
+    filename = f'capa_{slugify(capa.nombre or f"capa-{capa.ogc_fid}")}.geojson'
+    response = HttpResponse(
+        json.dumps(feature_collection, ensure_ascii=False),
+        content_type="application/geo+json",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@require_GET
+def descargar_raster(request, raster_id):
+    """Descarga un raster visible como GeoTIFF o PNG."""
+    formato = (request.GET.get("formato") or "geotiff").strip().lower()
+    if formato not in {"geotiff", "png"}:
+        return JsonResponse({"success": False, "error": "Formato de raster no soportado."}, status=400)
+
+    try:
+        raster = rasters_visibles_qs(request.user).get(pk=raster_id)
+    except CapaRaster.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Raster no encontrado o no autorizado."}, status=404)
+
+    archivo = raster.archivo_4326 if formato == "geotiff" else raster.archivo_png
+    if not archivo:
+        return JsonResponse({"success": False, "error": "Ese formato no está disponible para este raster."}, status=404)
+
+    filename_base = slugify(raster.nombre or f"raster-{raster.id}") or f"raster-{raster.id}"
+    ext = "tif" if formato == "geotiff" else "png"
+    content_type = "image/tiff" if formato == "geotiff" else "image/png"
+    return FileResponse(
+        archivo.open("rb"),
+        as_attachment=True,
+        filename=f"{filename_base}.{ext}",
+        content_type=content_type,
+    )
 
 
 # =========================
@@ -489,13 +704,39 @@ def guardar_nuevo_punto(request):
             lng = float(data.get('lng'))
             ahora = timestamp_auditoria()
             punto = Muestreo(
+                estacionid=data.get('estacionid') or None,
+                codigoorig=data.get('codigoorig') or None,
                 nombre=data.get('nombre'),
+                entidad=data.get('entidad') or None,
                 fecha_toma=data.get('fecha_toma'),
+                n_amoniaca=data.get('n_amoniaca') or None,
+                nitritos=data.get('nitritos') or None,
                 nitratos=data.get('nitratos') or None,
+                alcalinida=data.get('alcalinida') or None,
+                materia_or=data.get('materia_or') or None,
                 ph=data.get('ph') or None,
                 conductivi=data.get('conductivi') or None,
+                bicarbonat=data.get('bicarbonat') or None,
+                carbonatos=data.get('carbonatos') or None,
+                sulfatos=data.get('sulfatos') or None,
+                magnesio=data.get('magnesio') or None,
+                calcio=data.get('calcio') or None,
+                sodio=data.get('sodio') or None,
+                potasio=data.get('potasio') or None,
+                cloruro=data.get('cloruro') or None,
                 arsenico=data.get('arsenico') or None,
+                mercurio=data.get('mercurio') or None,
+                manganeso=data.get('manganeso') or None,
+                cobre=data.get('cobre') or None,
+                cromo=data.get('cromo') or None,
                 col_fecale=data.get('col_fecale') or None,
+                std=data.get('std') or None,
+                temperatur=data.get('temperatur') or None,
+                turbidez=data.get('turbidez') or None,
+                dureza_tot=data.get('dureza_tot') or None,
+                hierro_tot=data.get('hierro_tot') or None,
+                dureza_cal=data.get('dureza_cal') or None,
+                dureza_mag=data.get('dureza_mag') or None,
                 grupo=grupo or 'PATINO1',
                 lote_carga='MANUAL',
                 archivo_origen='manual-web',

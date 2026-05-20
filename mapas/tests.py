@@ -2,7 +2,7 @@ import inspect
 import json
 from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -28,6 +28,106 @@ class HelperFunctionsTests(SimpleTestCase):
         fila = {"nombre lugar": "", "nombre": "Pozo 7"}
         aliases = {"nombre": ["nombre lugar", "nombre"]}
         self.assertEqual(views.valor_csv(fila, aliases, "nombre"), "Pozo 7")
+
+
+class DownloadViewsTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @patch("mapas.views.muestreos_visibles_qs")
+    def test_descargar_puntos_csv_devuelve_attachment(self, mock_visible_qs):
+        qs = MagicMock()
+        qs.exists.return_value = True
+        qs.__iter__.return_value = iter([
+            SimpleNamespace(
+                gid=1,
+                estacionid="P001",
+                codigoorig="ORIG",
+                longitud_x="-57.5",
+                latitud_y="-25.3",
+                nombre="Pozo 1",
+                entidad="ESSAP",
+                fecha_toma="2026-05-20",
+                alcalinida=None,
+                bicarbonat=None,
+                calcio=None,
+                carbonatos=None,
+                cloruro=None,
+                col_fecale=None,
+                conductivi=120,
+                dureza_tot=None,
+                hierro_tot=None,
+                magnesio=10,
+                n_amoniaca=None,
+                nitratos=12,
+                nitritos=0.1,
+                ph=7.1,
+                potasio=None,
+                sodio=None,
+                std=None,
+                sulfatos=None,
+                temperatur=None,
+                turbidez=None,
+                materia_or=1.2,
+                arsenico=None,
+                mercurio=None,
+                manganeso=None,
+                cobre=None,
+                cromo=None,
+                dureza_cal=None,
+                dureza_mag=None,
+                grupo="PATINO2",
+                lote_carga=None,
+                archivo_origen=None,
+                srid_origen=4326,
+                activo=True,
+                publico=True,
+            )
+        ])
+        mock_visible_qs.return_value = qs
+        request = self.factory.get("/descargas/puntos/?formato=csv")
+        request.user = SimpleNamespace(is_authenticated=False)
+
+        response = views.descargar_puntos(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('attachment; filename="puntos_todos.csv"', response["Content-Disposition"])
+        self.assertIn("Pozo 1", response.content.decode("utf-8"))
+
+    @patch("mapas.views.serialize_points_geojson", return_value='{"type":"FeatureCollection","features":[]}')
+    @patch("mapas.views.muestreos_visibles_qs")
+    def test_descargar_puntos_geojson_devuelve_attachment(self, mock_visible_qs, mock_serialize):
+        qs = MagicMock()
+        qs.exists.return_value = True
+        mock_visible_qs.return_value = qs
+        request = self.factory.get("/descargas/puntos/?formato=geojson&grupo=PATINO2")
+        request.user = SimpleNamespace(is_authenticated=True)
+
+        response = views.descargar_puntos(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/geo+json")
+        self.assertIn('attachment; filename="puntos_patino2.geojson"', response["Content-Disposition"])
+        mock_serialize.assert_called_once_with(qs.filter.return_value)
+
+    @patch("mapas.views.capas_visibles_qs")
+    def test_descargar_capa_geojson_devuelve_feature_collection(self, mock_capas_qs):
+        capa = SimpleNamespace(
+            ogc_fid=7,
+            nombre="Afghanistan",
+            descripcion="Capa de prueba",
+            user_id=None,
+            wkb_geometry=SimpleNamespace(geojson='{"type":"MultiPolygon","coordinates":[]}'),
+        )
+        mock_capas_qs.return_value.get.return_value = capa
+        request = self.factory.get("/descargas/capas/7/")
+        request.user = SimpleNamespace(is_authenticated=False)
+
+        response = views.descargar_capa_geojson(request, 7)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('attachment; filename="capa_afghanistan.geojson"', response["Content-Disposition"])
+        self.assertIn("Afghanistan", response.content.decode("utf-8"))
 
 
 class MapaMuestreoViewTests(SimpleTestCase):
@@ -1134,6 +1234,40 @@ class AuthAndPreferencesIntegrationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"success": True, "redirect_url": "/mapa-muestreo/"})
+
+    def test_register_modal_crea_usuario_y_autentica(self):
+        response = self.client.post(
+            "/register/",
+            data={
+                "username": "nuevo_modal",
+                "password": "ClaveModal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["redirect_url"], "/mapa-muestreo/")
+        self.assertTrue(User.objects.filter(username="nuevo_modal").exists())
+        self.assertEqual(int(self.client.session["_auth_user_id"]), User.objects.get(username="nuevo_modal").id)
+
+    def test_register_modal_rechaza_usuario_duplicado(self):
+        response = self.client.post(
+            "/register/",
+            data={
+                "username": "marce",
+                "password": "ClaveModal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertFalse(data["success"])
+        self.assertIn("username", data["field_errors"])
 
     def test_logout_redirige_al_mapa(self):
         self.client.force_login(self.user)
