@@ -1,0 +1,588 @@
+\newif\ifcapituloestructuraStandalone
+\ifdefined\chapter
+  \capituloestructuraStandalonefalse
+\else
+  \capituloestructuraStandalonetrue
+  \documentclass[12pt,a4paper]{report}
+  \usepackage[spanish]{babel}
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \begin{document}
+\fi
+
+\chapter{Estructura de la aplicaci\'on web propuesta}
+
+\section{Introducci\'on}
+
+La aplicaci\'on desarrollada en el presente trabajo corresponde a una plataforma web geoespacial orientada a la visualizaci\'on, carga, edici\'on, consulta, descarga y administraci\'on de informaci\'on vinculada al an\'alisis de la calidad del agua subterr\'anea en el acu\'ifero Pati\~no. Desde una perspectiva funcional, la plataforma combina elementos de un visor cartogr\'afico web, un sistema de administraci\'on de datos geoespaciales, un mecanismo de colaboraci\'on multiusuario y un conjunto de procesos de transformaci\'on de datos para interoperar con distintos formatos de entrada y salida.
+
+La estructura de la aplicaci\'on no responde a un dise\~no monol\'itico puramente est\'atico, sino a una arquitectura de varias capas que integra una interfaz web interactiva, un backend transaccional implementado sobre el marco Django, una base de datos espacial PostGIS y un conjunto de herramientas SIG externas para el procesamiento de archivos vectoriales y raster. Este enfoque permite que la soluci\'on no se limite a la simple publicaci\'on de mapas, sino que incorpore capacidades de gesti\'on y validaci\'on de datos, control de permisos, trazabilidad de cambios, importaci\'on de datos de campo y publicaci\'on diferenciada de contenidos.
+
+En t\'erminos conceptuales, la plataforma fue dise\~nada para soportar tres necesidades principales: en primer lugar, la representaci\'on visual del territorio y de los puntos de muestreo; en segundo lugar, la administraci\'on estructurada de capas y grupos de datos por parte de distintos tipos de usuarios; y, en tercer lugar, la normalizaci\'on de datos heterog\'eneos provenientes de campa\~nas de muestreo, archivos CSV, GeoJSON, Shapefile y GeoTIFF. La integraci\'on de estas necesidades da lugar a una estructura de aplicaci\'on que debe ser comprendida tanto desde el punto de vista tecnol\'ogico como desde el punto de vista funcional.
+
+\section{Prop\'osito general de la arquitectura}
+
+La arquitectura de la aplicaci\'on fue concebida con el objetivo de mantener un equilibrio entre flexibilidad funcional, reutilizaci\'on de componentes, interoperabilidad geoespacial y sostenibilidad t\'ecnica. En lugar de depender de una plataforma SIG cerrada, la soluci\'on se construy\'o sobre herramientas de c\'odigo abierto ampliamente difundidas, lo que facilita su mantenimiento, extensi\'on y posible adaptaci\'on a otros escenarios acad\'emicos o institucionales.
+
+La estructura general persigue los siguientes prop\'ositos:
+
+\begin{itemize}
+    \item Centralizar la visualizaci\'on y gesti\'on de informaci\'on geoespacial en una sola interfaz de usuario accesible desde el navegador.
+    \item Separar la capa de presentaci\'on, la l\'ogica de negocio y la persistencia espacial para mejorar la mantenibilidad.
+    \item Permitir la carga y transformaci\'on de datos georreferenciados en m\'ultiples formatos de uso habitual en proyectos SIG.
+    \item Incorporar mecanismos de control de acceso y de revisi\'on de contenidos antes de su publicaci\'on.
+    \item Registrar evidencias de inserciones, modificaciones y eliminaciones mediante un esquema formal de auditor\'ia.
+    \item Ofrecer una base tecnol\'ogica suficientemente general como para ser reutilizada en otros estudios de aguas subterr\'aneas, recursos h\'idricos o variables ambientales continuas.
+\end{itemize}
+
+\section{Visi\'on general por capas}
+
+Desde una perspectiva estructural, la aplicaci\'on puede describirse mediante cinco capas principales:
+
+\begin{enumerate}
+    \item \textbf{Capa de presentaci\'on}. Corresponde a la interfaz visible por el usuario dentro del navegador. Esta capa est\'a compuesta por una plantilla HTML principal, estilos CSS, componentes modales, paneles flotantes, leyendas, formularios din\'amicos y scripts JavaScript que controlan la interacci\'on del mapa.
+    \item \textbf{Capa de interacci\'on cartogr\'afica}. Est\'a formada por la biblioteca Leaflet y por los complementos usados para la visualizaci\'on de puntos, superficies, capas raster y heatmaps. Esta capa resuelve la representaci\'on espacial en el cliente web.
+    \item \textbf{Capa de aplicaci\'on}. Implementada en Django, contiene la l\'ogica de autenticaci\'on, permisos, carga de datos, transformaci\'on de coordenadas, publicaci\'on de capas, administraci\'on de usuarios y servicios de descarga.
+    \item \textbf{Capa de persistencia}. Corresponde a PostgreSQL con extensi\'on PostGIS, donde se almacenan los puntos de muestreo, las capas vectoriales, las preferencias de usuario, la informaci\'on de solicitudes, la auditor\'ia y la referencia a archivos raster.
+    \item \textbf{Capa de procesamiento geoespacial auxiliar}. Incluye herramientas externas como \texttt{ogr2ogr}, \texttt{gdalinfo}, \texttt{gdalwarp}, \texttt{gdaldem} y \texttt{gdal\_translate}, utilizadas para importar, reproyectar y preparar datos espaciales en formatos vectoriales y raster.
+\end{enumerate}
+
+Estas capas no funcionan como componentes aislados, sino como partes coordinadas de un flujo de trabajo donde la informaci\'on se captura, se valida, se transforma, se persiste y finalmente se representa de manera visual en el mapa.
+
+\section{Estructura f\'isica del proyecto}
+
+La organizaci\'on del proyecto dentro del sistema de archivos refleja el patr\'on usual de una aplicaci\'on Django, pero adaptado a necesidades geoespaciales y a un proceso de documentaci\'on acad\'emica. A nivel de carpetas principales, la estructura observable es la siguiente:
+
+\begin{itemize}
+    \item \texttt{tesis/}: contiene la configuraci\'on general del proyecto Django.
+    \item \texttt{mapas/}: concentra la aplicaci\'on principal, incluyendo modelos, vistas, rutas, formularios, roles, migraciones, archivos est\'aticos y plantillas.
+    \item \texttt{mapas/templates/mapas/}: contiene la interfaz principal del visor y las plantillas asociadas.
+    \item \texttt{mapas/static/}: almacena recursos est\'aticos propios de la aplicaci\'on, tales como im\'agenes, logos y algunos raster de referencia.
+    \item \texttt{staticfiles/}: corresponde al destino de archivos est\'aticos recolectados para despliegue.
+    \item \texttt{sql/}: re\'une scripts SQL auxiliares, especialmente aquellos necesarios para tablas no gestionadas por migraciones completas de Django.
+    \item \texttt{libro/}: almacena archivos \LaTeX{} y materiales vinculados al documento de tesis.
+    \item \texttt{data/}: puede utilizarse como \'area de apoyo para datos crudos o archivos intermedios del proyecto.
+\end{itemize}
+
+Este orden no es meramente organizativo; tambi\'en expresa una separaci\'on de responsabilidades entre configuraci\'on, c\'odigo de aplicaci\'on, recursos est\'aticos, persistencia auxiliar y documentaci\'on.
+
+\section{N\'ucleo tecnol\'ogico de la plataforma}
+
+\subsection{Framework de servidor}
+
+El backend est\'a implementado con \texttt{Django 5.1.6}, que cumple el rol de framework principal para el manejo de rutas, vistas, validaci\'on, autenticaci\'on, renderizado de plantillas y acceso a la base de datos. La elecci\'on de Django responde a varias razones: estabilidad, madurez del ecosistema, facilidad para estructurar aplicaciones modulares y disponibilidad de extensiones geoespaciales a trav\'es de GeoDjango.
+
+\subsection{Capacidades geoespaciales}
+
+La aplicaci\'on utiliza \texttt{django.contrib.gis}, es decir, GeoDjango, para incorporar campos geom\'etricos, serializaci\'on de geometr\'ias y compatibilidad con PostGIS. Esto permite definir modelos con tipos espaciales como \texttt{PointField} y \texttt{MultiPolygonField}, y operar sobre ellos desde el backend sin abandonar el marco general de Django.
+
+\subsection{Base de datos espacial}
+
+La base de datos utilizada es PostgreSQL con extensi\'on PostGIS. Esta combinaci\'on permite almacenar geometr\'ias, ejecutar transformaciones de coordenadas, calcular extensiones espaciales y persistir informaci\'on alfanum\'erica y geogr\'afica en un mismo repositorio. En la implementaci\'on actual, PostGIS no solo cumple la funci\'on de almacenamiento, sino tambi\'en la de motor de transformaci\'on espacial para algunos procesos cr\'iticos, como la conversi\'on de coordenadas de puntos importados desde CSV a \texttt{EPSG:4326}.
+
+\subsection{Biblioteca cartogr\'afica en el cliente}
+
+En el frontend se utiliza \texttt{Leaflet}, una biblioteca JavaScript liviana y ampliamente difundida para mapas web. Sobre Leaflet se apoyan varios complementos y extensiones, entre ellos:
+
+\begin{itemize}
+    \item \texttt{leaflet.heat}, para representar mapas de calor.
+    \item Mecanismos de \texttt{imageOverlay} o equivalentes para capas raster derivadas.
+    \item Integraci\'on con bibliotecas de lectura de raster en cliente, como \texttt{georaster} y \texttt{georaster-layer-for-leaflet}, seg\'un el modo de despliegue configurado.
+\end{itemize}
+
+\subsection{Herramientas auxiliares de interfaz}
+
+La interfaz combina \texttt{Bootstrap} para la construcci\'on de modales y formularios, y \texttt{SweetAlert2} para confirmaciones, advertencias, ingreso de comentarios, notificaciones de errores y mensajes de validaci\'on. Esto permite unificar la experiencia de usuario en operaciones sensibles como publicar capas, renombrar grupos, confirmar eliminaciones o cargar datos con advertencias.
+
+\subsection{Dependencias de despliegue}
+
+El proyecto ya contempla una base m\'inima para despliegue mediante:
+
+\begin{itemize}
+    \item \texttt{gunicorn}, como servidor WSGI.
+    \item \texttt{whitenoise}, para distribuci\'on de archivos est\'aticos en producci\'on.
+    \item Un \texttt{Dockerfile} orientado a contenedores, que instala dependencias del sistema como \texttt{GDAL}, \texttt{GEOS}, \texttt{PROJ} y bibliotecas de PostgreSQL.
+\end{itemize}
+
+Esto es particularmente importante en una plataforma SIG, donde no basta con desplegar solo paquetes Python, sino que tambi\'en deben resolverse correctamente dependencias nativas de procesamiento geoespacial.
+
+\section{Configuraci\'on central del proyecto}
+
+La carpeta \texttt{tesis/} contiene la configuraci\'on general del proyecto Django, destac\'andose dos archivos principales.
+
+\subsection{\texttt{settings.py}}
+
+El archivo de configuraci\'on define los aspectos transversales de la aplicaci\'on:
+
+\begin{itemize}
+    \item aplicaciones instaladas;
+    \item middleware de seguridad, sesi\'on, autenticaci\'on y CSRF;
+    \item conexi\'on a base de datos PostGIS;
+    \item configuraci\'on de archivos est\'aticos y multimedia;
+    \item soporte condicional para \texttt{WhiteNoise};
+    \item carga de variables de entorno para despliegue;
+    \item configuraci\'on local de rutas SIG en Windows para \texttt{GDAL} y \texttt{PROJ}.
+\end{itemize}
+
+Un aspecto relevante es que la configuraci\'on no est\'a totalmente fija a un entorno de desarrollo, sino que admite parametrizaci\'on por variables de entorno, lo cual constituye una base necesaria para futuros despliegues en servidores o servicios cloud.
+
+\subsection{\texttt{urls.py}}
+
+El archivo principal de rutas delega la mayor parte de la funcionalidad a la aplicaci\'on \texttt{mapas}. Esta decisi\'on implica que el dominio funcional del proyecto est\'a claramente concentrado en una sola app principal, lo cual simplifica el mantenimiento mientras el sistema siga respondiendo a un \'ambito problem\'atico homog\'eneo.
+
+\section{Aplicaci\'on principal \texttt{mapas}}
+
+La aplicaci\'on \texttt{mapas} es el n\'ucleo operativo del sistema. Dentro de ella se implementan los modelos de datos, las vistas, las rutas, los formularios, la l\'ogica de permisos y la interfaz principal del visor.
+
+\subsection{Rutas funcionales}
+
+El archivo \texttt{mapas/urls.py} agrupa los servicios que componen la aplicaci\'on. Desde el punto de vista funcional, estas rutas pueden clasificarse en las siguientes categor\'ias:
+
+\begin{enumerate}
+    \item \textbf{Acceso y sesi\'on}: inicio de sesi\'on, cierre de sesi\'on, registro y recuperaci\'on de contrase\~na.
+    \item \textbf{Visor principal}: carga del mapa de muestreo.
+    \item \textbf{Puntos de muestreo}: guardado manual, edici\'on, eliminaci\'on, carga masiva por CSV y gesti\'on de grupos de puntos.
+    \item \textbf{Capas vectoriales}: carga de GeoJSON, carga de Shapefile, eliminaci\'on y publicaci\'on.
+    \item \textbf{Capas raster}: previsualizaci\'on de TIFF, carga de TIFF y eliminaci\'on de raster.
+    \item \textbf{Solicitudes de publicaci\'on}: env\'io, listado, aprobaci\'on y rechazo.
+    \item \textbf{Administraci\'on}: listado de usuarios, promoci\'on y revocaci\'on de privilegios.
+    \item \textbf{Descargas}: exportaci\'on de puntos, capas y raster.
+\end{enumerate}
+
+Esta segmentaci\'on muestra que la aplicaci\'on no se reduce a una sola p\'agina con funciones accesorias, sino que expone un conjunto relativamente amplio de servicios HTTP coherentes con el dominio de un sistema de informaci\'on geoespacial colaborativo.
+
+\section{Modelado de datos}
+
+El dise\~no de datos del sistema se apoya en varios modelos principales, cada uno asociado a un tipo de entidad funcional.
+
+\subsection{Modelo \texttt{Muestreo}}
+
+El modelo \texttt{Muestreo} representa un punto de muestreo de calidad de agua. Este es el modelo m\'as extenso de la aplicaci\'on, pues almacena tanto la ubicaci\'on espacial del punto como sus atributos f\'isico-qu\'imicos y microbiol\'ogicos. Entre sus caracter\'isticas se destacan:
+
+\begin{itemize}
+    \item identificaci\'on del punto mediante c\'odigos de pozo y otros campos alfanum\'ericos;
+    \item coordenadas almacenadas como geometr\'ia puntual y tambi\'en en columnas num\'ericas;
+    \item fecha de toma;
+    \item variables como nitratos, nitritos, alcalinidad, magnesio, conductividad, pH, coliformes fecales y otros par\'ametros adicionales;
+    \item asociaci\'on a un usuario propietario;
+    \item nombre de grupo;
+    \item estado activo;
+    \item visibilidad p\'ublica o privada;
+    \item metadatos de lote de carga, archivo origen y SRID de origen.
+\end{itemize}
+
+La presencia de un n\'umero elevado de campos responde a la necesidad de manejar conjuntos de datos hist\'oricos heterog\'eneos, donde distintos muestreos pueden registrar distintas combinaciones de variables. El modelo fue adaptado para preservar esta riqueza de atributos y permitir tanto el an\'alisis puntual como la carga progresiva de nuevas campa\~nas.
+
+Debe se\~nalarse adem\'as que este modelo est\'a marcado como \texttt{managed = False}, lo que implica que su tabla principal existe previamente en la base de datos y no es administrada completamente por migraciones autom\'aticas de Django. Esta decisi\'on suele adoptarse cuando la estructura de datos ya exist\'ia o cuando se busca compatibilidad con esquemas heredados.
+
+\subsection{Modelo \texttt{Capa}}
+
+El modelo \texttt{Capa} representa una capa vectorial superficial almacenada en la tabla \texttt{patino}. Se utiliza principalmente para pol\'igonos o multipol\'igonos, como el l\'imite del acu\'ifero u otras coberturas espaciales cargadas por usuarios. Sus componentes principales son:
+
+\begin{itemize}
+    \item geometr\'ia multipoligonal en \texttt{EPSG:4326};
+    \item nombre y descripci\'on;
+    \item usuario propietario, cuando la capa no es p\'ublica;
+    \item estado funcional de la capa, tal como privada, pendiente, p\'ublica o rechazada.
+\end{itemize}
+
+Al igual que \texttt{Muestreo}, este modelo tambi\'en trabaja sobre una tabla no gestionada enteramente por Django.
+
+\subsection{Modelo \texttt{PreferenciasMapa}}
+
+Este modelo almacena una preferencia espacial simple: el centro del mapa asociado a un usuario. Su funci\'on es mejorar la experiencia de uso, recordando el \'ultimo centro relevante o preferido para el usuario autenticado.
+
+\subsection{Modelo \texttt{CapaRaster}}
+
+El modelo \texttt{CapaRaster} registra capas raster cargadas por usuarios, especialmente aquellas provenientes de archivos TIFF o GeoTIFF. Almacena:
+
+\begin{itemize}
+    \item nombre del raster;
+    \item usuario propietario;
+    \item indicador de publicidad;
+    \item modo de despliegue;
+    \item ruta al archivo original;
+    \item ruta al archivo reproyectado a \texttt{EPSG:4326};
+    \item ruta al archivo PNG derivado;
+    \item l\'imites geogr\'aficos;
+    \item metadatos del raster.
+\end{itemize}
+
+Esto evidencia que el sistema no trata el raster como una simple imagen, sino como un recurso geoespacial completo que puede ser mostrado en distintos modos de visualizaci\'on.
+
+\subsection{Modelo \texttt{SolicitudPublicacion}}
+
+La publicaci\'on de capas y grupos de puntos se gestiona mediante solicitudes formales. Este modelo registra:
+
+\begin{itemize}
+    \item solicitante;
+    \item tipo de solicitud;
+    \item referencia a la capa o al grupo de puntos;
+    \item estado de la solicitud;
+    \item comentario de revisi\'on;
+    \item usuario revisor;
+    \item fechas de creaci\'on, revisi\'on y actualizaci\'on.
+\end{itemize}
+
+Su existencia introduce un flujo de moderaci\'on expl\'icito, evitando que cualquier usuario convierta unilateralmente sus recursos en contenido p\'ublico sin intervenci\'on administrativa.
+
+\subsection{Modelo \texttt{AuditoriaEvento}}
+
+La auditor\'ia centralizada se implementa mediante el modelo \texttt{AuditoriaEvento}. Esta entidad registra evidencia estructurada de inserciones, actualizaciones y eliminaciones. Sus campos permiten conocer:
+
+\begin{itemize}
+    \item qu\'e usuario ejecut\'o la acci\'on;
+    \item qu\'e entidad fue afectada;
+    \item cu\'al fue el identificador del registro afectado;
+    \item cu\'al era el estado anterior y posterior;
+    \item cu\'al fue la ruta y el m\'etodo HTTP;
+    \item desde qu\'e direcci\'on IP se realiz\'o la acci\'on;
+    \item en qu\'e momento se produjo el evento.
+\end{itemize}
+
+La incorporaci\'on de esta tabla transforma la aplicaci\'on en un sistema con trazabilidad operativa, una propiedad especialmente relevante cuando existen cargas masivas, moderaci\'on de contenidos y m\'ultiples usuarios interactuando sobre el mismo entorno espacial.
+
+\section{Mezcla de tablas gestionadas y no gestionadas}
+
+Una caracter\'istica importante de esta aplicaci\'on es que combina modelos totalmente gestionados por migraciones de Django con modelos asociados a tablas preexistentes o parcialmente heredadas. Esto se traduce en dos estrategias de administraci\'on de esquema:
+
+\begin{itemize}
+    \item \textbf{tablas gestionadas por Django}, por ejemplo \texttt{PreferenciasMapa}, \texttt{CapaRaster}, \texttt{SolicitudPublicacion} y \texttt{AuditoriaEvento};
+    \item \textbf{tablas no gestionadas completamente por Django}, como \texttt{muestreo} y \texttt{patino}, donde la estructura principal proviene de un esquema ya existente y ciertas ampliaciones deben acompa\~narse de scripts SQL espec\'ificos.
+\end{itemize}
+
+Desde el punto de vista metodol\'ogico, esta situaci\'on ilustra un escenario frecuente en sistemas institucionales: la necesidad de integrar aplicaciones nuevas con bases de datos heredadas, sin imponer una reconstrucci\'on completa del modelo de datos original.
+
+\section{L\'ogica de roles y permisos}
+
+La plataforma define distintos niveles de uso, asociados a capacidades diferenciadas.
+
+\subsection{Invitado}
+
+El usuario no autenticado puede acceder al visor, visualizar capas p\'ublicas y grupos de puntos p\'ublicos, descargar contenidos p\'ublicos y utilizar funcionalidades de consulta y filtrado. No puede modificar datos, cargar informaci\'on ni administrar contenidos.
+
+\subsection{Usuario autenticado}
+
+El usuario autenticado puede:
+
+\begin{itemize}
+    \item cargar puntos manualmente o por CSV;
+    \item editar y eliminar sus propios puntos;
+    \item crear y administrar grupos de puntos propios;
+    \item cargar capas vectoriales y raster;
+    \item solicitar la publicaci\'on de sus recursos;
+    \item descargar sus propios recursos adem\'as de los p\'ublicos.
+\end{itemize}
+
+\subsection{Administrador de mapas}
+
+El administrador de mapas est\'a vinculado al grupo \texttt{map\_admin} y, en ciertos flujos, a atributos administrativos de Django. Este rol puede:
+
+\begin{itemize}
+    \item listar usuarios;
+    \item otorgar o revocar privilegios de administraci\'on;
+    \item visualizar todas las capas;
+    \item resolver solicitudes de publicaci\'on;
+    \item consultar datos ampliados de auditor\'ia o procedencia.
+\end{itemize}
+
+\subsection{Superusuario}
+
+El superusuario conserva el nivel m\'as alto de privilegios dentro del ecosistema Django. En la l\'ogica del proyecto, tambi\'en es reconocido como administrador de mapas.
+
+\section{Interfaz principal del visor}
+
+La interfaz del sistema est\'a concentrada principalmente en la plantilla \texttt{mapa\_muestreo.html}. Este archivo act\'ua como una interfaz de tipo \emph{single-page application} liviana, donde una gran parte de las interacciones del usuario se resuelven sin abandonar la p\'agina principal.
+
+\subsection{Elementos estructurales de la interfaz}
+
+Los elementos principales de la interfaz incluyen:
+
+\begin{itemize}
+    \item cabecera superior con identidad visual, control de modo noche e inicio o cierre de sesi\'on;
+    \item mapa principal Leaflet;
+    \item panel lateral de capas;
+    \item men\'u flotante de acciones;
+    \item m\'ultiples modales para carga, edici\'on, previsualizaci\'on, filtrado, autenticaci\'on, solicitudes y administraci\'on.
+\end{itemize}
+
+La concentraci\'on de estas funciones en una sola vista responde a una estrategia de experiencia de usuario donde la mayor parte de las acciones se realiza en continuidad visual sobre el mapa, minimizando transiciones innecesarias entre p\'aginas.
+
+\subsection{Panel de capas}
+
+El panel lateral de capas fue dise\~nado para soportar una jerarqu\'ia funcional, no solo visual. En su configuraci\'on actual, organiza la informaci\'on en bloques tales como:
+
+\begin{itemize}
+    \item grupos propios de puntos;
+    \item capas propias vectoriales;
+    \item capas propias raster;
+    \item grupos de puntos p\'ublicos;
+    \item capas p\'ublicas;
+    \item capas base.
+\end{itemize}
+
+Adicionalmente, el panel soporta:
+
+\begin{itemize}
+    \item colapsado y expansi\'on de secciones;
+    \item personalizaci\'on de color de grupos y capas;
+    \item reordenamiento visual de capas;
+    \item activaci\'on y desactivaci\'on de visibilidad;
+    \item sincronizaci\'on entre estados l\'ogicos y representaci\'on cartogr\'afica.
+\end{itemize}
+
+\subsection{Men\'u flotante}
+
+El men\'u flotante concentra operaciones orientadas a la gesti\'on de datos y a la administraci\'on del visor. Entre sus opciones se incluyen la carga de puntos, la carga de capas, la carga de TIFF, la gesti\'on de grupos, el filtrado, la consulta de descargas y funcionalidades administrativas. La decisi\'on de agrupar estas acciones en un men\'u flotante permite ahorrar espacio en pantalla y mantener el mapa como componente visual central.
+
+\section{Gest\'ion de puntos de muestreo}
+
+\subsection{Carga manual de un punto}
+
+La carga manual permite crear un punto nuevo desde la interfaz. El usuario puede definir atributos descriptivos, variables f\'isico-qu\'imicas y microbiol\'ogicas, y la ubicaci\'on espacial. La ubicaci\'on puede establecerse de dos maneras:
+
+\begin{itemize}
+    \item seleccionando directamente sobre el mapa;
+    \item ingresando coordenadas manualmente en formato geogr\'afico.
+\end{itemize}
+
+Esta doble modalidad responde a diferentes escenarios operativos: usuarios que trabajan explorando sobre el mapa y usuarios que ya disponen de coordenadas precisas.
+
+\subsection{Edici\'on de puntos}
+
+Los puntos propios pueden ser editados por su propietario. La edici\'on incluye atributos descriptivos, grupo, fecha, par\'ametros de calidad y ubicaci\'on espacial. Cuando la ubicaci\'on cambia, la aplicaci\'on solicita confirmaci\'on expl\'icita para evitar modificaciones accidentales.
+
+\subsection{Carga masiva por CSV}
+
+La carga masiva de puntos es uno de los componentes m\'as relevantes de la aplicaci\'on. Este flujo contempla:
+
+\begin{enumerate}
+    \item selecci\'on del archivo;
+    \item indicaci\'on del grupo de puntos;
+    \item selecci\'on del sistema de coordenadas de origen;
+    \item lectura y previsualizaci\'on del contenido;
+    \item detecci\'on de filas vac\'ias estructurales;
+    \item mapeo flexible de encabezados mediante alias normalizados;
+    \item validaci\'on preliminar de par\'ametros cr\'iticos para c\'alculo de WQI;
+    \item detecci\'on autom\'atica de posibles inconsistencias en el SRID;
+    \item conversi\'on de coordenadas a \texttt{EPSG:4326} para visualizaci\'on;
+    \item inserci\'on transaccional de los puntos.
+\end{enumerate}
+
+La carga CSV no se limita a leer columnas fijas. El sistema admite variantes de encabezados y reconoce distintos nombres equivalentes para las mismas variables. Esta estrategia es esencial cuando se trabaja con series hist\'oricas provenientes de campa\~nas, laboratorios o planillas de origen heterog\'eneo.
+
+\subsection{Conversi\'on de coordenadas}
+
+Un aspecto cr\'itico del flujo CSV es la interpretaci\'on de coordenadas. El usuario selecciona un SRID de origen, por ejemplo \texttt{EPSG:32721} o \texttt{EPSG:4326}. A partir de esta definici\'on, el sistema transforma los puntos a \texttt{EPSG:4326} para garantizar que puedan representarse en el mapa web. Adem\'as, se incluye una verificaci\'on heur\'istica del rango de coordenadas para detectar cuando el archivo parece haber sido clasificado con un SRID err\'oneo.
+
+Este detalle es metodol\'ogicamente importante: la aplicaci\'on no solo almacena coordenadas, sino que tambi\'en controla su consistencia espacial para evitar inserciones invisibles o mal geolocalizadas.
+
+\subsection{WQI y disponibilidad de par\'ametros}
+
+La plataforma contempla un c\'alculo de WQI condicionado por la disponibilidad de un conjunto m\'inimo de par\'ametros cr\'iticos. Cuando un punto no cumple con el umbral definido, la aplicaci\'on no bloquea necesariamente la inserci\'on, pero emite advertencias para informar que ese registro no podr\'a ser utilizado inmediatamente para el c\'alculo del indicador.
+
+Este comportamiento muestra una decisi\'on de dise\~no orientada a la trazabilidad de datos incompletos: el sistema no rechaza autom\'aticamente registros potencialmente valiosos, pero deja constancia de su limitaci\'on anal\'itica.
+
+\section{Gest\'ion de grupos de puntos}
+
+Los grupos de puntos constituyen una abstracci\'on funcional que permite organizar muestreos pertenecientes a una misma campa\~na, serie temporal, origen institucional o unidad tem\'atica. La aplicaci\'on permite:
+
+\begin{itemize}
+    \item asignar un grupo al insertar puntos;
+    \item renombrar grupos propios;
+    \item cambiar su visibilidad;
+    \item eliminar un grupo completo;
+    \item personalizar su color en el mapa y en el panel lateral;
+    \item solicitar su publicaci\'on al administrador.
+\end{itemize}
+
+En t\'erminos de arquitectura, esto significa que la plataforma no gestiona solo puntos individuales, sino colecciones sem\'anticas de puntos, lo cual mejora la usabilidad y simplifica operaciones masivas.
+
+\section{Gest\'ion de capas vectoriales}
+
+\subsection{Carga de GeoJSON}
+
+La aplicaci\'on admite la carga de geometr\'ias en formato GeoJSON. El backend valida la sintaxis del archivo, reconoce si se trata de una \texttt{FeatureCollection}, una \texttt{Feature} o una geometr\'ia suelta, y transforma pol\'igonos simples en multipol\'igonos cuando corresponde. Esto permite una incorporaci\'on flexible de capas poligonales sin requerir una preparaci\'on excesiva del archivo de origen.
+
+\subsection{Carga de Shapefile}
+
+La carga de Shapefile se implementa mediante un archivo ZIP que debe contener al menos los componentes \texttt{.shp}, \texttt{.shx}, \texttt{.dbf} y \texttt{.prj}. Una vez recibido, el sistema:
+
+\begin{enumerate}
+    \item descomprime el archivo;
+    \item verifica que la estructura est\'e completa;
+    \item ejecuta \texttt{ogr2ogr} para importar a PostgreSQL;
+    \item reproyecta a \texttt{EPSG:4326};
+    \item asigna el usuario propietario a las geometr\'ias reci\'en insertadas;
+    \item registra la operaci\'on en auditor\'ia.
+\end{enumerate}
+
+Este flujo demuestra la capacidad del sistema para integrarse con formatos cl\'asicos de SIG de escritorio y llevarlos a un entorno web colaborativo.
+
+\subsection{Publicaci\'on de capas vectoriales}
+
+Las capas vectoriales cargadas por usuarios pueden permanecer privadas o solicitarse para publicaci\'on. El administrador eval\'ua la solicitud y puede aprobarla o rechazarla, agregando un comentario. En caso de aprobaci\'on, la capa pasa al conjunto de recursos visibles para invitados y usuarios generales.
+
+\section{Gest\'ion de capas raster}
+
+\subsection{Previsualizaci\'on de TIFF}
+
+Antes de almacenar un raster, la aplicaci\'on permite analizar un archivo TIFF o GeoTIFF y extraer metadatos como tama\~no, sistema de coordenadas, cantidad de bandas, tipo de dato, valor \texttt{NoData}, resoluci\'on y l\'imites espaciales. Esta etapa evita cargas ciegas y mejora la comprensi\'on del recurso antes de su incorporaci\'on al visor.
+
+\subsection{Normalizaci\'on y despliegue}
+
+Una vez aceptado, el raster puede ser:
+
+\begin{itemize}
+    \item reproyectado a \texttt{EPSG:4326};
+    \item coloreado mediante una rampa definida por archivo de relieve;
+    \item convertido a PNG para una visualizaci\'on r\'apida;
+    \item mantenido como GeoTIFF procesado para usos t\'ecnicos posteriores.
+\end{itemize}
+
+El almacenamiento tanto del archivo original como de sus derivados constituye una estrategia de preservaci\'on del dato fuente y de adaptaci\'on para el consumo web.
+
+\section{Solicitudes de publicaci\'on y moderaci\'on}
+
+El sistema incorpora una capa de gobernanza de contenidos mediante el modelo de solicitudes de publicaci\'on. Esta funcionalidad es especialmente relevante porque introduce una distinci\'on entre \emph{cargar} y \emph{publicar}. Un usuario puede generar y administrar sus datos, pero la exposici\'on p\'ublica de los mismos requiere un paso adicional de revisi\'on.
+
+El administrador dispone de un modal para:
+
+\begin{itemize}
+    \item listar solicitudes pendientes;
+    \item revisar historial de solicitudes resueltas;
+    \item filtrar por tipo y estado;
+    \item aprobar o rechazar;
+    \item registrar un comentario de decisi\'on.
+\end{itemize}
+
+Esta estructura es equivalente, a peque\~na escala, a un flujo editorial o de moderaci\'on de contenidos, lo que aporta control de calidad y claridad institucional sobre qu\'e informaci\'on pasa a ser p\'ublica.
+
+\section{Mecanismos de descarga}
+
+La aplicaci\'on permite descargar diferentes recursos en formatos adecuados a su naturaleza:
+
+\begin{itemize}
+    \item puntos en CSV o GeoJSON;
+    \item grupos de puntos en CSV o GeoJSON;
+    \item capas vectoriales en GeoJSON;
+    \item raster en GeoTIFF o PNG.
+\end{itemize}
+
+La l\'ogica de permisos distingue recursos propios, p\'ublicos y no accesibles. De este modo, la plataforma no solo funciona como visor y editor, sino tambi\'en como repositorio de intercambio de datos geoespaciales.
+
+\section{Persistencia y transformaci\'on espacial}
+
+Una de las fortalezas centrales de la arquitectura es que la persistencia no se limita al almacenamiento bruto de archivos o filas, sino que incorpora transformaciones y validaciones espaciales. Entre las operaciones m\'as relevantes se encuentran:
+
+\begin{itemize}
+    \item transformaci\'on de coordenadas de origen a \texttt{EPSG:4326};
+    \item serializaci\'on GeoJSON para consumo del frontend;
+    \item reproyecci\'on de raster;
+    \item incorporaci\'on de geometr\'ias desde OGR a PostGIS;
+    \item c\'alculo de extensiones y metadatos raster.
+\end{itemize}
+
+Esto ubica a la base de datos y a las utilidades GDAL/OGR como componentes activos del comportamiento del sistema, y no como meros repositorios pasivos.
+
+\section{Auditor\'ia y trazabilidad}
+
+La incorporaci\'on del modelo \texttt{AuditoriaEvento} permite documentar operaciones de inserci\'on, actualizaci\'on y eliminaci\'on sobre entidades clave de la aplicaci\'on. Este mecanismo registra:
+
+\begin{itemize}
+    \item actor de la acci\'on;
+    \item entidad afectada;
+    \item identificador del registro;
+    \item estado previo;
+    \item estado posterior;
+    \item ruta HTTP;
+    \item m\'etodo HTTP;
+    \item direcci\'on IP de origen;
+    \item metadatos de contexto, como origen de carga o motivo de la acci\'on.
+\end{itemize}
+
+La auditor\'ia implementada corresponde a una trazabilidad de nivel aplicaci\'on. Esto significa que registra cambios efectuados a trav\'es del sistema web. Si en el futuro se desea auditar tambi\'en modificaciones directas realizadas desde herramientas externas sobre la base de datos, ser\'ia necesario complementar esta capa con disparadores (\emph{triggers}) SQL.
+
+\section{Seguridad funcional}
+
+La seguridad de la plataforma se apoya en varios mecanismos complementarios:
+
+\begin{itemize}
+    \item autenticaci\'on de usuarios mediante Django;
+    \item protecci\'on CSRF en operaciones sensibles;
+    \item restricci\'on de operaciones seg\'un propietario del recurso;
+    \item verificaci\'on de roles administrativos;
+    \item separaci\'on entre recursos privados y p\'ublicos;
+    \item moderaci\'on previa de contenidos publicables.
+\end{itemize}
+
+Si bien se trata de una aplicaci\'on acad\'emica en desarrollo, la presencia de estas medidas muestra una preocupaci\'on concreta por el control de integridad y la gesti\'on responsable de la informaci\'on espacial.
+
+\section{Desempe\~no y escalabilidad}
+
+La arquitectura actual fue dise\~nada para un escenario acad\'emico y de desarrollo progresivo. Aun as\'i, ya incorpora elementos que favorecen la escalabilidad:
+
+\begin{itemize}
+    \item almacenamiento estructurado en PostGIS;
+    \item separaci\'on entre recursos vectoriales, raster y puntos;
+    \item posibilidad de parametrizar el entorno de despliegue;
+    \item soporte inicial para contenerizaci\'on con Docker;
+    \item uso de formatos abiertos y ampliamente interoperables.
+\end{itemize}
+
+No obstante, tambi\'en existen desaf\'ios t\'ecnicos asociados al crecimiento futuro, entre ellos:
+
+\begin{itemize}
+    \item el tama\~no y complejidad creciente de la plantilla principal del mapa;
+    \item la concentraci\'on de l\'ogica en una sola vista de gran extensi\'on;
+    \item la necesidad futura de separar m\'as claramente componentes JavaScript, CSS y servicios API;
+    \item la conveniencia de fortalecer pruebas autom\'aticas de extremo a extremo.
+\end{itemize}
+
+Estas observaciones no invalidan la arquitectura, pero s\'i indican una posible hoja de ruta para refactorizaciones futuras.
+
+\section{Aporte metodol\'ogico de la estructura propuesta}
+
+Desde el punto de vista metodol\'ogico, la estructura de la aplicaci\'on presenta varias contribuciones relevantes:
+
+\begin{itemize}
+    \item demuestra la viabilidad de construir un visor Web-GIS tem\'atico mediante herramientas abiertas;
+    \item integra datos de muestreo con geometr\'ias vectoriales y superficies raster en un mismo entorno operativo;
+    \item incorpora mecanismos de colaboraci\'on y gobernanza de contenidos;
+    \item documenta y registra la trazabilidad de las operaciones;
+    \item permite adaptar el sistema a otros dominios territoriales o ambientales.
+\end{itemize}
+
+En consecuencia, la aplicaci\'on no debe interpretarse solo como un producto de software, sino como una propuesta de estructura funcional para la gesti\'on geoespacial de datos ambientales en contextos acad\'emicos e institucionales.
+
+\section{Sugerencias de figuras a incorporar}
+
+Para enriquecer esta secci\'on del documento, se recomienda incorporar posteriormente figuras explicativas. Algunas opciones particularmente \'utiles son las siguientes:
+
+\begin{itemize}
+    \item diagrama general de arquitectura por capas;
+    \item esquema entidad--relaci\'on simplificado de los modelos principales;
+    \item captura del visor principal con identificaci\'on de sus componentes;
+    \item flujo de carga masiva de puntos por CSV;
+    \item flujo de revisi\'on y publicaci\'on de capas o grupos;
+    \item esquema del procesamiento de un GeoTIFF desde archivo original hasta despliegue web;
+    \item diagrama del circuito de auditor\'ia.
+\end{itemize}
+
+% Figura sugerida:
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=0.95\textwidth]{imagenes/arquitectura_general.png}
+%     \caption{Arquitectura general de la aplicaci\'on web geoespacial.}
+%     \label{fig:arquitectura_general}
+% \end{figure}
+
+\section{Conclusi\'on de la secci\'on}
+
+La estructura de la aplicaci\'on web desarrollada para el acu\'ifero Pati\~no responde a una combinaci\'on de necesidades de visualizaci\'on, gesti\'on de datos, interoperabilidad geoespacial, colaboraci\'on multiusuario y trazabilidad. El sistema articula de manera coherente una base de datos espacial, un framework web robusto, bibliotecas de cartograf\'ia en cliente y herramientas auxiliares de procesamiento raster y vectorial.
+
+Su dise\~no actual demuestra que es posible construir una plataforma especializada con herramientas abiertas, manteniendo capacidades avanzadas como importaci\'on de m\'ultiples formatos, publicaci\'on moderada, personalizaci\'on visual, exportaci\'on de datos y auditor\'ia de acciones. Esta estructura no solo da soporte a los objetivos operativos del proyecto, sino que tambi\'en constituye una base metodol\'ogica reutilizable para desarrollos similares orientados a la gesti\'on de informaci\'on geoespacial ambiental.
+
+\ifcapituloestructuraStandalone
+  \end{document}
+\fi

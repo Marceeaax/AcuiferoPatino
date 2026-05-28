@@ -7,7 +7,7 @@ Incluye autenticación, gestión de puntos de muestreo, capas, y administración
 from django.shortcuts import render, redirect
 from django.core.serializers import serialize
 from django.conf import settings
-from django.db import transaction, connection, ProgrammingError
+from django.db import transaction, connection, ProgrammingError, OperationalError
 from django.db.models import Q
 from django.http import JsonResponse, Http404, HttpResponse, FileResponse
 from django.contrib.auth import authenticate, login, logout
@@ -24,13 +24,15 @@ from django.contrib.gis.geos import Point, GEOSGeometry, MultiPolygon
 import csv
 import io
 import json
+import logging
 import re
 import shutil
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
 from .forms import CustomLoginForm
-from .models import Muestreo, Capa, PreferenciasMapa, CapaRaster, SolicitudPublicacion
+from .models import Muestreo, Capa, PreferenciasMapa, CapaRaster, SolicitudPublicacion, AuditoriaEvento
 from .roles import is_map_admin, get_or_create_map_admin_group
 
 import zipfile
@@ -41,6 +43,7 @@ import os
 
 ALLOWED_POINT_IMPORT_SRIDS = {4326, 32721}
 POINT_IMPORT_ENCODINGS = ("utf-8-sig", "cp1252", "latin-1")
+logger = logging.getLogger(__name__)
 POINT_EXPORT_FIELDS = [
     "gid",
     "estacionid",
@@ -137,6 +140,52 @@ def serialize_points_geojson(qs):
     )
 
 
+def transformar_punto_a_4326(x, y, srid_origen):
+    """
+    Convierte coordenadas de origen a EPSG:4326 usando PostGIS.
+    Evita depender de geom.transform(...) en Python, que en algunos
+    entornos de ejecución estaba devolviendo 'OGR failure'.
+    """
+    if srid_origen == 4326:
+        geom = Point(x, y, srid=4326)
+        return geom, x, y
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                ST_AsEWKT(
+                    ST_Transform(
+                        ST_SetSRID(ST_MakePoint(%s, %s), %s),
+                        4326
+                    )
+                ),
+                ST_X(
+                    ST_Transform(
+                        ST_SetSRID(ST_MakePoint(%s, %s), %s),
+                        4326
+                    )
+                ),
+                ST_Y(
+                    ST_Transform(
+                        ST_SetSRID(ST_MakePoint(%s, %s), %s),
+                        4326
+                    )
+                )
+            """,
+            [x, y, srid_origen, x, y, srid_origen, x, y, srid_origen],
+        )
+        row = cursor.fetchone()
+
+    if not row or not row[0]:
+        raise ValueError(
+            f"No se pudo transformar el punto desde EPSG:{srid_origen} a EPSG:4326."
+        )
+
+    geom = GEOSGeometry(row[0], srid=4326)
+    return geom, row[1], row[2]
+
+
 def format_export_value(value):
     if value is None:
         return ""
@@ -220,6 +269,65 @@ def leer_texto_subido(archivo, encodings=POINT_IMPORT_ENCODINGS):
     raise ValueError("No se pudo decodificar el archivo")
 
 
+def fila_csv_estructuralmente_vacia(fila):
+    if not fila:
+        return True
+    for valor in fila.values():
+        if valor is None:
+            continue
+        if str(valor).strip():
+            return False
+    return True
+
+
+def inferir_srid_probable_desde_coordenadas(x, y):
+    """Intenta inferir el SRID más probable a partir de un par X/Y."""
+    if x is None or y is None:
+        return None
+    if -180 <= x <= 180 and -90 <= y <= 90:
+        return 4326
+    if 100000 <= x <= 900000 and 6000000 <= y <= 9000000:
+        return 32721
+    return None
+
+
+def detectar_mismatch_srid_en_filas(filas, alias_map, srid_origen, sample_size=20):
+    """
+    Busca una pista fuerte de que el SRID elegido no coincide con las coordenadas del archivo.
+    Devuelve un dict con el SRID probable y filas de muestra, o None si no hay evidencia suficiente.
+    """
+    conteos = {}
+    muestras = {}
+
+    for idx, fila in enumerate(filas, start=2):
+        x = parsear_decimal(valor_csv(fila, alias_map, "x"))
+        y = parsear_decimal(valor_csv(fila, alias_map, "y"))
+        probable = inferir_srid_probable_desde_coordenadas(x, y)
+        if probable is None:
+            continue
+        conteos[probable] = conteos.get(probable, 0) + 1
+        muestras.setdefault(probable, []).append({
+            "fila": idx,
+            "x": x,
+            "y": y,
+        })
+        if sum(conteos.values()) >= sample_size:
+            break
+
+    if not conteos:
+        return None
+
+    probable, cantidad = max(conteos.items(), key=lambda item: item[1])
+    if probable == srid_origen:
+        return None
+
+    return {
+        "srid_probable": probable,
+        "cantidad": cantidad,
+        "muestras": muestras.get(probable, [])[:5],
+    }
+
+
 def timestamp_auditoria():
     return timezone.now()
 
@@ -245,6 +353,122 @@ def audit_update_fields(*field_names):
     fields = {field for field in field_names if field}
     fields.update({"fec_modificacion", "usu_modificacion"})
     return list(fields)
+
+
+def audit_json_safe(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): audit_json_safe(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [audit_json_safe(item) for item in value]
+    if hasattr(value, "geom_type") and hasattr(value, "extent"):
+        minx, miny, maxx, maxy = value.extent
+        return {
+            "geom_type": value.geom_type,
+            "srid": getattr(value, "srid", None),
+            "extent": [minx, miny, maxx, maxy],
+        }
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    if hasattr(value, "name") and not isinstance(value, str):
+        return value.name
+    return str(value)
+
+
+def serialize_instance_for_audit(instance):
+    data = {}
+    for field in instance._meta.fields:
+        if field.attname == "password":
+            data[field.attname] = "***"
+            continue
+        data[field.attname] = audit_json_safe(getattr(instance, field.attname))
+    return data
+
+
+def request_audit_context(request):
+    if request is None:
+        return {}
+    forwarded_for = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+    ip_origen = forwarded_for or request.META.get("REMOTE_ADDR")
+    return {
+        "ruta": request.path[:255] if getattr(request, "path", None) else None,
+        "metodo": request.method[:16] if getattr(request, "method", None) else None,
+        "ip_origen": ip_origen or None,
+    }
+
+
+def create_audit_event(
+    *,
+    action,
+    actor=None,
+    instance=None,
+    entity=None,
+    record_id=None,
+    label=None,
+    before=None,
+    after=None,
+    metadata=None,
+    request=None,
+):
+    if instance is not None:
+        entity = entity or instance._meta.label_lower
+        pk_field = instance._meta.pk.attname
+        record_id = record_id or getattr(instance, pk_field, None)
+        label = label or str(instance)
+
+    payload = {
+        "actor": actor if getattr(actor, "pk", None) else None,
+        "accion": action,
+        "entidad": entity or "desconocida",
+        "registro_id": str(record_id) if record_id is not None else None,
+        "etiqueta": label,
+        "datos_antes": audit_json_safe(before),
+        "datos_despues": audit_json_safe(after),
+        "metadatos": audit_json_safe(metadata or {}),
+        **request_audit_context(request),
+    }
+
+    try:
+        AuditoriaEvento.objects.create(**payload)
+    except (ProgrammingError, OperationalError):
+        logger.warning("La tabla de auditoría aún no está disponible. Evento omitido: %s", payload["entidad"])
+
+
+def audit_instance_insert(instance, actor, request=None, metadata=None):
+    create_audit_event(
+        action="insert",
+        actor=actor,
+        instance=instance,
+        after=serialize_instance_for_audit(instance),
+        metadata=metadata,
+        request=request,
+    )
+
+
+def audit_instance_update(instance, actor, before, request=None, metadata=None):
+    create_audit_event(
+        action="update",
+        actor=actor,
+        instance=instance,
+        before=before,
+        after=serialize_instance_for_audit(instance),
+        metadata=metadata,
+        request=request,
+    )
+
+
+def audit_instance_delete(instance, actor, before=None, request=None, metadata=None):
+    create_audit_event(
+        action="delete",
+        actor=actor,
+        instance=instance,
+        before=before if before is not None else serialize_instance_for_audit(instance),
+        metadata=metadata,
+        request=request,
+    )
 
 
 def _raster_dirs():
@@ -552,6 +776,12 @@ def register(request):
                 )
 
             user = User.objects.create_user(username=username, password=password)
+            audit_instance_insert(
+                user,
+                user,
+                request=request,
+                metadata={"origen": "registro-modal"},
+            )
             login(request, user)
             return JsonResponse(
                 {
@@ -563,7 +793,13 @@ def register(request):
 
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            audit_instance_insert(
+                user,
+                user,
+                request=request,
+                metadata={"origen": "registro-form"},
+            )
             return redirect('login')
     else:
         form = UserCreationForm()
@@ -678,10 +914,15 @@ def guardar_centro_mapa(request):
                 user=request.user,
                 defaults=audit_create_kwargs(request.user, ahora),
             )
+            before = None if creada else serialize_instance_for_audit(preferencias)
             preferencias.centro_mapa = punto
             if not creada:
                 mark_instance_modified(preferencias, request.user, ahora)
             preferencias.save()
+            if creada:
+                audit_instance_insert(preferencias, request.user, request=request)
+            else:
+                audit_instance_update(preferencias, request.user, before, request=request)
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -750,6 +991,12 @@ def guardar_nuevo_punto(request):
                 **audit_create_kwargs(request.user, ahora),
             )
             punto.save()
+            audit_instance_insert(
+                punto,
+                request.user,
+                request=request,
+                metadata={"origen": "manual-web"},
+            )
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
@@ -764,6 +1011,7 @@ def editar_punto_view(request, id):
     try:
         data = json.loads(request.body)
         punto = Muestreo.objects.get(gid=id, user=request.user)
+        before = serialize_instance_for_audit(punto)
         mark_instance_modified(punto, request.user)
 
         punto.estacionid = data.get('estacionid') or None
@@ -810,6 +1058,7 @@ def editar_punto_view(request, id):
             punto.srid_origen = 4326
 
         punto.save()
+        audit_instance_update(punto, request.user, before, request=request)
 
         return JsonResponse({'success': True})
     except Muestreo.DoesNotExist:
@@ -855,21 +1104,21 @@ def cargar_puntos_csv(request):
         return JsonResponse({'success': False, 'error': 'El archivo no tiene encabezados.'}, status=400)
 
     aliases = {
-        'codigo_pozo': ['codigo pozo'],
-        'nombre': ['nombre lugar', 'nombre', 'lugar'],
-        'x': ['x', 'longitud x', 'lon', 'longitude'],
-        'y': ['y', 'latitud y', 'lat', 'latitude'],
-        'fecha_toma': ['fecha muestreo', 'fecha toma', 'fecha'],
+        'codigo_pozo': ['codigo pozo', 'codigo'],
+        'nombre': ['nombre lugar', 'nombre', 'localidad', 'lugar'],
+        'x': ['x', 'x utm', 'longitud x', 'lon', 'longitude'],
+        'y': ['y', 'y utm', 'latitud y', 'lat', 'latitude'],
+        'fecha_toma': ['fecha muestreo', 'fecha toma', 'fecha', 'fecha mues'],
         'n_amoniaca': ['n amoniacal mg l', 'n amoniacal'],
-        'nitritos': ['n nitritos mg l', 'n nitritos', 'nitritos'],
-        'nitratos': ['n nitratos mg l', 'n nitratos', 'nitratos'],
+        'nitritos': ['n nitritos mg l', 'n nitritos', 'nitrito mg l', 'nitrito', 'nitritos'],
+        'nitratos': ['n nitratos mg l', 'n nitratos', 'nitrato mg l', 'nitrato', 'nitratos'],
         'alcalinida': ['alcalinidad total mg l', 'alcalinidad total', 'alcalinidad'],
         'materia_or': ['materia organica mg l', 'materia organica'],
-        'conductivi': ['conductividad us cm', 'conductividad'],
+        'conductivi': ['conductividad us cm', 'conductividad e uscm', 'conductividad'],
         'ph': ['ph'],
         'bicarbonat': ['bicarbonato mg l', 'bicarbonato'],
         'carbonatos': ['carbonato mg l', 'carbonato'],
-        'sulfatos': ['sulfato mg l', 'sulfato'],
+        'sulfatos': ['sulfato mg l', 'sulfato', 'sulfatos'],
         'magnesio': ['magnesio mg l', 'magnesio'],
         'calcio': ['calcio mg l', 'calcio'],
         'sodio': ['sodio mg l', 'sodio'],
@@ -880,16 +1129,60 @@ def cargar_puntos_csv(request):
         'manganeso': ['manganeso mg l', 'manganeso'],
         'cobre': ['cobre mg l', 'cobre'],
         'cromo': ['cromo total mg l', 'cromo total', 'cromo'],
-        'col_fecale': ['coliformes fecales ufc 100 ml', 'coliformes fecales', 'coliformes']
+        'col_fecale': ['coliformes fecales ufc 100 ml', 'col fecal', 'coliformes fecales', 'coliformes']
     }
 
-    filas = [
-        {normalizar_columna(k): v for k, v in fila.items() if k is not None}
-        for fila in lector
-    ]
+    filas = []
+    for fila in lector:
+        fila_normalizada = {normalizar_columna(k): v for k, v in fila.items() if k is not None}
+        if fila_csv_estructuralmente_vacia(fila_normalizada):
+            continue
+        filas.append(fila_normalizada)
 
     if not filas:
         return JsonResponse({'success': False, 'error': 'El archivo estÃ¡ vacÃ­o.'}, status=400)
+
+    srid_seleccionado = srid_origen
+    srid_aplicado = srid_origen
+    advertencias = []
+
+    mismatch_srid = detectar_mismatch_srid_en_filas(filas, aliases, srid_origen)
+    if mismatch_srid:
+        srid_probable = mismatch_srid["srid_probable"]
+        detalles = [
+            f"Fila {item['fila']}: x={item['x']}, y={item['y']}"
+            for item in mismatch_srid["muestras"]
+        ]
+        if srid_probable in ALLOWED_POINT_IMPORT_SRIDS:
+            srid_aplicado = srid_probable
+            srid_origen = srid_probable
+            advertencias.append({
+                'tipo': 'srid_ajustado',
+                'mensaje': (
+                    f'Se detectó que el archivo parece venir en EPSG:{srid_probable}. '
+                    f'Se usó ese SRID como origen y luego los puntos se convirtieron a EPSG:4326 para visualizarlos en el mapa.'
+                ),
+                'srid_seleccionado': srid_seleccionado,
+                'srid_aplicado': srid_probable,
+                'detalles': detalles,
+            })
+            logger.info(
+                "Carga CSV de puntos: SRID ajustado automáticamente de %s a %s para %s",
+                srid_seleccionado,
+                srid_probable,
+                archivo.name if getattr(archivo, "name", None) else "archivo_sin_nombre",
+            )
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': (
+                    f'El sistema de coordenadas elegido ({srid_origen}) no coincide con las coordenadas del archivo. '
+                    f'Por el rango detectado, parece que deberÃ­as usar EPSG:{srid_probable}.'
+                ),
+                'detalles': detalles,
+                'srid_probable': srid_probable,
+                'error_code': 'srid_mismatch',
+            }, status=400)
 
     insertados = 0
     errores = []
@@ -906,14 +1199,12 @@ def cargar_puntos_csv(request):
                     errores.append(f'Fila {idx}: coordenadas x/y invÃ¡lidas.')
                     continue
 
-                geom = Point(x, y, srid=srid_origen)
-                if srid_origen != 4326:
-                    geom.transform(4326)
-                longitud_4326 = getattr(geom, 'x', x)
-                latitud_4326 = getattr(geom, 'y', y)
+                geom, longitud_4326, latitud_4326 = transformar_punto_a_4326(
+                    x, y, srid_origen
+                )
                 ahora = timestamp_auditoria()
 
-                Muestreo.objects.create(
+                punto = Muestreo.objects.create(
                     estacionid=(valor_csv(fila, aliases, 'codigo_pozo') or None),
                     nombre=(valor_csv(fila, aliases, 'nombre') or None),
                     fecha_toma=(valor_csv(fila, aliases, 'fecha_toma') or None),
@@ -922,7 +1213,7 @@ def cargar_puntos_csv(request):
                     grupo=grupo,
                     lote_carga=lote_carga,
                     archivo_origen=archivo_origen,
-                    srid_origen=srid_origen,
+                    srid_origen=srid_aplicado,
                     activo=True,
                     publico=False,
                     n_amoniaca=parsear_decimal(valor_csv(fila, aliases, 'n_amoniaca')),
@@ -950,8 +1241,29 @@ def cargar_puntos_csv(request):
                     user=request.user,
                     **audit_create_kwargs(request.user, ahora),
                 )
+                audit_instance_insert(
+                    punto,
+                    request.user,
+                    request=request,
+                    metadata={
+                        "origen": "csv",
+                        "fila_csv": idx,
+                        "grupo": grupo,
+                        "lote_carga": lote_carga,
+                        "archivo_origen": archivo_origen,
+                        "srid_aplicado": srid_aplicado,
+                    },
+                )
                 insertados += 1
             except Exception as e:
+                logger.exception(
+                    "Error al importar fila %s del CSV %s (srid=%s, x=%s, y=%s)",
+                    idx,
+                    archivo_origen or "archivo_sin_nombre",
+                    srid_origen,
+                    fila.get("x"),
+                    fila.get("y"),
+                )
                 errores.append(f'Fila {idx}: {e}')
 
     if insertados == 0:
@@ -961,7 +1273,10 @@ def cargar_puntos_csv(request):
         'success': True,
         'insertados': insertados,
         'omitidos': len(filas) - insertados,
-        'errores': errores[:10]
+        'errores': errores[:10],
+        'srid_seleccionado': srid_seleccionado,
+        'srid_aplicado': srid_aplicado,
+        'advertencias': advertencias,
     })
 
 
@@ -996,8 +1311,23 @@ def cambiar_publicacion_grupo_puntos(request):
                 },
             )
             if not creada:
+                before_solicitud = serialize_instance_for_audit(solicitud)
                 mark_instance_modified(solicitud, request.user, ahora)
                 solicitud.save(update_fields=audit_update_fields())
+                audit_instance_update(
+                    solicitud,
+                    request.user,
+                    before_solicitud,
+                    request=request,
+                    metadata={"motivo": "reiterar_solicitud_publicacion_grupo"},
+                )
+            else:
+                audit_instance_insert(
+                    solicitud,
+                    request.user,
+                    request=request,
+                    metadata={"motivo": "solicitud_publicacion_grupo"},
+                )
             return JsonResponse({
                 'success': True,
                 'grupo': grupo,
@@ -1009,22 +1339,40 @@ def cambiar_publicacion_grupo_puntos(request):
             })
 
         ahora = timestamp_auditoria()
-        actualizados = puntos_qs.update(
-            publico=False,
-            fec_modificacion=ahora,
-            usu_modificacion_id=request.user.id,
-        )
-        SolicitudPublicacion.objects.filter(
+        puntos = list(puntos_qs)
+        for punto in puntos:
+            before = serialize_instance_for_audit(punto)
+            punto.publico = False
+            mark_instance_modified(punto, request.user, ahora)
+            punto.save(update_fields=audit_update_fields("publico"))
+            audit_instance_update(
+                punto,
+                request.user,
+                before,
+                request=request,
+                metadata={"motivo": "volver_grupo_privado"},
+            )
+        solicitudes_pendientes = list(SolicitudPublicacion.objects.filter(
             requester=request.user,
             tipo=SolicitudPublicacion.TIPO_GRUPO,
             grupo_nombre=grupo,
             estado=SolicitudPublicacion.ESTADO_PENDIENTE,
-        ).delete()
+        ))
+        for solicitud in solicitudes_pendientes:
+            before = serialize_instance_for_audit(solicitud)
+            solicitud.delete()
+            audit_instance_delete(
+                solicitud,
+                request.user,
+                before=before,
+                request=request,
+                metadata={"motivo": "cancelar_solicitud_grupo_al_volver_privado"},
+            )
         return JsonResponse({
             'success': True,
             'grupo': grupo,
             'publico': False,
-            'actualizados': actualizados,
+            'actualizados': len(puntos),
             'estado_solicitud': None,
             'comentario_revision': '',
         })
@@ -1046,14 +1394,28 @@ def renombrar_grupo_puntos(request):
             return JsonResponse({'success': False, 'error': 'Debes indicar el grupo actual y el nuevo nombre.'}, status=400)
 
         ahora = timestamp_auditoria()
-        actualizados = Muestreo.objects.filter(
+        puntos = list(Muestreo.objects.filter(
             user=request.user,
             grupo=grupo_actual
-        ).update(
-            grupo=grupo_nuevo,
-            fec_modificacion=ahora,
-            usu_modificacion_id=request.user.id,
-        )
+        ))
+        actualizados = 0
+        for punto in puntos:
+            before = serialize_instance_for_audit(punto)
+            punto.grupo = grupo_nuevo
+            mark_instance_modified(punto, request.user, ahora)
+            punto.save(update_fields=audit_update_fields("grupo"))
+            audit_instance_update(
+                punto,
+                request.user,
+                before,
+                request=request,
+                metadata={
+                    "motivo": "renombrar_grupo",
+                    "grupo_actual": grupo_actual,
+                    "grupo_nuevo": grupo_nuevo,
+                },
+            )
+            actualizados += 1
 
         if actualizados == 0:
             return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
@@ -1071,11 +1433,66 @@ def renombrar_grupo_puntos(request):
 @require_POST
 @login_required
 @csrf_protect
+def eliminar_grupo_puntos(request):
+    """Elimina todos los puntos propios del usuario dentro de un grupo."""
+    try:
+        data = json.loads(request.body)
+        grupo = (data.get('grupo') or '').strip()
+
+        if not grupo:
+            return JsonResponse({'success': False, 'error': 'Debes indicar un grupo válido.'}, status=400)
+
+        puntos_qs = Muestreo.objects.filter(user=request.user, grupo=grupo)
+        puntos = list(puntos_qs)
+        eliminados = len(puntos)
+        if eliminados == 0:
+            return JsonResponse({'success': False, 'error': 'No se encontraron puntos propios para ese grupo.'}, status=404)
+
+        for punto in puntos:
+            before = serialize_instance_for_audit(punto)
+            punto.delete()
+            audit_instance_delete(
+                punto,
+                request.user,
+                before=before,
+                request=request,
+                metadata={"motivo": "eliminar_grupo", "grupo": grupo},
+            )
+        solicitudes = list(SolicitudPublicacion.objects.filter(
+            requester=request.user,
+            tipo=SolicitudPublicacion.TIPO_GRUPO,
+            grupo_nombre=grupo,
+        ))
+        for solicitud in solicitudes:
+            before = serialize_instance_for_audit(solicitud)
+            solicitud.delete()
+            audit_instance_delete(
+                solicitud,
+                request.user,
+                before=before,
+                request=request,
+                metadata={"motivo": "eliminar_grupo", "grupo": grupo},
+            )
+
+        return JsonResponse({
+            'success': True,
+            'grupo': grupo,
+            'eliminados': eliminados,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+@csrf_protect
 def eliminar_punto_view(request, id):
     """Elimina un punto de muestreo si pertenece al usuario actual."""
     try:
         punto = Muestreo.objects.get(gid=id, user=request.user)
+        before = serialize_instance_for_audit(punto)
         punto.delete()
+        audit_instance_delete(punto, request.user, before=before, request=request)
         return JsonResponse({'success': True})
     except Muestreo.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Punto no encontrado o no autorizado'})
@@ -1128,11 +1545,17 @@ def cargar_capa_patino(request):
                 nombre = props.get("name") or props.get("Nombre") or "Sin nombre"
                 ahora = timestamp_auditoria()
 
-                Capa.objects.create(
+                capa = Capa.objects.create(
                     wkb_geometry=geom,
                     user=request.user,
                     nombre=nombre,
                     **audit_create_kwargs(request.user, ahora),
+                )
+                audit_instance_insert(
+                    capa,
+                    request.user,
+                    request=request,
+                    metadata={"origen": "geojson"},
                 )
                 insertados += 1
             except Exception as e:
@@ -1151,7 +1574,9 @@ def eliminar_capa_view(request, ogc_fid):
     try:
         capa = Capa.objects.get(pk=ogc_fid)
         if capa.user_id == request.user.id or request.user.is_staff:
+            before = serialize_instance_for_audit(capa)
             capa.delete()
+            audit_instance_delete(capa, request.user, before=before, request=request)
             return JsonResponse({'success': True})
         return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
     except Capa.DoesNotExist:
@@ -1192,9 +1617,17 @@ def hacer_publica_view(request, ogc_fid: int):
         capa = Capa.objects.get(pk=ogc_fid)
     except Capa.DoesNotExist:
         raise Http404("Capa no encontrada")
+    before = serialize_instance_for_audit(capa)
     capa.user = None
     mark_instance_modified(capa, request.user)
     capa.save(update_fields=audit_update_fields('user'))
+    audit_instance_update(
+        capa,
+        request.user,
+        before,
+        request=request,
+        metadata={"motivo": "hacer_capa_publica"},
+    )
     return JsonResponse({'success': True})
 
 
@@ -1232,15 +1665,38 @@ def solicitar_publicacion(request, capa_id):
                 **audit_create_kwargs(request.user, ahora),
             }
         )
+        before_solicitud = None if creada else serialize_instance_for_audit(solicitud)
         if not creada and not solicitud.capa_nombre:
             solicitud.capa_nombre = capa.nombre or 'Sin nombre'
             mark_instance_modified(solicitud, request.user, ahora)
             solicitud.save(update_fields=audit_update_fields('capa_nombre', 'updated_at'))
+            audit_instance_update(
+                solicitud,
+                request.user,
+                before_solicitud,
+                request=request,
+                metadata={"motivo": "actualizar_nombre_solicitud_capa"},
+            )
+        elif creada:
+            audit_instance_insert(
+                solicitud,
+                request.user,
+                request=request,
+                metadata={"motivo": "solicitud_publicacion_capa"},
+            )
 
         try:
+            before_capa = serialize_instance_for_audit(capa)
             capa.estado = 'pendiente'
             mark_instance_modified(capa, request.user, ahora)
             capa.save(update_fields=audit_update_fields('estado'))
+            audit_instance_update(
+                capa,
+                request.user,
+                before_capa,
+                request=request,
+                metadata={"motivo": "marcar_capa_pendiente_publicacion"},
+            )
         except Exception:
             pass
 
@@ -1312,39 +1768,72 @@ def resolver_solicitud_publicacion(request, solicitud_id):
             estado=SolicitudPublicacion.ESTADO_PENDIENTE,
         )
         ahora = timestamp_auditoria()
+        before_solicitud = serialize_instance_for_audit(solicitud)
 
         if decision == 'aprobar':
             if solicitud.tipo == SolicitudPublicacion.TIPO_CAPA:
                 capa = Capa.objects.get(pk=solicitud.capa_id)
+                before_capa = serialize_instance_for_audit(capa)
                 capa.user = None
                 mark_instance_modified(capa, request.user, ahora)
                 capa.save(update_fields=audit_update_fields('user'))
+                audit_instance_update(
+                    capa,
+                    request.user,
+                    before_capa,
+                    request=request,
+                    metadata={"motivo": "aprobar_publicacion_capa"},
+                )
                 try:
+                    before_estado = serialize_instance_for_audit(capa)
                     capa.estado = 'publica'
                     mark_instance_modified(capa, request.user, ahora)
                     capa.save(update_fields=audit_update_fields('estado'))
+                    audit_instance_update(
+                        capa,
+                        request.user,
+                        before_estado,
+                        request=request,
+                        metadata={"motivo": "estado_capa_publica"},
+                    )
                 except Exception:
                     pass
             elif solicitud.tipo == SolicitudPublicacion.TIPO_GRUPO:
-                actualizados = Muestreo.objects.filter(
+                puntos = list(Muestreo.objects.filter(
                     user=solicitud.requester,
                     grupo=solicitud.grupo_nombre,
-                ).update(
-                    publico=True,
-                    fec_modificacion=ahora,
-                    usu_modificacion_id=request.user.id,
-                )
-                if actualizados == 0:
+                ))
+                if not puntos:
                     return JsonResponse({'success': False, 'error': 'No se encontraron puntos para publicar.'}, status=404)
+                for punto in puntos:
+                    before = serialize_instance_for_audit(punto)
+                    punto.publico = True
+                    mark_instance_modified(punto, request.user, ahora)
+                    punto.save(update_fields=audit_update_fields('publico'))
+                    audit_instance_update(
+                        punto,
+                        request.user,
+                        before,
+                        request=request,
+                        metadata={"motivo": "aprobar_publicacion_grupo", "grupo": solicitud.grupo_nombre},
+                    )
 
             solicitud.estado = SolicitudPublicacion.ESTADO_APROBADA
         else:
             if solicitud.tipo == SolicitudPublicacion.TIPO_CAPA:
                 try:
                     capa = Capa.objects.get(pk=solicitud.capa_id, user=solicitud.requester)
+                    before_capa = serialize_instance_for_audit(capa)
                     capa.estado = 'rechazada'
                     mark_instance_modified(capa, request.user, ahora)
                     capa.save(update_fields=audit_update_fields('estado'))
+                    audit_instance_update(
+                        capa,
+                        request.user,
+                        before_capa,
+                        request=request,
+                        metadata={"motivo": "rechazar_publicacion_capa"},
+                    )
                 except Exception:
                     pass
             solicitud.estado = SolicitudPublicacion.ESTADO_RECHAZADA
@@ -1354,6 +1843,13 @@ def resolver_solicitud_publicacion(request, solicitud_id):
         solicitud.review_comment = review_comment or None
         mark_instance_modified(solicitud, request.user, ahora)
         solicitud.save(update_fields=audit_update_fields('estado', 'reviewed_by', 'reviewed_at', 'review_comment', 'updated_at'))
+        audit_instance_update(
+            solicitud,
+            request.user,
+            before_solicitud,
+            request=request,
+            metadata={"motivo": f"resolver_solicitud_{decision}"},
+        )
 
         return JsonResponse({
             'success': True,
@@ -1447,6 +1943,12 @@ def cargar_capa_tiff(request):
             metadata=procesado["metadata"],
             **audit_create_kwargs(request.user, ahora),
         )
+        audit_instance_insert(
+            raster,
+            request.user,
+            request=request,
+            metadata={"origen": "tiff", "modo_despliegue": modo_despliegue},
+        )
 
         for temp_artifact in [procesado["colored_tif"], procesado["color_map"]]:
             temp_artifact = Path(temp_artifact)
@@ -1488,7 +1990,9 @@ def eliminar_capa_tiff(request, raster_id):
         raster.archivo_4326.path if raster.archivo_4326 else None,
         raster.archivo_png.path if raster.archivo_png else None,
     ]
+    before = serialize_instance_for_audit(raster)
     raster.delete()
+    audit_instance_delete(raster, request.user, before=before, request=request)
     for archivo in archivos:
         if archivo and os.path.exists(archivo):
             os.remove(archivo)
@@ -1506,10 +2010,27 @@ def make_admin(request, user_id):
         target = User.objects.get(pk=user_id)
     except User.DoesNotExist:
         raise Http404("Usuario no encontrado")
+    before = {
+        "user": serialize_instance_for_audit(target),
+        "groups": list(target.groups.values_list("name", flat=True)),
+    }
     group = get_or_create_map_admin_group()
     target.groups.add(group)
     target.is_staff = True
     target.save()
+    after = {
+        "user": serialize_instance_for_audit(target),
+        "groups": list(target.groups.values_list("name", flat=True)),
+    }
+    create_audit_event(
+        action="update",
+        actor=request.user,
+        instance=target,
+        before=before,
+        after=after,
+        metadata={"motivo": "otorgar_map_admin"},
+        request=request,
+    )
     return JsonResponse({"success": True, "message": f"{target.username} ahora es administrador"})
 
 
@@ -1522,11 +2043,28 @@ def remove_admin(request, user_id):
         target = User.objects.get(pk=user_id)
     except User.DoesNotExist:
         raise Http404("Usuario no encontrado")
+    before = {
+        "user": serialize_instance_for_audit(target),
+        "groups": list(target.groups.values_list("name", flat=True)),
+    }
     group = get_or_create_map_admin_group()
     target.groups.remove(group)
     if not target.is_superuser and not target.groups.filter(name=group.name).exists():
         target.is_staff = False
     target.save()
+    after = {
+        "user": serialize_instance_for_audit(target),
+        "groups": list(target.groups.values_list("name", flat=True)),
+    }
+    create_audit_event(
+        action="update",
+        actor=request.user,
+        instance=target,
+        before=before,
+        after=after,
+        metadata={"motivo": "revocar_map_admin"},
+        request=request,
+    )
     return JsonResponse({"success": True, "message": f"{target.username} ya no es administrador"})
 
 
@@ -1644,9 +2182,20 @@ def cargar_capa_shapefile(request):
                     usu_insercion = COALESCE(usu_insercion, %s),
                     fec_modificacion = %s,
                     usu_modificacion = %s
+                RETURNING ogc_fid
                 WHERE user_id IS NULL
                 AND fecha_subida IS NULL
             """, [request.user.id, ahora, request.user.id, ahora, request.user.id])
+            inserted_ids = [row[0] for row in cur.fetchall()]
+
+        if inserted_ids:
+            for capa in Capa.objects.filter(ogc_fid__in=inserted_ids):
+                audit_instance_insert(
+                    capa,
+                    request.user,
+                    request=request,
+                    metadata={"origen": "shapefile", "archivo": archivo.name},
+                )
 
         return JsonResponse({
             'success': True,

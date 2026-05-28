@@ -7,6 +7,7 @@ from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
 from django.http import HttpResponse
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 
@@ -28,6 +29,48 @@ class HelperFunctionsTests(SimpleTestCase):
         fila = {"nombre lugar": "", "nombre": "Pozo 7"}
         aliases = {"nombre": ["nombre lugar", "nombre"]}
         self.assertEqual(views.valor_csv(fila, aliases, "nombre"), "Pozo 7")
+
+
+class AuditHelpersTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_serialize_instance_for_audit_oculta_password_y_resume_geom(self):
+        user = User(username="auditor", password="hash-secreto", is_staff=True)
+        data = views.serialize_instance_for_audit(user)
+
+        self.assertEqual(data["password"], "***")
+        self.assertEqual(data["username"], "auditor")
+
+        point = Point(-57.57, -25.29, srid=4326)
+        geom_data = views.audit_json_safe(point)
+        self.assertEqual(geom_data["geom_type"], "Point")
+        self.assertEqual(geom_data["srid"], 4326)
+        self.assertEqual(len(geom_data["extent"]), 4)
+
+    @patch("mapas.views.AuditoriaEvento.objects.create")
+    def test_create_audit_event_incluye_contexto_request(self, mock_create):
+        request = self.factory.post("/guardar-nuevo-punto/")
+        request.user = SimpleNamespace(pk=3)
+        request.META["REMOTE_ADDR"] = "127.0.0.1"
+
+        views.create_audit_event(
+            action="insert",
+            actor=request.user,
+            entity="mapas.muestreo",
+            record_id=15,
+            label="Pozo 15",
+            after={"nombre": "Pozo 15"},
+            request=request,
+        )
+
+        _, kwargs = mock_create.call_args
+        self.assertEqual(kwargs["accion"], "insert")
+        self.assertEqual(kwargs["entidad"], "mapas.muestreo")
+        self.assertEqual(kwargs["registro_id"], "15")
+        self.assertEqual(kwargs["ruta"], "/guardar-nuevo-punto/")
+        self.assertEqual(kwargs["metodo"], "POST")
+        self.assertEqual(kwargs["ip_origen"], "127.0.0.1")
 
 
 class DownloadViewsTests(SimpleTestCase):

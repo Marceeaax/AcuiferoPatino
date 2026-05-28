@@ -26,6 +26,41 @@ class AuditFieldsMixin(models.Model):
         abstract = True
 
 
+class AuditoriaEvento(models.Model):
+    ACCIONES = [
+        ("insert", "Inserción"),
+        ("update", "Actualización"),
+        ("delete", "Eliminación"),
+    ]
+
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_auditoria",
+    )
+    accion = models.CharField(max_length=20, choices=ACCIONES)
+    entidad = models.CharField(max_length=120)
+    registro_id = models.CharField(max_length=64, blank=True, null=True)
+    etiqueta = models.CharField(max_length=255, blank=True, null=True)
+    datos_antes = models.JSONField(blank=True, null=True)
+    datos_despues = models.JSONField(blank=True, null=True)
+    metadatos = models.JSONField(default=dict, blank=True)
+    ruta = models.CharField(max_length=255, blank=True, null=True)
+    metodo = models.CharField(max_length=16, blank=True, null=True)
+    ip_origen = models.GenericIPAddressField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "auditoria_evento"
+        ordering = ["-creado_en", "-id"]
+
+    def __str__(self):
+        entidad = self.entidad or "registro"
+        return f"{self.get_accion_display()} - {entidad} #{self.registro_id or 's/d'}"
+
+
 class Muestreo(AuditFieldsMixin, models.Model):
     gid = models.AutoField(primary_key=True)
     estacionid = models.CharField(max_length=254, blank=True, null=True)

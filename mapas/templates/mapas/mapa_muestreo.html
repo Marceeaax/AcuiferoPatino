@@ -1,11 +1,11 @@
-  {% load static %}
+﻿  {% load static %}
   
   <!DOCTYPE html>
   <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Acuífero Patiño</title>
+    <title>Acu&iacute;fero Pati&ntilde;o</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -241,6 +241,214 @@
         justify-content: flex-end;
       }
 
+      .csv-upload-layout {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
+        gap: 18px;
+      }
+
+      .csv-upload-card {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 18px;
+        background: rgba(248, 250, 252, 0.8);
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      .csv-upload-card h6 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .csv-upload-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .csv-upload-hero {
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(34, 197, 94, 0.12));
+        border-color: rgba(14, 165, 233, 0.18);
+      }
+
+      .csv-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .csv-upload-stat {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .csv-upload-stat strong {
+        display: block;
+        font-size: 0.82rem;
+        color: #0f766e;
+        margin-bottom: 4px;
+      }
+
+      .csv-upload-stat span,
+      .csv-upload-stat div {
+        color: #334155;
+        font-size: 0.93rem;
+      }
+
+      .csv-upload-details {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        overflow: hidden;
+      }
+
+      .csv-upload-details summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 13px 15px;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .csv-upload-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .csv-upload-details summary::after {
+        content: 'Mostrar';
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #0f766e;
+      }
+
+      .csv-upload-details[open] summary::after {
+        content: 'Ocultar';
+      }
+
+      .csv-upload-details-body {
+        padding: 0 15px 15px;
+      }
+
+      .csv-upload-details-body code {
+        white-space: nowrap;
+      }
+
+      .csv-preview-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .csv-preview-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .csv-preview-card strong {
+        display: block;
+        font-size: 0.8rem;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+
+      .csv-preview-card span {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .csv-preview-alert {
+        border-radius: 14px;
+        border: 1px solid transparent;
+        padding: 12px 14px;
+        margin-top: 12px;
+        font-size: 0.93rem;
+      }
+
+      .csv-preview-alert ul {
+        margin: 8px 0 0 18px;
+      }
+
+      .csv-preview-alert--success {
+        background: rgba(34, 197, 94, 0.12);
+        border-color: rgba(34, 197, 94, 0.22);
+        color: #166534;
+      }
+
+      .csv-preview-alert--warning {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.22);
+        color: #92400e;
+      }
+
+      .csv-preview-alert--danger {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #991b1b;
+      }
+
+      .csv-preview-columns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .csv-preview-table-wrap {
+        max-height: 58vh;
+        overflow: auto;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .csv-preview-table {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+      }
+
+      .csv-preview-table thead th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        z-index: 1;
+        white-space: nowrap;
+      }
+
+      .csv-preview-table td {
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      .csv-preview-row--warning {
+        background: rgba(245, 158, 11, 0.08);
+      }
+
+      .csv-preview-table-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      @media (max-width: 991px) {
+        .csv-upload-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .csv-preview-summary {
+          grid-template-columns: 1fr;
+        }
+      }
+
       #darkModeToggle {
         font-size: 1.2rem;
         background: none;
@@ -346,12 +554,15 @@
       body.fab-menu-open .fab-menu button:nth-child(9) { transition-delay: .26s; }
 
   #layerPanel{
-    position:absolute;
-    bottom:14px;
+    position:fixed;
+    top:84px;
+    bottom:auto;
     left:14px;
     z-index:9999;
     width:290px;
     max-width:calc(100vw - 28px);
+    height:calc(100vh - 98px);
+    max-height:calc(100vh - 98px);
     background:rgba(255,255,255,.94);
     backdrop-filter: blur(14px);
     border:1px solid rgba(17, 153, 142, 0.14);
@@ -359,6 +570,10 @@
     padding:12px;
     box-shadow:0 18px 42px rgba(15, 23, 42, .16);
     overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition: box-shadow .26s ease, border-color .26s ease, background-color .26s ease;
+    transform-origin: left top;
   }
   #layerPanel .panel-shell-header{
     display:flex;
@@ -366,6 +581,12 @@
     justify-content:space-between;
     gap:10px;
     margin-bottom:10px;
+    position:sticky;
+    top:-12px;
+    z-index:3;
+    background:rgba(255,255,255,.94);
+    backdrop-filter: blur(14px);
+    padding:12px 0 10px;
   }
   #layerPanel .panel-shell-title{
     font-weight:700;
@@ -404,8 +625,36 @@
   }
   #layerPanelBody{
     display:flex;
+    flex:1 1 auto;
     flex-direction:column;
     gap:10px;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    max-height:2000px;
+    opacity:1;
+    transform:translateY(0);
+    padding-right:4px;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    scrollbar-width: auto;
+    scrollbar-color: rgba(15, 118, 110, .42) rgba(15, 118, 110, .08);
+    transition:max-height .28s ease, opacity .2s ease, transform .24s ease;
+  }
+  #layerPanelBody::-webkit-scrollbar{
+    width:12px;
+  }
+  #layerPanelBody::-webkit-scrollbar-track{
+    background:rgba(15, 118, 110, .08);
+    border-radius:999px;
+  }
+  #layerPanelBody::-webkit-scrollbar-thumb{
+    background:rgba(15, 118, 110, .42);
+    border-radius:999px;
+    border:2px solid rgba(255,255,255,.65);
+  }
+  #layerPanelBody::-webkit-scrollbar-thumb:hover{
+    background:rgba(15, 118, 110, .58);
   }
   #layerPanel .panel-section{
     background:rgba(248,250,252,.82);
@@ -453,7 +702,7 @@
     transform:rotate(-90deg);
   }
   #layerPanel .panel-title::after{
-    content:'▾';
+    content:'?';
     font-size:.78rem;
     color:#64748b;
     margin-left:8px;
@@ -476,8 +725,8 @@
     border-top:1px solid rgba(148,163,184,.2);
   }
   #layerPanel .layer-list{
-    max-height:170px;
-    overflow-y:auto;
+    max-height:none;
+    overflow:visible;
     margin:0;
     padding:0;
     list-style:none;
@@ -548,24 +797,50 @@
     border-radius:999px;
   }
   #layerPanel.is-minimized{
-    width:auto;
+    top:auto;
+    bottom:14px;
+    width:188px;
+    max-width:calc(100vw - 28px);
     min-width:0;
-    padding:10px;
+    height:auto;
+    max-height:58px;
+    padding:10px 12px;
+    overflow:hidden;
+    border-radius:16px;
   }
   #layerPanel.is-minimized #layerPanelBody{
-    display:none;
+    max-height:0;
+    opacity:0;
+    transform:translateY(-8px);
+    pointer-events:none;
+  }
+  #layerPanel.is-minimized .panel-shell-header{
+    margin-bottom:0;
+    padding:0;
+    position:static;
+    background:transparent;
+    backdrop-filter:none;
+    top:auto;
+  }
+  #layerPanel.is-minimized .panel-shell-actions{
+    width:auto;
+    justify-content:flex-end;
   }
   #layerPanel.is-minimized .panel-shell-subtitle{
     display:none;
   }
   #layerPanel.is-minimized .panel-shell-title{
-    font-size:.92rem;
+    font-size:.93rem;
+    white-space:nowrap;
   }
   body.dark-mode #layerPanel{
     background:rgba(17,24,39,.92);
     border-color:rgba(148,163,184,.18);
     color:#f8fafc;
     box-shadow:0 18px 42px rgba(0,0,0,.34);
+  }
+  body.dark-mode #layerPanel .panel-shell-header{
+    background:rgba(17,24,39,.92);
   }
   body.dark-mode #layerPanel .panel-shell-title{
     color:#d1fae5;
@@ -609,6 +884,19 @@
   body.dark-mode #layerPanel .layer-marker{
     border-color:rgba(226, 232, 240, .24);
     box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .24);
+  }
+  body.dark-mode #layerPanelBody{
+    scrollbar-color: rgba(159, 227, 219, .5) rgba(159, 227, 219, .12);
+  }
+  body.dark-mode #layerPanelBody::-webkit-scrollbar-track{
+    background:rgba(159, 227, 219, .12);
+  }
+  body.dark-mode #layerPanelBody::-webkit-scrollbar-thumb{
+    background:rgba(159, 227, 219, .5);
+    border-color:rgba(17,24,39,.72);
+  }
+  body.dark-mode #layerPanelBody::-webkit-scrollbar-thumb:hover{
+    background:rgba(159, 227, 219, .68);
   }
   #layerPanel,
   .fab,
@@ -704,6 +992,39 @@
   body.dark-mode .download-row-subtitle{
     color:#cbd5e1;
   }
+  body.dark-mode .csv-upload-card,
+  body.dark-mode .csv-preview-card,
+  body.dark-mode .csv-upload-details{
+    background: rgba(30, 41, 59, .7);
+    border-color: rgba(148, 163, 184, .18);
+  }
+  body.dark-mode .csv-upload-card h6,
+  body.dark-mode .csv-upload-details summary,
+  body.dark-mode .csv-preview-card span{
+    color:#f8fafc;
+  }
+  body.dark-mode .csv-upload-stat,
+  body.dark-mode .csv-preview-card{
+    background: rgba(15, 23, 42, .72);
+  }
+  body.dark-mode .csv-upload-stat span,
+  body.dark-mode .csv-upload-stat div,
+  body.dark-mode .csv-preview-card strong,
+  body.dark-mode .csv-upload-details summary::after,
+  body.dark-mode .csv-upload-details-body,
+  body.dark-mode .csv-upload-card p{
+    color:#cbd5e1;
+  }
+  body.dark-mode .csv-preview-table-wrap{
+    background: rgba(15, 23, 42, .72);
+    border-color: rgba(148, 163, 184, .18);
+  }
+  body.dark-mode .csv-preview-table thead th{
+    background: #0f172a;
+  }
+  body.dark-mode .csv-preview-row--warning{
+    background: rgba(245, 158, 11, 0.12);
+  }
   body.dark-mode .modal-header,
   body.dark-mode .modal-footer{
     border-color:#444;
@@ -796,15 +1117,15 @@
   <body>
     <div class="header">
       <div class="header-left">
-        <img src="{% static 'AcuiferoPatinoSinFondoHorizontal.png' %}" alt="Acuífero Patiño" class="header-logo">
+        <img src="{% static 'AcuiferoPatinoSinFondoHorizontal.png' %}" alt="Acu&iacute;fero Pati&ntilde;o" class="header-logo">
       </div>
-      <h1>Plataforma interactiva del Acuífero Patiño</h1>
+      <h1>Plataforma interactiva del Acu&iacute;fero Pati&ntilde;o</h1>
       <div class="header-actions">
         <button id="darkModeToggle" title="Modo noche/día">🌙</button>
         {% if user.is_authenticated %}
-          <a href="{% url 'logout' %}" class="login-button">Cerrar sesión</a>
+          <a href="{% url 'logout' %}" class="login-button">Cerrar sesi&oacute;n</a>
         {% else %}
-          <button type="button" class="login-button login-button-modal" onclick="abrirModalLogin()">Iniciar sesión</button>
+          <button type="button" class="login-button login-button-modal" onclick="abrirModalLogin()">Iniciar sesi&oacute;n</button>
         {% endif %}
       </div>
     </div>
@@ -816,33 +1137,52 @@
           <span class="panel-shell-subtitle">Capas, puntos y overlays del visor</span>
         </div>
         <div class="panel-shell-actions">
-          <button type="button" id="layerPanelCollapseBtn" class="panel-shell-btn" title="Minimizar panel" aria-label="Minimizar panel">—</button>
+          <button type="button" id="layerPanelCollapseBtn" class="panel-shell-btn" title="Minimizar panel" aria-label="Minimizar panel">-</button>
         </div>
       </div>
       <div id="layerPanelBody">
-      <div class="panel-section" data-section="publicas"
+      <div class="panel-section d-none" data-section="publicas-legacy"
       {% if not user.is_authenticated %}style="display:none"{% endif %}>
-      <div class="panel-title">🌐 Capas públicas <span class="badge" id="badgePublicas">0</span></div>
-      <ul class="layer-list" id="listPublicas"></ul>
+      <div class="panel-title">Capas p&uacute;blicas ocultas</div>
+      <ul class="layer-list" id="listPublicasLegacy"></ul>
     </div>
 
       <div class="panel-section" data-section="propias">
-        <div class="panel-title">👤 Mis capas <span class="badge" id="badgePropias">0</span></div>
-        <ul class="layer-list" id="listPropias"></ul>
+        <div class="panel-title">Mis capas <span class="badge" id="badgePropias">0</span></div>
+        <div id="panelSubgroupPropiasPuntos">
+          <div class="panel-title-static"><span>Mis grupos de puntos</span></div>
+          <ul class="layer-list" id="listPropiasPuntos">
+            <li id="itemToggleMisPuntos">
+              <input type="checkbox" id="toggleMisPuntosPanel" checked />
+              <span class="layer-marker" data-marker="MIS_PUNTOS"></span>
+              <span class="layer-item-label">Todos mis puntos</span>
+            </li>
+          </ul>
+        </div>
+        <div id="panelSubgroupPropiasVector">
+          <div class="panel-title-static"><span>Mis capas vectoriales</span></div>
+          <ul class="layer-list" id="listPropiasVector"></ul>
+        </div>
+        <div id="panelSubgroupPropiasRaster">
+          <div class="panel-title-static"><span>Mis capas raster</span></div>
+          <ul class="layer-list" id="listPropiasRaster"></ul>
+        </div>
       </div>
       <hr style="margin:8px 0" />
-      <div class="panel-section" data-section="grupos-puntos">
-        <div class="panel-title">Grupos publicos <span class="badge" id="badgeGruposPuntos">0</span></div>
-        <ul class="layer-list" id="listGruposPuntos"></ul>
+      <div class="panel-section" data-section="publicas">
+      <div class="panel-title">Capas públicas <span class="badge" id="badgePublicas">0</span></div>
+        <div id="panelSubgroupPublicasPuntos">
+          <div class="panel-title-static"><span>Grupos de puntos públicos</span></div>
+          <ul class="layer-list" id="listPublicasPuntos"></ul>
+        </div>
+        <div id="panelSubgroupPublicasCapas">
+          <div class="panel-title-static"><span>Capas y raster públicos</span></div>
+          <ul class="layer-list" id="listPublicas"></ul>
+        </div>
       </div>
       <hr style="margin:8px 0" />
-      <div class="panel-title-static"><span>🗺️ Capas base</span></div>
+      <div class="panel-title-static"><span>Capas base</span></div>
       <ul class="layer-list" id="listBase">
-        <li draggable="true" data-layer="MUESTREOS">
-          <input type="checkbox" checked />
-          <span class="layer-marker" data-marker="MUESTREOS"></span>
-          <span class="layer-item-label">Todos los puntos</span>
-        </li>
         <li draggable="true" data-layer="HEAT">
           <input type="checkbox" checked />
           <span class="layer-marker layer-marker--pill" data-marker="HEAT"></span>
@@ -851,7 +1191,7 @@
         <li draggable="true" data-layer="PATINO">
           <input type="checkbox" checked />
           <span class="layer-marker" data-marker="PATINO"></span>
-          <span class="layer-item-label">Acuífero Patiño</span>
+          <span class="layer-item-label">Acu&iacute;fero Pati&ntilde;o</span>
         </li>
       </ul>
     </div>
@@ -869,11 +1209,11 @@
           </div>
           <div class="modal-body">
             <div class="login-modal-hero">
-              <h6 id="modalAuthHeroTitle">Accedé a tus herramientas</h6>
-              <p id="modalAuthHeroText">Iniciá sesión para subir puntos, gestionar capas y editar solo tu información dentro del visor.</p>
+              <h6 id="modalAuthHeroTitle">Acced&eacute; a tus herramientas</h6>
+              <p id="modalAuthHeroText">Inici&aacute; sesi&oacute;n para subir puntos, gestionar capas y editar solo tu informaci&oacute;n dentro del visor.</p>
             </div>
             <div class="auth-mode-switch" role="tablist" aria-label="Elegir modo de acceso">
-              <button type="button" class="auth-mode-btn is-active" id="authModeLoginBtn" onclick="setModalAuthMode('login')">Iniciar sesión</button>
+              <button type="button" class="auth-mode-btn is-active" id="authModeLoginBtn" onclick="setModalAuthMode('login')">Iniciar sesi&oacute;n</button>
               <button type="button" class="auth-mode-btn" id="authModeRegisterBtn" onclick="setModalAuthMode('register')">Registrarse</button>
             </div>
 
@@ -888,11 +1228,11 @@
                     <input type="text" class="form-control" id="modalLoginUsername" name="username" placeholder="Tu usuario" required autocomplete="username">
                   </div>
                   <div class="mb-2">
-                    <label class="form-label" for="modalLoginPassword">Contraseña</label>
-                    <input type="password" class="form-control" id="modalLoginPassword" name="password" placeholder="Tu contraseña" required autocomplete="current-password">
+                    <label class="form-label" for="modalLoginPassword">Contrase&ntilde;a</label>
+                    <input type="password" class="form-control" id="modalLoginPassword" name="password" placeholder="Tu contrase&ntilde;a" required autocomplete="current-password">
                   </div>
                   <div class="login-modal-links">
-                    <a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a>
+                    <a href="{% url 'password_reset' %}">&iquest;Olvidaste tu contrase&ntilde;a?</a>
                     <a href="#" onclick="event.preventDefault(); setModalAuthMode('register');">Crear cuenta</a>
                   </div>
                 </form>
@@ -905,14 +1245,14 @@
                   <input type="hidden" name="modal_register" value="1">
                   <div class="mb-3">
                     <label class="form-label" for="modalRegisterUsername">Usuario</label>
-                    <input type="text" class="form-control" id="modalRegisterUsername" name="username" placeholder="Elegí un usuario" autocomplete="username">
+                    <input type="text" class="form-control" id="modalRegisterUsername" name="username" placeholder="Eleg&iacute; un usuario" autocomplete="username">
                   </div>
                   <div class="mb-2">
-                    <label class="form-label" for="modalRegisterPassword">Contraseña</label>
-                    <input type="password" class="form-control" id="modalRegisterPassword" name="password" placeholder="Definí una contraseña" autocomplete="new-password">
+                    <label class="form-label" for="modalRegisterPassword">Contrase&ntilde;a</label>
+                    <input type="password" class="form-control" id="modalRegisterPassword" name="password" placeholder="Defin&iacute; una contrase&ntilde;a" autocomplete="new-password">
                   </div>
                   <div class="auth-panel-note">
-                    Todavia en fase de prueva.
+                    Todav&iacute;a en fase de prueba.
                   </div>
                   <div class="login-modal-links">
                     <a href="#" onclick="event.preventDefault(); setModalAuthMode('login');">Ya tengo cuenta</a>
@@ -931,21 +1271,21 @@
     </div>
     {% endif %}
 
-    <button class="fab" onclick="toggleFabMenu()">＋</button>
+    <button class="fab" onclick="toggleFabMenu()">+</button>
     <div class="fab-menu" id="fabMenu">
-      <button onclick="abrirModalFiltro()">🔎 Filtrar puntos</button>
-      <button onclick="abrirModalDescargas()">⬇️ Descargas</button>
+      <button onclick="abrirModalFiltro()">Filtrar puntos</button>
+      <button onclick="abrirModalDescargas()">Descargas</button>
       {% if user.is_authenticated %}
-      <button onclick="activarModoCentro()">📍 Establecer centro</button>
-      <button onclick="abrirModalCargaPuntos()">➕ Subir puntos</button>
-      <button onclick="abrirModalCargaGeoJSON()">📁 Subir capa</button>
-      <button onclick="abrirModalCargaTiff()">🖼️ Subir TIFF</button>
-      <button onclick="abrirModalGruposPuntos()">🗂️ Todos los puntos</button>
-      <button onclick="abrirModalMisCapas()">📂 Mis capas</button>
+      <button onclick="activarModoCentro()">Establecer centro</button>
+      <button onclick="abrirModalCargaPuntos()">Subir puntos</button>
+      <button onclick="abrirModalCargaGeoJSON()">Subir capa</button>
+      <button onclick="abrirModalCargaTiff()">Subir TIFF</button>
+      <button onclick="abrirModalGruposPuntos()">Todos los puntos</button>
+      <button onclick="abrirModalMisCapas()">Mis capas</button>
       {% if es_admin %}
-        <button onclick="abrirModalSolicitudesPublicacion()">📨 Solicitudes{% if solicitudes_admin_pendientes_count %} ({{ solicitudes_admin_pendientes_count }}){% endif %}</button>
-        <button onclick="abrirModalUsuarios()">👥 Usuarios</button>
-        <button onclick="abrirModalCapas()">🗂️ Todas las capas</button>
+        <button onclick="abrirModalSolicitudesPublicacion()">Solicitudes{% if solicitudes_admin_pendientes_count %} ({{ solicitudes_admin_pendientes_count }}){% endif %}</button>
+        <button onclick="abrirModalUsuarios()">Usuarios</button>
+        <button onclick="abrirModalCapas()">Todas las capas</button>
       {% endif %}
       {% endif %}
     </div>
@@ -1175,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('layerPanelCollapseBtn');
     if (!panel || !btn) return;
     const minimized = panel.classList.contains('is-minimized');
-    btn.textContent = minimized ? '+' : '—';
+    btn.textContent = minimized ? '+' : '-';
     btn.title = minimized ? 'Expandir panel' : 'Minimizar panel';
     btn.setAttribute('aria-label', minimized ? 'Expandir panel' : 'Minimizar panel');
   }
@@ -1183,8 +1523,30 @@ document.addEventListener('DOMContentLoaded', function () {
   function toggleLayerPanel(forceMinimized = null) {
     const panel = document.getElementById('layerPanel');
     if (!panel) return;
+    const first = panel.getBoundingClientRect();
     const nextState = forceMinimized == null ? !panel.classList.contains('is-minimized') : !!forceMinimized;
     panel.classList.toggle('is-minimized', nextState);
+    const last = panel.getBoundingClientRect();
+    const deltaX = first.left - last.left;
+    const deltaY = first.top - last.top;
+    const scaleX = last.width ? first.width / last.width : 1;
+    const scaleY = last.height ? first.height / last.height : 1;
+    panel.animate(
+      [
+        {
+          transform: `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`,
+          transformOrigin: 'top left'
+        },
+        {
+          transform: 'translate(0, 0) scale(1, 1)',
+          transformOrigin: 'top left'
+        }
+      ],
+      {
+        duration: 260,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+      }
+    );
     saveLayerPanelMinimizedState(nextState);
     syncLayerPanelToggleLabel();
   }
@@ -1230,14 +1592,22 @@ document.addEventListener('DOMContentLoaded', function () {
      Flags del template
   ================================= */
   const IS_AUTH = {{ user.is_authenticated|yesno:"true,false" }};
-  // si querés, también podés pasar un flag desde la vista para admin:
+  // si quer?s, tambi?n pod?s pasar un flag desde la vista para admin:
+  const CURRENT_USER_ID = {% if user.is_authenticated %}{{ user.id }}{% else %}null{% endif %};
   const IS_ADMIN = {{ es_admin|yesno:"true,false" }};
   window.IS_AUTH = IS_AUTH;
+  window.CURRENT_USER_ID = CURRENT_USER_ID;
   window.IS_ADMIN = IS_ADMIN;
   const SOLICITUDES_GRUPO = {{ solicitudes_grupo|safe }};
 
+  function esPuntoDelUsuarioActual(props) {
+    if (!IS_AUTH || CURRENT_USER_ID == null) return false;
+    const ownerId = Number(props?.user);
+    return Number.isFinite(ownerId) && ownerId === Number(CURRENT_USER_ID);
+  }
+
   /* ================================
-     Inicialización del mapa
+     Inicializaci?n del mapa
   ================================= */
   const centro = {{ centro_mapa|default:"null"|safe }};
   const map = L.map('map', { zoomControl: false }).setView(
@@ -1251,21 +1621,23 @@ document.addEventListener('DOMContentLoaded', function () {
   map.createPane('paneMUESTREOS');
   map.createPane('panePATINO');
   map.getPane('paneWQI').style.zIndex = 400;
-  map.getPane('paneHEAT').style.zIndex = 620;
-  map.getPane('panePATINO').style.zIndex = 540;   // debajo de muestreos
-  map.getPane('paneMUESTREOS').style.zIndex = 700;
+  map.getPane('paneHEAT').style.zIndex = 610;
+  map.getPane('panePATINO').style.zIndex = 620;
+  map.getPane('paneMUESTREOS').style.zIndex = 630;
+  map.getPane('tooltipPane').style.zIndex = 950;
+  map.getPane('popupPane').style.zIndex = 1000;
 
   // capa base
   let baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
-    attribution: '© OpenStreetMap contributors'
+    attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
   // helper de formato
-  function format(val){ return val!=null && !isNaN(val) ? Number(val).toFixed(3) : 'N/D'; }
+  function format(val){ return val != null && !isNaN(val) ? Number(val).toFixed(3) : 'N/D'; }
 
   /* ================================
-     Capas “fijas” del visor
+     Capas â€œfijasâ€ del visor
   ================================= */
   // WQI (raster)
   const rasterOverlay = L.imageOverlay(
@@ -1274,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', function () {
     { pane: 'paneWQI', opacity: 0.6 }
   );
 
-  // Polígono Patiño (tus capas public/propias serializadas también vienen en {{ patino }})
+  // Pol?gono Pati?o (tus capas public/propias serializadas tambi?n vienen en {{ patino }})
   const patinoLayer = L.geoJSON({{ patino|safe }}, {
     pane: 'panePATINO',
     interactive: false,
@@ -1298,13 +1670,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const WQI_MIN_REQUIRED_PARAMS = 6;
   const WQI_PARAM_CONFIG = [
-    { key: 'conductivi', label: 'Conductividad eléctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
+    { key: 'conductivi', label: 'Conductividad el?ctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
     { key: 'alcalinida', label: 'Alcalinidad total', unit: 'mg/L', standard: 250, weight: 5 },
     { key: 'magnesio', label: 'Magnesio', unit: 'mg/L', standard: 50, weight: 5 },
     { key: 'nitratos', label: 'Nitrato', unit: 'mg/L', standard: 45, weight: 4 },
     { key: 'nitritos', label: 'Nitrito', unit: 'mg/L', standard: 0.5, weight: 4 },
     { key: 'ph', label: 'pH', unit: '', standard: [6.5, 8.5], weight: 4, type: 'ph' },
-    { key: 'materia_or', label: 'Materia orgánica', unit: 'mg/L', standard: 5, weight: 3 },
+    { key: 'materia_or', label: 'Materia org?nica', unit: 'mg/L', standard: 5, weight: 3 },
     { key: 'col_fecale', label: 'Coliformes fecales', unit: 'CFU/100ml', standard: 0, weight: 1, type: 'coliformes' }
   ];
   const WQI_PARAM_KEYS = WQI_PARAM_CONFIG.map(param => param.key);
@@ -1330,6 +1702,10 @@ document.addEventListener('DOMContentLoaded', function () {
   let pointColorState = loadColorState(POINT_COLOR_STORAGE_KEY);
   let layerColorState = loadColorState(LAYER_COLOR_STORAGE_KEY);
 
+  function normalizePointGroupKey(group) {
+    return (group || 'SIN_GRUPO').trim().toUpperCase();
+  }
+
   function hashColorIndex(value) {
     const text = `${value || ''}`;
     let hash = 0;
@@ -1351,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function getPointGroupColor(group, isOwn = false) {
-    const normalizedGroup = (group || 'SIN_GRUPO').trim().toUpperCase();
+    const normalizedGroup = normalizePointGroupKey(group);
     if (pointColorState[normalizedGroup]) return pointColorState[normalizedGroup];
     if (isOwn) return '#00BCD4';
     return COLOR_PRESETS[hashColorIndex(normalizedGroup)];
@@ -1398,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function syncBaseLegendMarkers() {
-    const pointMarker = listBase?.querySelector('[data-marker="MUESTREOS"]');
+    const pointMarker = listPropiasPuntos?.querySelector('[data-marker="MIS_PUNTOS"]');
     const heatMarker = listBase?.querySelector('[data-marker="HEAT"]');
     const patinoMarker = listBase?.querySelector('[data-marker="PATINO"]');
     if (pointMarker) pointMarker.style.background = getPointLegendBackground();
@@ -1416,24 +1792,27 @@ document.addEventListener('DOMContentLoaded', function () {
     entry.markerEl.style.background = getLayerColor(layerId);
   }
 
-  async function promptColorSelection({ title, currentColor }) {
+  async function promptColorSelection({ title, currentColor, target = null }) {
     const presetsHtml = COLOR_PRESETS.map(color => `
       <button type="button" class="swal-color-preset" data-color="${color}" style="width:28px;height:28px;border-radius:999px;border:2px solid rgba(0,0,0,.15);background:${color};padding:0;"></button>
     `).join('');
 
     const result = await Swal.fire({
       title,
+      target: target || document.body,
       html: `
         <div class="text-center">
           <input type="color" id="swalColorPicker" value="${currentColor}" style="width:72px;height:48px;border:none;background:transparent;">
           <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">${presetsHtml}</div>
         </div>
       `,
+      focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Guardar color',
       cancelButtonText: 'Cancelar',
       didOpen: () => {
         const picker = document.getElementById('swalColorPicker');
+        picker?.focus();
         document.querySelectorAll('.swal-color-preset').forEach(btn => {
           btn.addEventListener('click', () => {
             if (picker) picker.value = btn.dataset.color || currentColor;
@@ -1540,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const props = layer.feature?.properties || {};
       const grupo = obtenerGrupoPunto(props);
       const grupoVisible = estadoGruposPuntos.has(grupo) ? estadoGruposPuntos.get(grupo) : true;
-      const esVisible = mostrarTodosLosPuntos && grupoVisible;
+      const esVisible = (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
       const esPublico = !!props.publico || !props.user;
 
       if (!esVisible || !esPublico) return;
@@ -1558,7 +1937,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function estiloPuntoVisible(feature) {
-    const esDelUsuario = !!feature.properties.user;
+    const esDelUsuario = esPuntoDelUsuarioActual(feature.properties);
     const grupo = obtenerGrupoPunto(feature.properties);
     const fillColor = getPointGroupColor(grupo, esDelUsuario);
     return {
@@ -1737,10 +2116,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let totalEvaluados = 0;
     let totalCoinciden = 0;
     muestreoLayer.eachLayer(layer => {
-      const grupo = obtenerGrupoPunto(layer.feature.properties);
+      const props = layer.feature?.properties || {};
+      const grupo = obtenerGrupoPunto(props);
       const grupoVisible = estadoGruposPuntos.has(grupo) ? estadoGruposPuntos.get(grupo) : true;
-      const visible = mostrarTodosLosPuntos && grupoVisible;
-      const cumpleFiltro = puntoCumpleFiltro(layer.feature.properties);
+      const visible = (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
+      const cumpleFiltro = puntoCumpleFiltro(props);
       const mostrarNoCoinciden = getFiltroPuntosEstado().mostrarNoCoinciden !== false;
       const filtroActivo = hayFiltroPuntosActivo();
 
@@ -1778,40 +2158,109 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   window.aplicarVisibilidadPuntos = aplicarVisibilidadPuntos;
 
+  function getOwnPointGroups() {
+    return [...metadatosGruposPuntos.entries()]
+      .filter(([, meta]) => !!meta?.tienePropios)
+      .map(([grupo]) => grupo);
+  }
+
+  function getOwnPointGroupsSummary() {
+    const grupos = getOwnPointGroups();
+    if (!grupos.length) {
+      return { grupos, anyChecked: false, allChecked: false };
+    }
+    const anyChecked = grupos.some(grupo => estadoGruposPuntos.get(grupo) !== false);
+    const allChecked = grupos.every(grupo => estadoGruposPuntos.get(grupo) !== false);
+    return { grupos, anyChecked, allChecked };
+  }
+
+  function actualizarCheckboxesGrupoPuntos(grupo, checked) {
+    document.querySelectorAll('[data-group]').forEach(item => {
+      if (item.dataset.group !== grupo) return;
+      const input = item.querySelector('input[type="checkbox"]');
+      if (input) input.checked = checked;
+    });
+  }
+
+  function sincronizarToggleMisPuntosDesdeGrupos() {
+    const { anyChecked, allChecked } = getOwnPointGroupsSummary();
+    mostrarTodosLosPuntos = anyChecked;
+
+    const checkboxPanel = document.getElementById('toggleMisPuntosPanel');
+    if (checkboxPanel) {
+      checkboxPanel.checked = allChecked;
+      checkboxPanel.indeterminate = anyChecked && !allChecked;
+    }
+
+    const checkboxModal = document.getElementById('toggleTodosLosPuntos');
+    if (checkboxModal) {
+      checkboxModal.checked = allChecked;
+      checkboxModal.indeterminate = anyChecked && !allChecked;
+    }
+  }
+
+  function aplicarToggleTodosMisPuntos(checked) {
+    getOwnPointGroups().forEach(grupo => {
+      estadoGruposPuntos.set(grupo, checked);
+      actualizarCheckboxesGrupoPuntos(grupo, checked);
+    });
+    mostrarTodosLosPuntos = checked;
+    sincronizarToggleMisPuntosDesdeGrupos();
+    aplicarVisibilidadPuntos();
+  }
+  window.aplicarToggleTodosMisPuntos = aplicarToggleTodosMisPuntos;
+
+  function buildPanelPointGroupItem(grupo, meta, count) {
+    const li = document.createElement('li');
+    li.dataset.group = grupo;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = estadoGruposPuntos.get(grupo) !== false;
+    cb.addEventListener('change', () => {
+      estadoGruposPuntos.set(grupo, cb.checked);
+      actualizarCheckboxesGrupoPuntos(grupo, cb.checked);
+      if (meta?.tienePropios) {
+        sincronizarToggleMisPuntosDesdeGrupos();
+      }
+      aplicarVisibilidadPuntos();
+    });
+
+    const chip = createLayerMarker({
+      background: getPointGroupColor(grupo, !!meta?.tienePropios),
+      isCircle: true,
+      title: `Color del grupo ${grupo}`
+    });
+
+    const label = document.createElement('span');
+    label.textContent = ` ${grupo} (${count || 0})`;
+
+    li.appendChild(cb);
+    li.appendChild(chip);
+    li.appendChild(label);
+    return li;
+  }
+
   function renderGruposPuntosPanel() {
-    if (!listGruposPuntos) return;
-    listGruposPuntos.innerHTML = '';
+    if (listPublicasPuntos) listPublicasPuntos.innerHTML = '';
+    if (listPropiasPuntos) {
+      const toggleItem = document.getElementById('itemToggleMisPuntos');
+      listPropiasPuntos.innerHTML = '';
+      if (toggleItem) listPropiasPuntos.appendChild(toggleItem);
+    }
 
     [...metadatosGruposPuntos.entries()]
-      .filter(([, meta]) => meta.tienePublicos)
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([grupo, meta]) => {
-        const li = document.createElement('li');
-        li.dataset.group = grupo;
-
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = estadoGruposPuntos.get(grupo) ?? true;
-        cb.addEventListener('change', () => {
-          estadoGruposPuntos.set(grupo, cb.checked);
-          aplicarVisibilidadPuntos();
-        });
-
-        const label = document.createElement('span');
-        label.textContent = ` ${grupo} (${meta.publicTotal || 0})`;
-
-        const chip = createLayerMarker({
-          background: getPointGroupColor(grupo),
-          isCircle: true,
-          title: `Color del grupo ${grupo}`
-        });
-
-        li.appendChild(cb);
-        li.appendChild(chip);
-        li.appendChild(label);
-        listGruposPuntos.appendChild(li);
+        if (meta.tienePropios && listPropiasPuntos) {
+          listPropiasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.ownTotal || 0));
+        }
+        if (meta.tienePublicos && !meta.tienePropios && listPublicasPuntos) {
+          listPublicasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.publicTotal || 0));
+        }
       });
 
+    sincronizarToggleMisPuntosDesdeGrupos();
     setBadge();
     syncBaseLegendMarkers();
   }
@@ -1831,13 +2280,15 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function personalizarColorGrupoPuntos(grupo) {
-    const currentColor = getPointGroupColor(grupo);
+    const meta = metadatosGruposPuntos.get(grupo) || {};
+    const currentColor = getPointGroupColor(grupo, !!meta.tienePropios);
     const selectedColor = await promptColorSelection({
       title: `Color de ${grupo}`,
-      currentColor
+      currentColor,
+      target: document.getElementById('modalGruposPuntos') || document.body
     });
     if (!selectedColor) return;
-    pointColorState = { ...pointColorState, [grupo]: selectedColor };
+    pointColorState = { ...pointColorState, [normalizePointGroupKey(grupo)]: selectedColor };
     saveColorState(POINT_COLOR_STORAGE_KEY, pointColorState);
     refreshPointGroupStyles(grupo);
   }
@@ -1878,7 +2329,7 @@ document.addEventListener('DOMContentLoaded', function () {
     pointToLayer: (feature, latlng) => L.circleMarker(latlng, estiloPuntoVisible(feature)),
     onEachFeature: function (feature, layer) {
       const p = feature.properties;
-      const esDelUsuario = !!p.user;
+      const esDelUsuario = esPuntoDelUsuarioActual(p);
       p.grupo = obtenerGrupoPunto(p);
       p.publico = !!p.publico || !p.user;
       estadoGruposPuntos.set(p.grupo, true);
@@ -1888,11 +2339,13 @@ document.addEventListener('DOMContentLoaded', function () {
         estadoSolicitud: null,
         comentarioSolicitud: '',
         total: 0,
+        ownTotal: 0,
         publicTotal: 0
       };
       metaGrupo.total += 1;
       metaGrupo.tienePropios = metaGrupo.tienePropios || esDelUsuario;
       metaGrupo.tienePublicos = metaGrupo.tienePublicos || p.publico;
+      if (esDelUsuario) metaGrupo.ownTotal += 1;
       if (esDelUsuario && SOLICITUDES_GRUPO[p.grupo]) {
         metaGrupo.estadoSolicitud = SOLICITUDES_GRUPO[p.grupo].estado || null;
         metaGrupo.comentarioSolicitud = SOLICITUDES_GRUPO[p.grupo].comentario || '';
@@ -1930,7 +2383,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <button 
             class="btn btn-link p-0 ver-mas-btn" 
             data-feature='${JSON.stringify(p).replace(/'/g, "&apos;")}'>
-            🔍 Ver más
+            Ver m&aacute;s
           </button>
         </div>
       `;
@@ -1966,7 +2419,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
 /* ================================
-   Botón Calcular WQI
+   Bot?n Calcular WQI
 ================================ */
 
 const btnWQI = document.getElementById("btnCalcularWQI");
@@ -1983,7 +2436,7 @@ if (btnWQI) {
         title: 'No se puede calcular WQI',
         html: buildWqiWarningHtml(
           readiness,
-          `Este punto necesita al menos <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.`
+          `Este punto necesita al menos <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.`
         ),
         icon: 'warning',
       });
@@ -1993,7 +2446,7 @@ if (btnWQI) {
     const tbody = document.getElementById("detallePuntoBody");
     const title = document.getElementById("detallePuntoTitle");
 
-    title.textContent = "Cálculo del Índice de Calidad de Agua (WQI)";
+    title.textContent = "C?lculo del ?ndice de Calidad de Agua (WQI)";
     tbody.innerHTML = "";
 
     /* ================================
@@ -2002,22 +2455,22 @@ if (btnWQI) {
 
     tbody.innerHTML += `
       <tr class="table-secondary">
-        <th>Parámetro</th>
+        <th>Par?metro</th>
         <th>Valor medido</th>
-        <th>Subíndice (qi)</th>
+        <th>Sub?ndice (qi)</th>
         <th>Aporte ponderado</th>
       </tr>
     `;
 
     /* ================================
-       ESTÁNDARES Y PESOS
+       EST?NDARES Y PESOS
     ================================= */
 
     let WQI = 0;
     const totalWeight = readiness.availableParams.reduce((sum, param) => sum + param.weight, 0);
 
     /* ================================
-       CÁLCULO PARÁMETROS
+       C?LCULO PAR?METROS
     ================================= */
 
     readiness.availableParams.forEach(param => {
@@ -2041,7 +2494,7 @@ if (btnWQI) {
     });
 
     /* ================================
-       CLASIFICACIÓN
+       CLASIFICACIÃ“N
     ================================= */
 
     let clasificacion = "";
@@ -2049,11 +2502,11 @@ if (btnWQI) {
 
     if (WQI <= 25) {
       clasificacion = "Excelente";
-      interpretacion = "La calidad del agua es óptima y apta para consumo humano sin tratamiento significativo.";
+      interpretacion = "La calidad del agua es ?ptima y apta para consumo humano sin tratamiento significativo.";
     }
     else if (WQI <= 50) {
       clasificacion = "Buena";
-      interpretacion = "El agua presenta buena calidad, con bajo nivel de contaminación.";
+      interpretacion = "El agua presenta buena calidad, con bajo nivel de contaminaci?n.";
     }
     else if (WQI <= 75) {
       clasificacion = "Deficiente";
@@ -2065,7 +2518,7 @@ if (btnWQI) {
     }
     else {
       clasificacion = "No apta para consumo";
-      interpretacion = "El agua presenta niveles críticos de contaminación y no es apta para consumo humano.";
+      interpretacion = "El agua presenta niveles cr?ticos de contaminaci?n y no es apta para consumo humano.";
     }
 
     /* ================================
@@ -2078,12 +2531,12 @@ if (btnWQI) {
         <td><strong>${WQI.toFixed(2)}</strong></td>
       </tr>
       <tr class="table-warning">
-        <td colspan="4"><strong>Clasificación: ${clasificacion}</strong></td>
+        <td colspan="4"><strong>Clasificaci?n: ${clasificacion}</strong></td>
       </tr>
       <tr>
         <td colspan="4">
           <div class="alert alert-light border">
-            <strong>Interpretación técnica:</strong><br>
+            <strong>Interpretaci?n t?cnica:</strong><br>
             ${interpretacion}
           </div>
         </td>
@@ -2091,25 +2544,25 @@ if (btnWQI) {
       <tr>
         <td colspan="4">
           <div class="alert alert-info">
-            <h6><strong>Metodología aplicada</strong></h6>
+            <h6><strong>Metodolog?a aplicada</strong></h6>
             <p>
-              El Índice de Calidad de Agua (WQI) se determina mediante la suma
-              ponderada de subíndices individuales (qi) para cada parámetro crítico evaluado.
+              El ?ndice de Calidad de Agua (WQI) se determina mediante la suma
+              ponderada de sub?ndices individuales (qi) para cada par?metro cr?tico evaluado.
             </p>
-            <p><strong>Fórmulas utilizadas:</strong></p>
+            <p><strong>F?rmulas utilizadas:</strong></p>
             <ul>
-              <li>qi = (Ci / Si) × 100</li>
-              <li>WQI = Σ (Wi × qi)</li>
+              <li>qi = (Ci / Si) Ã— 100</li>
+              <li>WQI = Î£ (Wi Ã— qi)</li>
             </ul>
             <p>
               Donde:
-              <br>Ci = concentración medida
-              <br>Si = estándar normativo
-              <br>Wi = peso relativo del parámetro
+              <br>Ci = concentraci?n medida
+              <br>Si = est?ndar normativo
+              <br>Wi = peso relativo del par?metro
             </p>
             <p>
-              Para este cálculo se exige un mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos disponibles.
-              Si faltan algunos parámetros, los pesos se normalizan sobre los parámetros efectivamente presentes.
+              Para este c?lculo se exige un m?nimo de ${WQI_MIN_REQUIRED_PARAMS} par?metros cr?ticos disponibles.
+              Si faltan algunos par?metros, los pesos se normalizan sobre los par?metros efectivamente presentes.
             </p>
           </div>
         </td>
@@ -2129,7 +2582,7 @@ if (btnWQI) {
         layer.setStyle({
           ...baseStyle,
           weight: Math.max(Number(baseStyle.weight || 1), 2),
-          fillOpacity: Math.min(Number(baseStyle.fillOpacity ?? 0.8) + 0.12, 1),
+          fillOpacity: Math.min(Number(baseStyle.fillOpacity + 0.8) + 0.12, 1),
           opacity: 1
         });
       });
@@ -2155,13 +2608,13 @@ if (btnWQI) {
   ================================= */
   document.getElementById('darkModeToggle').addEventListener('click', function () {
     document.body.classList.toggle('dark-mode');
-    this.textContent = document.body.classList.contains('dark-mode') ? "☀️" : "🌙";
+    this.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
     map.removeLayer(baseLayer);
     baseLayer = L.tileLayer(
       document.body.classList.contains('dark-mode')
         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { maxZoom: 18, attribution: '© OpenStreetMap / CartoDB' }
+      { maxZoom: 18, attribution: '&copy; OpenStreetMap / CartoDB' }
     ).addTo(map);
   });
 
@@ -2211,7 +2664,7 @@ if (btnWQI) {
   }
 
   function obtenerDelimitadorCsv(texto) {
-    const primeraLinea = (texto.split(/\r?\n/).find(linea => linea.trim()) || '');
+    const primeraLinea = (texto.split(/\r+\n/).find(linea => linea.trim()) || '');
     const candidatos = ['\t', ';', ','];
     let mejor = ',';
     let mejorCantidad = -1;
@@ -2256,6 +2709,16 @@ if (btnWQI) {
     col_fecale: ['coliformes fecales ufc 100 ml', 'col fecal', 'coliformes fecales', 'coliformes']
   };
   let csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
+  let csvPreviewTableState = {
+    headers: [],
+    rows: [],
+    recognized: [],
+    insufficientRows: [],
+    totalRows: 0,
+    delimiter: ',',
+    missingRequired: [],
+    coordinateWarning: null
+  };
 
   function buildWqiWarningHtml(readiness, titleText = 'Advertencia WQI') {
     const available = readiness.availableParams.map(param => param.label).join(', ') || 'Ninguno';
@@ -2263,7 +2726,7 @@ if (btnWQI) {
     return `
       <div class="text-start">
         <p class="mb-2">${titleText}</p>
-        <p class="mb-2"><strong>Parámetros críticos disponibles:</strong> ${readiness.availableCount} de ${WQI_PARAM_CONFIG.length}</p>
+        <p class="mb-2"><strong>Par?metros cr?ticos disponibles:</strong> ${readiness.availableCount} de ${WQI_PARAM_CONFIG.length}</p>
         <p class="mb-2"><strong>Disponibles:</strong> ${available}</p>
         <p class="mb-0"><strong>Faltantes:</strong> ${missing}</p>
       </div>
@@ -2274,6 +2737,53 @@ if (btnWQI) {
     return row.codigo_pozo || row.nombre || `Fila ${rowIndex}`;
   }
 
+  function filaCsvPreviewVacia(values) {
+    return !values.some(value => `${value + ''}`.trim() !== '');
+  }
+
+  function escapeHtml(text) {
+    return `${text + ''}`
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function decodeMojibake(text) {
+    const value = `${text + ''}`;
+    if (!/[ÃƒÃ‚]/.test(value)) return value;
+    try {
+      return decodeURIComponent(escape(value));
+    } catch {
+      return value;
+    }
+  }
+
+  function parseCsvPreviewNumber(value) {
+    const raw = `${value + ''}`.trim();
+    if (!raw) return null;
+    let text = raw.replace(/\s+/g, '');
+    if (text.includes(',') && text.includes('.')) {
+      if (text.lastIndexOf(',') > text.lastIndexOf('.')) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else {
+        text = text.replace(/,/g, '');
+      }
+    } else if (text.includes(',')) {
+      text = text.replace(',', '.');
+    }
+    const parsed = Number(text);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function inferCsvCoordinateSrid(x, y) {
+    if (x == null || y == null) return null;
+    if (x >= -180 && x <= 180 && y >= -90 && y <= 90) return 4326;
+    if (x >= 100000 && x <= 900000 && y >= 6000000 && y <= 9000000) return 32721;
+    return null;
+  }
+
   function renderPreviewCsv(texto) {
     const resumen = document.getElementById('csvPreviewResumen');
     const columnas = document.getElementById('csvPreviewColumnas');
@@ -2282,11 +2792,19 @@ if (btnWQI) {
     if (!resumen || !columnas || !faltantes || !panel) return;
 
     const delimitador = obtenerDelimitadorCsv(texto);
-    const lineas = texto.split(/\r?\n/).filter(linea => linea.trim());
-    if (!lineas.length) {
+    const lineasOriginales = texto.split(/\r+\n/).filter(linea => linea.trim());
+    if (!lineasOriginales.length) {
       panel.style.display = 'none';
       return;
     }
+
+    const lineas = [lineasOriginales[0]];
+    lineasOriginales.slice(1).forEach(linea => {
+      const values = linea.split(delimitador).map(value => value.trim());
+      if (!filaCsvPreviewVacia(values)) {
+        lineas.push(linea);
+      }
+    });
 
     const headers = lineas[0].split(delimitador).map(h => h.trim());
     const normalizados = headers.map(normalizarColumnaCsv);
@@ -2301,16 +2819,32 @@ if (btnWQI) {
 
     const requeridas = ['x', 'y'];
     const faltanRequeridas = requeridas.filter(campo => !reconocidas.includes(campo));
+    const sridSeleccionado = Number(document.getElementById('sridPuntosCsv')?.value || '32721');
 
-    resumen.textContent = `Filas detectadas: ${Math.max(lineas.length - 1, 0)}. Columnas detectadas: ${headers.length}. Delimitador: ${delimitador === '\t' ? 'tabulación' : delimitador}.`;
+    resumen.innerHTML = `
+      <div class="csv-preview-summary">
+        <div class="csv-preview-card">
+          <strong>Filas detectadas</strong>
+          <span>${Math.max(lineas.length - 1, 0)}</span>
+        </div>
+        <div class="csv-preview-card">
+          <strong>Columnas detectadas</strong>
+          <span>${headers.length}</span>
+        </div>
+        <div class="csv-preview-card">
+          <strong>Delimitador</strong>
+          <span>${delimitador === '\t' ? 'Tabulación' : delimitador}</span>
+        </div>
+      </div>
+    `;
     columnas.innerHTML = reconocidas.length
-      ? reconocidas.map(col => `<span class="badge bg-success me-1 mb-1">${col}</span>`).join('')
-      : '<span class="text-danger">No se reconoció ninguna columna compatible.</span>';
+      ? `<div class="csv-preview-columns">${reconocidas.map(col => `<span class="badge bg-success">${col}</span>`).join('')}</div>`
+      : '<div class="csv-preview-alert csv-preview-alert--danger">No se reconoció ninguna columna compatible.</div>';
     const advertencias = [];
     if (faltanRequeridas.length) {
-      advertencias.push(`<span class="text-danger d-block">Faltan columnas requeridas: ${faltanRequeridas.join(', ')}</span>`);
+      advertencias.push(`<div class="csv-preview-alert csv-preview-alert--danger"><strong>Faltan columnas requeridas.</strong><div class="mt-1">${faltanRequeridas.join(', ')}</div></div>`);
     } else {
-      advertencias.push('<span class="text-success d-block">Se detectaron las columnas mínimas requeridas.</span>');
+      advertencias.push('<div class="csv-preview-alert csv-preview-alert--success"><strong>Estructura mínima válida.</strong><div class="mt-1">Se detectaron las columnas requeridas para importar puntos.</div></div>');
     }
 
     const headerIndexByKey = {};
@@ -2320,17 +2854,42 @@ if (btnWQI) {
     });
 
     const insufficientRows = [];
+    const parsedRows = [];
+    const coordinateStats = {};
     lineas.slice(1).forEach((linea, idx) => {
       const values = linea.split(delimitador).map(value => value.trim());
       const row = {};
       Object.entries(headerIndexByKey).forEach(([key, headerIndex]) => {
-        row[key] = values[headerIndex] ?? '';
+        row[key] = values[headerIndex] + '';
       });
       const props = {};
       WQI_PARAM_KEYS.forEach(key => {
-        props[key] = row[key] ?? '';
+        props[key] = row[key] + '';
       });
+      const xNum = parseCsvPreviewNumber(row.x);
+      const yNum = parseCsvPreviewNumber(row.y);
+      const probableSrid = inferCsvCoordinateSrid(xNum, yNum);
+      if (probableSrid) {
+        if (!coordinateStats[probableSrid]) {
+          coordinateStats[probableSrid] = { count: 0, samples: [] };
+        }
+        coordinateStats[probableSrid].count += 1;
+        if (coordinateStats[probableSrid].samples.length < 5) {
+          coordinateStats[probableSrid].samples.push({
+            rowIndex: idx + 2,
+            x: xNum,
+            y: yNum
+          });
+        }
+      }
       const readiness = getWqiReadiness(props);
+      parsedRows.push({
+        rowIndex: idx + 2,
+        displayName: getCsvRowDisplayName(row, idx + 2),
+        values,
+        normalized: row,
+        readiness
+      });
       if (!readiness.isReady) {
         insufficientRows.push({
           rowIndex: idx + 2,
@@ -2339,30 +2898,258 @@ if (btnWQI) {
         });
       }
     });
+
+    let coordinateWarning = null;
+    const dominantCoordinateEntry = Object.entries(coordinateStats)
+      .sort((a, b) => b[1].count - a[1].count)[0];
+    if (dominantCoordinateEntry) {
+      const probableSrid = Number(dominantCoordinateEntry[0]);
+      if (Number.isFinite(probableSrid) && probableSrid !== sridSeleccionado) {
+        coordinateWarning = {
+          selectedSrid: sridSeleccionado,
+          probableSrid,
+          samples: dominantCoordinateEntry[1].samples
+        };
+      }
+    }
+
     csvWqiPreviewState = { insufficientRows, totalRows: Math.max(lineas.length - 1, 0) };
+    csvPreviewTableState = {
+      headers,
+      rows: parsedRows,
+      recognized: reconocidas,
+      insufficientRows,
+      totalRows: Math.max(lineas.length - 1, 0),
+      delimiter: delimitador,
+      missingRequired: faltanRequeridas,
+      coordinateWarning
+    };
+
+    if (coordinateWarning) {
+      const samplesHtml = coordinateWarning.samples
+        .map(sample => `<li>Fila ${sample.rowIndex}: x=${sample.x}, y=${sample.y}</li>`)
+        .join('');
+      advertencias.unshift(`
+        <div class="csv-preview-alert csv-preview-alert--danger">
+          <strong>Posible sistema de coordenadas incorrecto.</strong>
+          <div class="mt-1">
+            Elegiste <code>EPSG:${coordinateWarning.selectedSrid}</code>, pero por el rango de coordenadas este archivo parece venir en <code>EPSG:${coordinateWarning.probableSrid}</code>.
+          </div>
+          <div class="mt-2 small">
+            Si elegís el SRID correcto de origen, el sistema convertirá automáticamente los puntos a <code>EPSG:4326</code> para que se vean en el mapa.
+          </div>
+          <ul class="mt-2 mb-0">${samplesHtml}</ul>
+        </div>
+      `);
+    }
 
     if (insufficientRows.length) {
       const detalle = insufficientRows
         .slice(0, 8)
-        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} parámetros críticos)</li>`)
+        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} par?metros cr?ticos)</li>`)
         .join('');
       const extra = insufficientRows.length > 8
         ? `<div class="small text-muted mt-1">Y ${insufficientRows.length - 8} punto(s) más.</div>`
         : '';
       advertencias.push(`
-        <div class="text-warning mt-2">
-          <strong>Advertencia WQI:</strong> ${insufficientRows.length} punto(s) no alcanzan el mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos para calcular WQI.
+        <div class="csv-preview-alert csv-preview-alert--warning">
+          <strong>Advertencia WQI</strong>
+          <div class="mt-1">${insufficientRows.length} punto(s) no alcanzan el m?nimo de ${WQI_MIN_REQUIRED_PARAMS} par?metros cr?ticos para calcular WQI.</div>
           <ul class="mb-0 mt-1">${detalle}</ul>
           ${extra}
         </div>
       `);
     } else if (csvWqiPreviewState.totalRows > 0) {
-      advertencias.push(`<span class="text-success d-block mt-2">Todos los puntos del archivo cumplen el mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos para WQI.</span>`);
+      advertencias.push(`<div class="csv-preview-alert csv-preview-alert--success"><strong>WQI disponible.</strong><div class="mt-1">Todos los puntos del archivo cumplen el m?nimo de ${WQI_MIN_REQUIRED_PARAMS} par?metros cr?ticos para WQI.</div></div>`);
     }
 
     faltantes.innerHTML = advertencias.join('');
 
     panel.style.display = 'block';
+  }
+
+  function renderCsvPreviewModal() {
+    const resumen = document.getElementById('csvPreviewModalResumen');
+    const tabla = document.getElementById('csvPreviewModalTabla');
+    const alertas = document.getElementById('csvPreviewModalAlertas');
+    if (!resumen || !tabla || !alertas) return;
+
+    const state = csvPreviewTableState;
+    if (!state.headers.length) {
+      resumen.innerHTML = '';
+      alertas.innerHTML = '<div class="csv-preview-alert csv-preview-alert--danger">No hay vista previa disponible todav?a.</div>';
+      tabla.innerHTML = '';
+      return;
+    }
+
+    resumen.innerHTML = `
+      <div class="csv-preview-table-meta">
+        <div class="csv-preview-summary">
+          <div class="csv-preview-card">
+            <strong>Filas a cargar</strong>
+            <span>${state.totalRows}</span>
+          </div>
+          <div class="csv-preview-card">
+            <strong>Columnas</strong>
+            <span>${state.headers.length}</span>
+          </div>
+          <div class="csv-preview-card">
+            <strong>Puntos con advertencia WQI</strong>
+            <span>${state.insufficientRows.length}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const alerts = [];
+    if (state.missingRequired.length) {
+      alerts.push(`<div class="csv-preview-alert csv-preview-alert--danger"><strong>Faltan columnas requeridas.</strong><div class="mt-1">${state.missingRequired.join(', ')}</div></div>`);
+    }
+    if (state.coordinateWarning) {
+      const detalle = (state.coordinateWarning.samples || [])
+        .map(sample => `<li>Fila ${sample.rowIndex}: x=${sample.x}, y=${sample.y}</li>`)
+        .join('');
+      alerts.push(`
+        <div class="csv-preview-alert csv-preview-alert--danger">
+          <strong>Sistema de coordenadas inconsistente</strong>
+          <div class="mt-1">Elegiste <code>EPSG:${state.coordinateWarning.selectedSrid}</code>, pero el archivo parece venir en <code>EPSG:${state.coordinateWarning.probableSrid}</code>.</div>
+          <div class="mt-2 small">Si corregís el SRID de origen, el sistema reproyectará los puntos a <code>EPSG:4326</code> antes de guardarlos.</div>
+          <ul>${detalle}</ul>
+        </div>
+      `);
+    }
+    if (state.insufficientRows.length) {
+      const detalle = state.insufficientRows
+        .slice(0, 10)
+        .map(item => `<li>${escapeHtml(item.name)} (${item.availableCount}/${WQI_PARAM_CONFIG.length} par?metros cr?ticos)</li>`)
+        .join('');
+      const extra = state.insufficientRows.length > 10
+        ? `<div class="small text-muted mt-1">Y ${state.insufficientRows.length - 10} punto(s) más.</div>`
+        : '';
+      alerts.push(`
+        <div class="csv-preview-alert csv-preview-alert--warning">
+          <strong>Advertencia WQI</strong>
+          <div class="mt-1">Estos puntos se pueden cargar, pero todav?a no van a poder calcular WQI.</div>
+          <ul>${detalle}</ul>
+          ${extra}
+        </div>
+      `);
+    } else {
+      alerts.push('<div class="csv-preview-alert csv-preview-alert--success"><strong>Sin advertencias WQI.</strong><div class="mt-1">Todos los puntos de la vista previa cumplen el m?nimo para WQI.</div></div>');
+    }
+    alertas.innerHTML = alerts.join('');
+
+    const headHtml = [
+      '<tr>',
+      '<th>#</th>',
+      '<th>Nombre / c?digo</th>',
+      '<th>WQI</th>',
+      '<th>Par?metros cr?ticos</th>',
+      ...state.headers.map(header => `<th>${escapeHtml(header)}</th>`),
+      '</tr>'
+    ].join('');
+
+    const bodyHtml = state.rows.map(row => {
+      const ready = row.readiness?.isReady;
+      const statusBadge = ready
+        ? '<span class="badge bg-success">Listo</span>'
+        : '<span class="badge bg-warning text-dark">Insuficiente</span>';
+      const valuesHtml = state.headers
+        .map((_, index) => `<td>${escapeHtml(String(row.values[index] ?? '')) || '<span class="text-muted">-</span>'}</td>`)
+        .join('');
+      return `
+        <tr class="${ready ? '' : 'csv-preview-row--warning'}">
+          <td>${row.rowIndex}</td>
+          <td>${escapeHtml(row.displayName)}</td>
+          <td>${statusBadge}</td>
+          <td>${row.readiness?.availableCount || 0}/${WQI_PARAM_CONFIG.length}</td>
+          ${valuesHtml}
+        </tr>
+      `;
+    }).join('');
+
+    tabla.innerHTML = `
+      <div class="csv-preview-table-wrap">
+        <table class="table table-sm table-hover csv-preview-table">
+          <thead>${headHtml}</thead>
+          <tbody>${bodyHtml || `<tr><td colspan="${state.headers.length + 4}" class="text-center text-muted">No hay filas con datos para previsualizar.</td></tr>`}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  window.abrirVistaPreviaCsv = function() {
+    const archivo = document.getElementById('archivoPuntosCsv')?.files?.[0];
+    if (!archivo) {
+      Swal.fire('Seleccioná un archivo CSV', 'Primero elegí el archivo que querés previsualizar.', 'warning');
+      return;
+    }
+    if (!csvPreviewTableState.headers.length) {
+      Swal.fire('Vista previa no disponible', 'Esperá a que se procese el archivo o volvé a seleccionarlo.', 'info');
+      return;
+    }
+    renderCsvPreviewModal();
+    bootstrap.Modal.getInstance(document.getElementById('modalCargaPuntosCsv'))?.hide();
+    new bootstrap.Modal(document.getElementById('modalVistaPreviaCsv')).show();
+  };
+
+  window.volverDesdeVistaPreviaCsv = function() {
+    bootstrap.Modal.getInstance(document.getElementById('modalVistaPreviaCsv'))?.hide();
+    new bootstrap.Modal(document.getElementById('modalCargaPuntosCsv')).show();
+  };
+
+  async function confirmarAjusteSridPuntos(warning) {
+    if (!warning?.probableSrid) return null;
+    const detalle = (warning.samples || [])
+      .slice(0, 5)
+      .map(sample => `<li>Fila ${sample.rowIndex}: x=${sample.x}, y=${sample.y}</li>`)
+      .join('');
+
+    await Swal.fire({
+      title: 'Sistema de coordenadas detectado',
+      html: `
+        <div class="text-start">
+          <p>Elegiste <strong>EPSG:${warning.selectedSrid}</strong>, pero por el rango detectado este archivo parece venir en <strong>EPSG:${warning.probableSrid}</strong>.</p>
+          <p>Se usará <strong>EPSG:${warning.probableSrid}</strong> como sistema de origen y luego los puntos se convertirán automáticamente a <code>EPSG:4326</code> para visualizarlos en el mapa.</p>
+          ${detalle ? `<ul>${detalle}</ul>` : ''}
+        </div>
+      `,
+      icon: 'info',
+      width: 760,
+      confirmButtonText: 'Entendido'
+    });
+
+    const selectSrid = document.getElementById('sridPuntosCsv');
+    if (selectSrid) {
+      selectSrid.value = String(warning.probableSrid);
+    }
+    return Number(warning.probableSrid);
+  }
+
+  async function subirPuntosCsvConSrid(form, sridSeleccionado) {
+    const formData = new FormData(form);
+    formData.set('srid', String(sridSeleccionado));
+
+    const response = await fetch('/cargar-puntos-csv/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() },
+      body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      const detalles = Array.isArray(data.detalles) ? data.detalles.map(item => decodeMojibake(item)) : [];
+      const error = decodeMojibake(data.error || 'No se pudo subir el CSV');
+      const wrapped = new Error(error);
+      wrapped.detalles = detalles;
+      wrapped.status = response.status;
+      wrapped.error_code = data.error_code || null;
+      wrapped.srid_probable = data.srid_probable || null;
+      console.error('Error al cargar CSV', { status: response.status, data });
+      throw wrapped;
+    }
+
+    return { data, sridSeleccionado };
   }
 
   /* ================================
@@ -2388,7 +3175,7 @@ if (btnWQI) {
     resetMapInteractionModes();
     seleccionandoCentro = true;
     map.getContainer().style.cursor = 'crosshair';
-    alert("📍 Hacé clic en el mapa para establecer tu punto central.");
+    alert("Hac? clic en el mapa para establecer tu punto central.");
   };
 
   map.on('click', function (e) {
@@ -2399,7 +3186,7 @@ if (btnWQI) {
 
     if (marcadorCentro) map.removeLayer(marcadorCentro);
     marcadorCentro = L.marker(coords, { draggable:false, title:"Centro elegido" })
-      .addTo(map).bindPopup("📍 Centro establecido").openPopup();
+      .addTo(map).bindPopup("Centro establecido").openPopup();
 
     fetch('/guardar-centro/', {
       method: 'POST',
@@ -2407,7 +3194,7 @@ if (btnWQI) {
       body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
     })
     .then(r => r.json())
-    .then(d => d.success ? L.popup().setLatLng(coords).setContent('📍 Centro guardado').openOn(map)
+    .then(d => d.success ? L.popup().setLatLng(coords).setContent('Centro guardado').openOn(map)
                          : alert('Error al guardar centro: '+(d.error||'')));
   });
 
@@ -2415,8 +3202,8 @@ if (btnWQI) {
      Nuevo punto
   ================================= */
   function setNuevoPuntoCoords(lat, lng) {
-    document.getElementById('lat').value = lat ?? '';
-    document.getElementById('lng').value = lng ?? '';
+    document.getElementById('lat').value = lat + '';
+    document.getElementById('lng').value = lng + '';
     actualizarTextoCoordsNuevoPunto();
   }
 
@@ -2582,7 +3369,7 @@ if (btnWQI) {
         title: 'Advertencia WQI del punto',
         html: buildWqiWarningHtml(
           readiness,
-          `Este punto no alcanza el mínimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.`
+          `Este punto no alcanza el m?nimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.`
         ),
         icon: 'warning',
         showCancelButton: true,
@@ -2600,21 +3387,21 @@ if (btnWQI) {
     .then(r => r.json())
     .then(json => {
       if (!json.success) throw new Error(json.error || 'No se pudo guardar');
-      Swal.fire('✅ Punto agregado', 'El nuevo punto fue guardado correctamente.', 'success');
+      Swal.fire('âœ… Punto agregado', 'El nuevo punto fue guardado correctamente.', 'success');
       bootstrap.Modal.getInstance(document.getElementById('nuevoPuntoModal')).hide();
       this.reset();
       setNuevoPuntoCoords('', '');
       location.reload();
     })
-    .catch(err => Swal.fire('❌ Error', err.message, 'error'));
+    .catch(err => Swal.fire('âŒ Error', err.message, 'error'));
   });
 
   window.abrirModalEditarPunto = function (id, data) {
     document.getElementById("editarPuntoId").value = id;
-    document.getElementById("editar_lat_original").value = data?.__lat ?? "";
-    document.getElementById("editar_lng_original").value = data?.__lng ?? "";
-    document.getElementById("editar_lat").value = data?.__lat ?? "";
-    document.getElementById("editar_lng").value = data?.__lng ?? "";
+    document.getElementById("editar_lat_original").value = data?.__lat + "";
+    document.getElementById("editar_lng_original").value = data?.__lng + "";
+    document.getElementById("editar_lat").value = data?.__lat + "";
+    document.getElementById("editar_lng").value = data?.__lng + "";
     document.getElementById("editar_coords_texto").textContent = data?.__lat != null && data?.__lng != null
       ? `${Number(data.__lat).toFixed(6)}, ${Number(data.__lng).toFixed(6)}`
       : "Sin coordenadas";
@@ -2624,34 +3411,34 @@ if (btnWQI) {
     document.getElementById("editar_entidad").value = data?.entidad || "";
     document.getElementById("editar_grupo").value = data?.grupo || "PATINO1";
     document.getElementById("editar_fecha_toma").value = data?.fecha_toma || "";
-    document.getElementById("editar_n_amoniaca").value = data?.n_amoniaca ?? "";
-    document.getElementById("editar_nitritos").value = data?.nitritos ?? "";
-    document.getElementById("editar_nitratos").value = data?.nitratos ?? "";
-    document.getElementById("editar_alcalinida").value = data?.alcalinida ?? "";
-    document.getElementById("editar_materia_or").value = data?.materia_or ?? "";
-    document.getElementById("editar_ph").value = data?.ph ?? "";
-    document.getElementById("editar_conductivi").value = data?.conductivi ?? "";
-    document.getElementById("editar_bicarbonat").value = data?.bicarbonat ?? "";
-    document.getElementById("editar_carbonatos").value = data?.carbonatos ?? "";
-    document.getElementById("editar_sulfatos").value = data?.sulfatos ?? "";
-    document.getElementById("editar_magnesio").value = data?.magnesio ?? "";
-    document.getElementById("editar_calcio").value = data?.calcio ?? "";
-    document.getElementById("editar_sodio").value = data?.sodio ?? "";
-    document.getElementById("editar_potasio").value = data?.potasio ?? "";
-    document.getElementById("editar_cloruro").value = data?.cloruro ?? "";
-    document.getElementById("editar_arsenico").value = data?.arsenico ?? "";
-    document.getElementById("editar_mercurio").value = data?.mercurio ?? "";
-    document.getElementById("editar_manganeso").value = data?.manganeso ?? "";
-    document.getElementById("editar_cobre").value = data?.cobre ?? "";
-    document.getElementById("editar_cromo").value = data?.cromo ?? "";
-    document.getElementById("editar_col_fecale").value = data?.col_fecale ?? "";
-    document.getElementById("editar_std").value = data?.std ?? "";
-    document.getElementById("editar_temperatur").value = data?.temperatur ?? "";
-    document.getElementById("editar_turbidez").value = data?.turbidez ?? "";
-    document.getElementById("editar_dureza_tot").value = data?.dureza_tot ?? "";
-    document.getElementById("editar_hierro_tot").value = data?.hierro_tot ?? "";
-    document.getElementById("editar_dureza_cal").value = data?.dureza_cal ?? "";
-    document.getElementById("editar_dureza_mag").value = data?.dureza_mag ?? "";
+    document.getElementById("editar_n_amoniaca").value = data?.n_amoniaca + "";
+    document.getElementById("editar_nitritos").value = data?.nitritos + "";
+    document.getElementById("editar_nitratos").value = data?.nitratos + "";
+    document.getElementById("editar_alcalinida").value = data?.alcalinida + "";
+    document.getElementById("editar_materia_or").value = data?.materia_or + "";
+    document.getElementById("editar_ph").value = data?.ph + "";
+    document.getElementById("editar_conductivi").value = data?.conductivi + "";
+    document.getElementById("editar_bicarbonat").value = data?.bicarbonat + "";
+    document.getElementById("editar_carbonatos").value = data?.carbonatos + "";
+    document.getElementById("editar_sulfatos").value = data?.sulfatos + "";
+    document.getElementById("editar_magnesio").value = data?.magnesio + "";
+    document.getElementById("editar_calcio").value = data?.calcio + "";
+    document.getElementById("editar_sodio").value = data?.sodio + "";
+    document.getElementById("editar_potasio").value = data?.potasio + "";
+    document.getElementById("editar_cloruro").value = data?.cloruro + "";
+    document.getElementById("editar_arsenico").value = data?.arsenico + "";
+    document.getElementById("editar_mercurio").value = data?.mercurio + "";
+    document.getElementById("editar_manganeso").value = data?.manganeso + "";
+    document.getElementById("editar_cobre").value = data?.cobre + "";
+    document.getElementById("editar_cromo").value = data?.cromo + "";
+    document.getElementById("editar_col_fecale").value = data?.col_fecale + "";
+    document.getElementById("editar_std").value = data?.std + "";
+    document.getElementById("editar_temperatur").value = data?.temperatur + "";
+    document.getElementById("editar_turbidez").value = data?.turbidez + "";
+    document.getElementById("editar_dureza_tot").value = data?.dureza_tot + "";
+    document.getElementById("editar_hierro_tot").value = data?.hierro_tot + "";
+    document.getElementById("editar_dureza_cal").value = data?.dureza_cal + "";
+    document.getElementById("editar_dureza_mag").value = data?.dureza_mag + "";
 
     new bootstrap.Modal(document.getElementById("editarPuntoModal")).show();
   };
@@ -2806,10 +3593,10 @@ if (btnWQI) {
       .then(json => {
         if (!json.success) throw new Error(json.error || 'No se pudo actualizar');
         bootstrap.Modal.getInstance(document.getElementById('editarPuntoModal'))?.hide();
-        Swal.fire('✅ Punto actualizado', 'Los cambios se guardaron correctamente.', 'success')
+        Swal.fire('Punto actualizado', 'Los cambios se guardaron correctamente.', 'success')
           .then(() => window.location.reload());
       })
-      .catch(err => Swal.fire('❌ Error', err.message, 'error'));
+      .catch(err => Swal.fire('Error', err.message, 'error'));
     };
 
     if (!cambioUbicacion) {
@@ -2880,13 +3667,13 @@ if (btnWQI) {
 
   window.enviarTiff = function(){
     if (!previewTiffToken) {
-      Swal.fire('Falta previsualización', 'Primero analizá el TIFF antes de subirlo.', 'warning');
+      Swal.fire('Falta previsualizaci?n', 'Primero analiz? el TIFF antes de subirlo.', 'warning');
       return;
     }
 
     const nombre = document.getElementById('nombreCapaTiff').value.trim();
     if (!nombre) {
-      Swal.fire('Nombre requerido', 'Indicá un nombre para la capa raster.', 'warning');
+      Swal.fire('Nombre requerido', 'Indic? un nombre para la capa raster.', 'warning');
       return;
     }
 
@@ -2926,16 +3713,16 @@ if (btnWQI) {
     fetch('/cargar-capa-patino/', { method:'POST', headers:{ 'X-CSRFToken': getCSRFToken() }, body: formData })
       .then(r => r.json())
       .then(d => d.success
-        ? Swal.fire('✅ Capa cargada','La capa fue guardada exitosamente.','success').then(()=>location.reload())
-        : Swal.fire('❌ Error', d.error || 'No se pudo procesar la capa','error')
+        ? Swal.fire('Capa cargada','La capa fue guardada exitosamente.','success').then(()=>location.reload())
+        : Swal.fire('Error', d.error || 'No se pudo procesar la capa','error')
       )
-      .catch(() => Swal.fire('❌ Error','No se pudo enviar el archivo','error'));
+      .catch(() => Swal.fire('Error','No se pudo enviar el archivo','error'));
   };
 
   window.enviarShapefile = function(){
     const form = document.getElementById('formCargaShapefile');
     const archivo = form.querySelector('input[type=file]').files[0];
-    if (!archivo) { Swal.fire('SeleccionÃ¡ un archivo ZIP', '', 'warning'); return; }
+    if (!archivo) { Swal.fire('Seleccioná un archivo ZIP', '', 'warning'); return; }
     const formData = new FormData(); formData.append('archivo', archivo);
 
     fetch('/cargar-capa-shapefile/', { method:'POST', headers:{ 'X-CSRFToken': getCSRFToken() }, body: formData })
@@ -2952,10 +3739,18 @@ window.enviarPuntosCsv = async function(){
     const archivo = document.getElementById('archivoPuntosCsv').files[0];
     if (!archivo) { Swal.fire('⚠️ Seleccioná un archivo CSV', '', 'warning'); return; }
 
+    let sridSeleccionado = Number(document.getElementById('sridPuntosCsv')?.value || '32721');
+
+    if (csvPreviewTableState.coordinateWarning) {
+      const nuevoSrid = await confirmarAjusteSridPuntos(csvPreviewTableState.coordinateWarning);
+      if (!nuevoSrid) return;
+      sridSeleccionado = nuevoSrid;
+    }
+
     if (csvWqiPreviewState.insufficientRows?.length) {
       const detalle = csvWqiPreviewState.insufficientRows
         .slice(0, 8)
-        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} parámetros críticos)</li>`)
+        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} par?metros cr?ticos)</li>`)
         .join('');
       const extra = csvWqiPreviewState.insufficientRows.length > 8
         ? `<div class="small text-muted mt-1">Y ${csvWqiPreviewState.insufficientRows.length - 8} punto(s) más.</div>`
@@ -2964,13 +3759,15 @@ window.enviarPuntosCsv = async function(){
         title: 'Advertencia WQI en la carga',
         html: `
           <div class="text-start">
-            <p>Hay <strong>${csvWqiPreviewState.insufficientRows.length}</strong> punto(s) del archivo que no alcanzan el mínimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.</p>
+            <p>Hay <strong>${csvWqiPreviewState.insufficientRows.length}</strong> punto(s) del archivo que no alcanzan el m?nimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.</p>
+            <div class="small text-muted mb-2">Estos puntos se pueden cargar igual, pero no van a poder calcular WQI de inmediato.</div>
             <ul>${detalle}</ul>
             ${extra}
-            <p class="mb-0">Podés cargarlos igual si querés continuar.</p>
+            <p class="mb-0">Pod?s cargarlos igual si quer?s continuar.</p>
           </div>
         `,
         icon: 'warning',
+        width: 760,
         showCancelButton: true,
         confirmButtonText: 'Cargar de todos modos',
         cancelButtonText: 'Revisar archivo'
@@ -2978,28 +3775,60 @@ window.enviarPuntosCsv = async function(){
       if (!confirmacion.isConfirmed) return;
     }
 
-    const formData = new FormData(form);
-
-    fetch('/cargar-puntos-csv/', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': getCSRFToken() },
-      body: formData
-    })
-      .then(async r => {
-        const data = await r.json();
-        if (!r.ok || !data.success) {
-          throw new Error(data.error || 'No se pudo subir el CSV');
+    try {
+      let resultado;
+      try {
+        resultado = await subirPuntosCsvConSrid(form, sridSeleccionado);
+      } catch (err) {
+        if (err.error_code === 'srid_mismatch' && err.srid_probable) {
+          const nuevoSrid = await confirmarAjusteSridPuntos({
+            selectedSrid: sridSeleccionado,
+            probableSrid: err.srid_probable,
+            samples: (err.detalles || []).map(item => {
+              const match = item.match(/Fila\s+(\d+):\s*x=([^,]+),\s*y=(.+)$/);
+              return match ? { rowIndex: match[1], x: match[2], y: match[3] } : null;
+            }).filter(Boolean)
+          });
+          if (!nuevoSrid) return;
+          sridSeleccionado = nuevoSrid;
+          resultado = await subirPuntosCsvConSrid(form, sridSeleccionado);
+        } else {
+          throw err;
         }
-        return data;
-      })
-      .then(d =>
-        Swal.fire(
-          '✅ Puntos cargados',
-          `Insertados: ${d.insertados}\nOmitidos: ${d.omitidos}`,
-          'success'
-        ).then(() => location.reload())
-      )
-      .catch(err => Swal.fire('❌ Error', err.message, 'error'));
+      }
+
+      return Swal.fire({
+        title: 'Puntos cargados',
+        html: `
+          <div class="text-start">
+            <p class="mb-2"><strong>Insertados:</strong> ${resultado.data.insertados}<br><strong>Omitidos:</strong> ${resultado.data.omitidos}</p>
+            ${
+              resultado.data.srid_seleccionado && resultado.data.srid_aplicado && String(resultado.data.srid_seleccionado) !== String(resultado.data.srid_aplicado)
+                ? `<p class="mb-2 small text-muted">Se detectó automáticamente que el archivo venía en <code>EPSG:${resultado.data.srid_aplicado}</code>, aunque habías elegido <code>EPSG:${resultado.data.srid_seleccionado}</code>.</p>`
+                : ''
+            }
+            <p class="mb-0 small text-muted">Las coordenadas se interpretaron como <code>EPSG:${resultado.data.srid_aplicado || sridSeleccionado}</code> y se convirtieron a <code>EPSG:4326</code> para que los puntos sean visualizables en el mapa.</p>
+          </div>
+        `,
+        icon: 'success'
+      }).then(() => location.reload());
+    } catch (err) {
+      const detalles = Array.isArray(err.detalles) ? err.detalles : [];
+      const detallesHtml = detalles.length
+        ? `<div class="text-start mt-3"><strong>Detalle:</strong><ul class="mt-2 mb-0">${detalles.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`
+        : '';
+      Swal.fire({
+        title: 'Error',
+        html: `
+          <div>
+            <p class="mb-0">${escapeHtml(decodeMojibake(err.message || 'No se pudo subir el CSV.'))}</p>
+            ${detallesHtml}
+          </div>
+        `,
+        icon: 'error',
+        width: 760
+      });
+    }
   };
 
   document.getElementById('archivoPuntosCsv')?.addEventListener('change', function (e) {
@@ -3007,6 +3836,7 @@ window.enviarPuntosCsv = async function(){
     const panel = document.getElementById('csvPreviewPanel');
     if (!archivo) {
       csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
+      csvPreviewTableState = { headers: [], rows: [], recognized: [], insufficientRows: [], totalRows: 0, delimiter: ',', missingRequired: [], coordinateWarning: null };
       if (panel) panel.style.display = 'none';
       return;
     }
@@ -3015,9 +3845,18 @@ window.enviarPuntosCsv = async function(){
     reader.onload = () => renderPreviewCsv(reader.result || '');
     reader.onerror = () => {
       csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
+      csvPreviewTableState = { headers: [], rows: [], recognized: [], insufficientRows: [], totalRows: 0, delimiter: ',', missingRequired: [], coordinateWarning: null };
       if (panel) panel.style.display = 'none';
-      Swal.fire('❌ Error', 'No se pudo leer el archivo para la vista previa.', 'error');
+      Swal.fire('Error', 'No se pudo leer el archivo para la vista previa.', 'error');
     };
+    reader.readAsText(archivo, 'utf-8');
+  });
+
+  document.getElementById('sridPuntosCsv')?.addEventListener('change', function () {
+    const archivo = document.getElementById('archivoPuntosCsv')?.files?.[0];
+    if (!archivo) return;
+    const reader = new FileReader();
+    reader.onload = () => renderPreviewCsv(reader.result || '');
     reader.readAsText(archivo, 'utf-8');
   });
 
@@ -3042,10 +3881,10 @@ window.enviarPuntosCsv = async function(){
             <tr>
               <td>${u.id}</td><td>${u.username}</td><td>${u.email}</td>
               <td>${(u.groups||[]).join(', ')}</td>
-              <td>${u.is_staff ? '✅':'—'}</td>
-              <td>${u.is_superuser ? '✅':'—'}</td>
-              <td>${u.last_login ? new Date(u.last_login).toLocaleString() : '—'}</td>
-              <td>${u.date_joined ? new Date(u.date_joined).toLocaleString() : '—'}</td>
+              <td>${u.is_staff ? 'Sí' : '-'}</td>
+              <td>${u.is_superuser ? 'Sí' : '-'}</td>
+              <td>${u.last_login ? new Date(u.last_login).toLocaleString() : '-'}</td>
+              <td>${u.date_joined ? new Date(u.date_joined).toLocaleString() : '-'}</td>
             </tr>`).join('');
           tbody.innerHTML = rows || `<tr><td colspan="8" class="text-center text-muted">Sin usuarios.</td></tr>`;
         })
@@ -3056,7 +3895,7 @@ window.enviarPuntosCsv = async function(){
   }
 
   /* ================================
-     Panel de capas dinámicas
+     Panel de capas din?micas
   ================================= */
   heatLayer = L.heatLayer([], {
     pane: 'paneHEAT',
@@ -3073,24 +3912,60 @@ window.enviarPuntosCsv = async function(){
   }).addTo(map);
   reconstruirHeatmap();
 
-  const listPublicas   = document.getElementById('listPublicas');
+  const listPublicas = document.getElementById('listPublicas');
+  const listPublicasPuntos = document.getElementById('listPublicasPuntos');
   const listPropiasSec = document.querySelector('[data-section="propias"]');
-  const listPropias    = document.getElementById('listPropias');
-  const listGruposPuntos = document.getElementById('listGruposPuntos');
-  const listBase       = document.getElementById('listBase');
-  const badgePublicas  = document.getElementById('badgePublicas');
-  const badgePropias   = document.getElementById('badgePropias');
-  const badgeGruposPuntos = document.getElementById('badgeGruposPuntos');
+  const listPropiasPuntos = document.getElementById('listPropiasPuntos');
+  const listPropiasVector = document.getElementById('listPropiasVector');
+  const listPropiasRaster = document.getElementById('listPropiasRaster');
+  const listBase = document.getElementById('listBase');
+  const badgePublicas = document.getElementById('badgePublicas');
+  const badgePropias = document.getElementById('badgePropias');
+  const panelSubgroupPropiasPuntos = document.getElementById('panelSubgroupPropiasPuntos');
+  const panelSubgroupPropiasVector = document.getElementById('panelSubgroupPropiasVector');
+  const panelSubgroupPropiasRaster = document.getElementById('panelSubgroupPropiasRaster');
+  const panelSubgroupPublicasPuntos = document.getElementById('panelSubgroupPublicasPuntos');
+  const panelSubgroupPublicasCapas = document.getElementById('panelSubgroupPublicasCapas');
 
-  // ocultar “Mis capas” si no hay sesión
+  // ocultar â€œMis capasâ€ si no hay sesi?n
   if (!IS_AUTH && listPropiasSec) listPropiasSec.style.display = 'none';
+
+  function countMeaningfulItems(listEl, options = {}) {
+    if (!listEl) return 0;
+    const { excludeId = null } = options;
+    return [...listEl.querySelectorAll(':scope > li')].filter(li => li.id !== excludeId).length;
+  }
+
+  function setSubgroupVisibility(wrapperEl, isVisible) {
+    if (!wrapperEl) return;
+    wrapperEl.style.display = isVisible ? '' : 'none';
+  }
+
+  function updateLayerPanelSubgroupsVisibility() {
+    setSubgroupVisibility(
+      panelSubgroupPropiasPuntos,
+      countMeaningfulItems(listPropiasPuntos, { excludeId: 'itemToggleMisPuntos' }) > 0
+    );
+    setSubgroupVisibility(panelSubgroupPropiasVector, countMeaningfulItems(listPropiasVector) > 0);
+    setSubgroupVisibility(panelSubgroupPropiasRaster, countMeaningfulItems(listPropiasRaster) > 0);
+    setSubgroupVisibility(panelSubgroupPublicasPuntos, countMeaningfulItems(listPublicasPuntos) > 0);
+    setSubgroupVisibility(panelSubgroupPublicasCapas, countMeaningfulItems(listPublicas) > 0);
+  }
 
   const dynamicLayers = new Map(); // id -> {layer, paneName, li}
 
   function setBadge(){
-    badgePublicas.textContent = listPublicas.querySelectorAll('li').length;
-    if (badgePropias) badgePropias.textContent  = listPropias.querySelectorAll('li').length;
-    if (badgeGruposPuntos) badgeGruposPuntos.textContent = listGruposPuntos?.querySelectorAll('li').length || 0;
+    const totalPublicas =
+      (listPublicas?.querySelectorAll('li').length || 0) +
+      (listPublicasPuntos?.querySelectorAll('li').length || 0);
+    const totalPropias =
+      Math.max((listPropiasPuntos?.querySelectorAll('li').length || 0) - 1, 0) +
+      (listPropiasVector?.querySelectorAll('li').length || 0) +
+      (listPropiasRaster?.querySelectorAll('li').length || 0);
+
+    if (badgePublicas) badgePublicas.textContent = totalPublicas;
+    if (badgePropias) badgePropias.textContent  = totalPropias;
+    updateLayerPanelSubgroupsVisibility();
   }
 
   function makePane(name, z){
@@ -3102,15 +3977,16 @@ window.enviarPuntosCsv = async function(){
 
   function buildLeafletLayer(feature, paneName){
     const props = feature.properties || {};
-    const layerId = (props.id ?? props.pk ?? props.ogc_fid ?? '');
+    const layerId = (props.id + props.pk + props.ogc_fid + '');
     return L.geoJSON(feature, {
       pane: paneName,
       interactive: true,
       style: ()=> getVectorLayerStyle(layerId),
       onEachFeature:(f,lyr)=>{
         const p=f.properties||{};
-        const html = `<div style="min-width:220px"><strong>${p.nombre||'Capa sin nombre'}</strong>${
-          p.descripcion ? `<div style="margin-top:6px">${p.descripcion}</div>`:''}</div>`;
+        const html = `<div style="min-width:220px"><strong>${p.nombre || 'Capa sin nombre'}</strong>${
+          p.descripcion ? `<div style="margin-top:6px">${p.descripcion}</div>` : ''
+        }</div>`;
         lyr.bindPopup(html);
       }
     });
@@ -3153,8 +4029,8 @@ window.enviarPuntosCsv = async function(){
     });
   }
 
-  function updateZ(){
-    // públicas: 520.., propias: 560.., muestreos 700
+  function updateZLegacy(){
+    // p?blicas: 520.., propias: 560.., muestreos 700
     let z=520;
     [...listPublicas.querySelectorAll('li')].forEach(li=>{
       const rawId = li.dataset.layer || '';
@@ -3164,7 +4040,7 @@ window.enviarPuntosCsv = async function(){
 
     if (IS_AUTH) {
       z=560;
-      [...listPropias.querySelectorAll('li')].forEach(li=>{
+      [...listPropiasVector.querySelectorAll('li'), ...listPropiasRaster.querySelectorAll('li')].forEach(li=>{
         const rawId = li.dataset.layer || '';
         const entry=dynamicLayers.get(rawId) || dynamicLayers.get(rawId.replace('CAPA_',''));
         if(entry) map.getPane(entry.paneName).style.zIndex = z++;
@@ -3174,9 +4050,82 @@ window.enviarPuntosCsv = async function(){
     map.getPane('paneMUESTREOS').style.zIndex = 700;
   }
 
+  function setPaneZIndex(paneName, zIndex){
+    if (!paneName) return;
+    const pane = map.getPane(paneName);
+    if (pane) pane.style.zIndex = String(zIndex);
+  }
+
+  function assignPaneOrderFromList(container, resolvePaneName, startZ){
+    if (!container) return;
+    const items = [...container.querySelectorAll('li')];
+    let zIndex = startZ + items.length - 1;
+
+    items.forEach(li => {
+      const paneName = resolvePaneName(li);
+      if (paneName) setPaneZIndex(paneName, zIndex--);
+    });
+  }
+
+  function getBaseLayerById(baseId){
+    if (baseId === 'MUESTREOS') return muestreoLayer;
+    if (baseId === 'HEAT') return heatLayer;
+    if (baseId === 'PATINO') return patinoLayer;
+    return null;
+  }
+
+  function bringLayerFullyToFront(layer){
+    if (!layer) return;
+    layer.bringToFront?.();
+    layer.eachLayer?.(child => child.bringToFront?.());
+  }
+
+  function reorderVisibleBaseLayers(){
+    const orderedBaseLayers = [...listBase.querySelectorAll('li')]
+      .map(li => getBaseLayerById(li.dataset.layer || ''))
+      .filter(layer => layer && map.hasLayer(layer));
+
+    orderedBaseLayers
+      .slice()
+      .reverse()
+      .forEach(layer => bringLayerFullyToFront(layer));
+  }
+
+  function updateZ(){
+    // Lo que est? m?s arriba en el panel debe verse m?s arriba en el mapa.
+    assignPaneOrderFromList(listPublicas, li => {
+      const rawId = li.dataset.layer || '';
+      const entry = dynamicLayers.get(rawId) || dynamicLayers.get(rawId.replace('CAPA_',''));
+      return entry?.paneName || null;
+    }, 520);
+
+    if (IS_AUTH) {
+      assignPaneOrderFromList(listPropiasRaster, li => {
+        const rawId = li.dataset.layer || '';
+        const entry = dynamicLayers.get(rawId) || dynamicLayers.get(rawId.replace('CAPA_',''));
+        return entry?.paneName || null;
+      }, 560);
+      assignPaneOrderFromList(listPropiasVector, li => {
+        const rawId = li.dataset.layer || '';
+        const entry = dynamicLayers.get(rawId) || dynamicLayers.get(rawId.replace('CAPA_',''));
+        return entry?.paneName || null;
+      }, 580);
+    }
+
+    assignPaneOrderFromList(listBase, li => {
+      const baseId = li.dataset.layer || '';
+      if (baseId === 'HEAT') return 'paneHEAT';
+      if (baseId === 'PATINO') return 'panePATINO';
+      return null;
+    }, 610);
+
+    setPaneZIndex('paneMUESTREOS', 630);
+    reorderVisibleBaseLayers();
+  }
+
   function createListItem({feature, targetList, isOwn}){
     const props  = feature.properties || {};
-    const capaId = (props.id ?? props.pk ?? props.ogc_fid ?? crypto.randomUUID());
+    const capaId = (props.id + props.pk + props.ogc_fid + crypto.randomUUID());
     const name   = props.nombre || 'Capa sin nombre';
 
     const li = document.createElement('li');
@@ -3188,11 +4137,11 @@ window.enviarPuntosCsv = async function(){
     const label = document.createElement('span'); label.className='layer-item-label'; label.textContent = name;
     const tools = document.createElement('div'); tools.className='tools';
 
-    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa'; btnZoom.textContent='🔍';
+    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa'; btnZoom.textContent='Zoom';
     tools.appendChild(btnZoom);
 
     const btnColor = document.createElement('button');
-    btnColor.className='icon-btn'; btnColor.title='Personalizar color'; btnColor.textContent='🎨';
+    btnColor.className='icon-btn'; btnColor.title='Personalizar color'; btnColor.textContent='Color';
     tools.appendChild(btnColor);
 
     let btnDelete=null;
@@ -3201,7 +4150,7 @@ window.enviarPuntosCsv = async function(){
       btnDelete.className='icon-btn'; btnDelete.title='Eliminar capa'; btnDelete.textContent='🗑️';
       tools.appendChild(btnDelete);
     } else {
-      const lock = document.createElement('span'); lock.title='Capa pública'; lock.textContent='🔒';
+      const lock = document.createElement('span'); lock.title='Capa pública'; lock.textContent='Pública';
       tools.appendChild(lock);
     }
 
@@ -3241,7 +4190,7 @@ window.enviarPuntosCsv = async function(){
     const label = document.createElement('span'); label.className='layer-item-label'; label.textContent = name;
     const tools = document.createElement('div'); tools.className='tools';
 
-    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa raster'; btnZoom.textContent='🔍';
+    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa raster'; btnZoom.textContent='Zoom';
     tools.appendChild(btnZoom);
 
     let btnDelete = null;
@@ -3250,7 +4199,7 @@ window.enviarPuntosCsv = async function(){
       btnDelete.className='icon-btn'; btnDelete.title='Eliminar capa raster'; btnDelete.textContent='🗑️';
       tools.appendChild(btnDelete);
     } else {
-      const lock = document.createElement('span'); lock.title='Capa raster pública'; lock.textContent='🔒';
+      const lock = document.createElement('span'); lock.title='Capa raster pública'; lock.textContent='Pública';
       tools.appendChild(lock);
     }
 
@@ -3284,8 +4233,17 @@ window.enviarPuntosCsv = async function(){
         .then(res=>res.json())
         .then(json=>{
           if(!json?.success) throw new Error(json?.error || 'No se pudo eliminar');
-          map.removeLayer(layer); li.remove(); dynamicLayers.delete(String(capaId));
-          setBadge(); updateZ(); Swal.fire('Eliminada','La capa fue eliminada','success');
+          const entry = dynamicLayers.get(String(capaId));
+          const targetLayer = layer || entry?.layer;
+          const targetLi = li || entry?.li;
+          if (targetLayer) { try { map.removeLayer(targetLayer); } catch {} }
+          if (targetLi) { try { targetLi.remove(); } catch {} }
+          dynamicLayers.delete(String(capaId));
+          setBadge(); updateZ();
+          const modalMisCapasEl = document.getElementById('modalMisCapas');
+          const modalAbierto = modalMisCapasEl?.classList.contains('show');
+          Swal.fire('Eliminada','La capa fue eliminada','success')
+            .then(() => { if (modalAbierto) abrirModalMisCapas(); });
         })
         .catch(err=> Swal.fire('Error', err.message, 'error'));
     });
@@ -3376,7 +4334,7 @@ window.enviarPuntosCsv = async function(){
     });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
+      attribution: '? OpenStreetMap contributors'
     }).addTo(previewLayerMap);
     return previewLayerMap;
   }
@@ -3394,7 +4352,7 @@ window.enviarPuntosCsv = async function(){
     const previewTitle = document.getElementById('previewCapaTitle');
     bindPreviewModalEvents();
     const label = entry.li?.querySelector('span')?.textContent?.trim() || 'Capa';
-    if (previewTitle) previewTitle.textContent = `Previsualizacion: ${label}`;
+    if (previewTitle) previewTitle.textContent = `Previsualización: ${label}`;
 
     bootstrap.Modal.getInstance(capasModalEl)?.hide();
     reopenCapasAfterPreview = true;
@@ -3611,18 +4569,21 @@ window.enviarPuntosCsv = async function(){
       id === 'PATINO'    ? patinoLayer :
       null;
     if (!layer || !cb) return;
-    cb.addEventListener('change', ()=> { cb.checked ? map.addLayer(layer) : map.removeLayer(layer); });
+    cb.addEventListener('change', ()=> {
+      cb.checked ? map.addLayer(layer) : map.removeLayer(layer);
+      updateZ();
+    });
     wireDnD(li, listBase);
   });
 
   // cargar capas del backend (FeatureCollection con features adicionales)
- // cargar capas del backend (pero sin duplicar las “Patino” en el panel dinámico)
+ // cargar capas del backend (pero sin duplicar las â€œPatinoâ€ en el panel din?mico)
 const capasFC = {{ patino|safe }};
 if (capasFC && capasFC.type === 'FeatureCollection' && Array.isArray(capasFC.features)) {
     capasFC.features.forEach(f => {
         const props = f.properties || {};
 
-        // 🚫 Si el nombre contiene “patino” no lo mostramos en el panel
+        // ðŸš« Si el nombre contiene â€œpatinoâ€ no lo mostramos en el panel
         const nombre = (props.nombre || '').toLowerCase();
         if (nombre.includes('patino')) return;
 
@@ -3630,12 +4591,12 @@ if (capasFC && capasFC.type === 'FeatureCollection' && Array.isArray(capasFC.fea
         const isPublic = props.es_publica;
 
         let target;
-        if (isPublic) {
+        if (isOwn) {
+            target = listPropiasVector;
+        } else if (isPublic) {
             target = listPublicas;
-        } else if (isOwn) {
-            target = listPropias;
         } else {
-            // privada de otro usuario → no mostrar
+            // privada de otro usuario â†’ no mostrar
             return;
         }
 
@@ -3647,7 +4608,7 @@ if (Array.isArray(rasterLayersData)) {
   rasterLayersData.forEach(raster => {
     const isOwn = !!raster.es_propia;
     const isPublic = !!raster.publico;
-    const target = isOwn ? listPropias : (isPublic ? listPublicas : null);
+    const target = isOwn ? listPropiasRaster : (isPublic ? listPublicas : null);
     if (!target) return;
     createRasterListItem({ raster, targetList: target, isOwn })
       .catch(err => console.error('Error al cargar raster', err));
@@ -3656,13 +4617,16 @@ if (Array.isArray(rasterLayersData)) {
 
 
   setBadge(); updateZ();
+  document.getElementById('toggleMisPuntosPanel')?.addEventListener('change', (event) => {
+    aplicarToggleTodosMisPuntos(event.target.checked);
+  });
 
   function actualizarCheckboxTodosLosPuntos() {
-    const checkbox = document.getElementById('toggleTodosLosPuntos');
-    if (!checkbox) return;
+    sincronizarToggleMisPuntosDesdeGrupos();
+  }
 
-    checkbox.checked = mostrarTodosLosPuntos;
-    checkbox.indeterminate = false;
+  function actualizarCheckboxMisPuntosPanel() {
+    sincronizarToggleMisPuntosDesdeGrupos();
   }
 
   function renderGruposPuntosModal() {
@@ -3671,18 +4635,20 @@ if (Array.isArray(rasterLayersData)) {
     if (!contenedor || !checkboxTodos) return;
 
     actualizarCheckboxTodosLosPuntos();
+    actualizarCheckboxMisPuntosPanel();
     contenedor.innerHTML = '';
 
     [...estadoGruposPuntos.keys()].sort().forEach(grupo => {
-      const meta = metadatosGruposPuntos.get(grupo) || { tienePropios:false, tienePublicos:false, estadoSolicitud:null, total:0, publicTotal:0 };
+      const meta = metadatosGruposPuntos.get(grupo) || { tienePropios:false, tienePublicos:false, estadoSolicitud:null, total:0, ownTotal:0, publicTotal:0 };
       const item = document.createElement('div');
       item.className = 'grupo-punto-item';
+      item.dataset.group = grupo;
 
       const left = document.createElement('div');
       left.className = 'grupo-punto-left';
       const chip = document.createElement('span');
       chip.className = 'color-chip';
-      chip.style.background = getPointGroupColor(grupo);
+      chip.style.background = getPointGroupColor(grupo, !!meta.tienePropios);
       const input = document.createElement('input');
       input.className = 'form-check-input';
       input.type = 'checkbox';
@@ -3690,6 +4656,10 @@ if (Array.isArray(rasterLayersData)) {
       input.checked = estadoGruposPuntos.get(grupo);
       input.addEventListener('change', () => {
         estadoGruposPuntos.set(grupo, input.checked);
+        actualizarCheckboxesGrupoPuntos(grupo, input.checked);
+        if (meta.tienePropios) {
+          sincronizarToggleMisPuntosDesdeGrupos();
+        }
         aplicarVisibilidadPuntos();
       });
 
@@ -3712,6 +4682,13 @@ if (Array.isArray(rasterLayersData)) {
 
         const badge = document.createElement('span');
         const estadoSolicitud = meta.estadoSolicitud || null;
+        badge.textContent = meta.tienePublicos
+          ? 'Público'
+          : estadoSolicitud === 'pendiente'
+            ? 'Pendiente'
+            : estadoSolicitud === 'rechazada'
+              ? 'Rechazado'
+              : 'Privado';
         badge.className = meta.tienePublicos
           ? 'badge text-bg-success'
           : estadoSolicitud === 'pendiente'
@@ -3719,21 +4696,13 @@ if (Array.isArray(rasterLayersData)) {
             : estadoSolicitud === 'rechazada'
               ? 'badge text-bg-danger'
               : 'badge text-bg-secondary';
-        badge.textContent = meta.tienePublicos ? 'Público' : 'Privado';
-        badge.textContent = meta.tienePublicos
-          ? 'PÃºblico'
-          : estadoSolicitud === 'pendiente'
-            ? 'Pendiente'
-            : estadoSolicitud === 'rechazada'
-              ? 'Rechazado'
-              : 'Privado';
         right.appendChild(badge);
 
         const btnColor = document.createElement('button');
         btnColor.type = 'button';
         btnColor.className = 'color-tools-btn';
         btnColor.title = 'Personalizar color del grupo';
-        btnColor.textContent = '🎨';
+        btnColor.textContent = 'Color';
         btnColor.addEventListener('click', () => personalizarColorGrupoPuntos(grupo));
         right.appendChild(btnColor);
 
@@ -3755,16 +4724,22 @@ if (Array.isArray(rasterLayersData)) {
           } else {
             btn.className = 'btn btn-sm btn-outline-primary';
           }
-          btn.textContent = meta.tienePublicos ? 'Hacer privado' : 'Hacer público';
-          btn.textContent = meta.tienePublicos
-            ? 'Hacer privado'
-            : estadoSolicitud === 'pendiente'
-              ? 'Solicitud enviada'
-              : 'Solicitar publicaciÃ³n';
+        btn.textContent = meta.tienePublicos
+          ? 'Hacer privado'
+          : estadoSolicitud === 'pendiente'
+            ? 'Solicitud enviada'
+            : 'Solicitar publicación';
           if (!btn.disabled) {
             btn.addEventListener('click', () => cambiarPublicacionGrupoPuntos(grupo, meta.tienePublicos ? false : true));
           }
           right.appendChild(btn);
+
+          const btnDelete = document.createElement('button');
+          btnDelete.type = 'button';
+          btnDelete.className = 'btn btn-sm btn-outline-danger';
+          btnDelete.textContent = 'Eliminar';
+          btnDelete.addEventListener('click', () => eliminarGrupoPuntos(grupo));
+          right.appendChild(btnDelete);
         }
 
         item.appendChild(right);
@@ -3774,8 +4749,7 @@ if (Array.isArray(rasterLayersData)) {
     });
 
     checkboxTodos.onchange = () => {
-      mostrarTodosLosPuntos = checkboxTodos.checked;
-      aplicarVisibilidadPuntos();
+      aplicarToggleTodosMisPuntos(checkboxTodos.checked);
     };
   }
 
@@ -3793,11 +4767,11 @@ if (Array.isArray(rasterLayersData)) {
     })
       .then(r => r.json())
       .then(json => {
-        if (!json.success) throw new Error(json.error || 'No se pudo actualizar la publicación del grupo.');
+        if (!json.success) throw new Error(json.error || 'No se pudo actualizar la publicaci?n del grupo.');
 
         muestreoLayer.eachLayer(layer => {
           const p = layer.feature.properties || {};
-          if (p.grupo === grupo && p.user && !publico) {
+          if (p.grupo === grupo && esPuntoDelUsuarioActual(p) && !publico) {
             p.publico = false;
           }
         });
@@ -3811,17 +4785,18 @@ if (Array.isArray(rasterLayersData)) {
 
         renderGruposPuntosModal();
         if (publico) {
-          Swal.fire('Solicitud enviada', json.mensaje || `El grupo ${grupo} quedÃ³ pendiente de aprobaciÃ³n.`, 'success');
+          Swal.fire('Solicitud enviada', json.mensaje || `El grupo ${grupo} quedÃƒÂ³ pendiente de aprobaciÃƒÂ³n.`, 'success');
           return;
         }
-        Swal.fire('✅ Grupo actualizado', `El grupo ${grupo} ahora es ${publico ? 'público' : 'privado'}.`, 'success');
+        Swal.fire('Grupo actualizado', `El grupo ${grupo} ahora es ${publico ? 'público' : 'privado'}.`, 'success');
       })
-      .catch(err => Swal.fire('❌ Error', err.message, 'error'));
+      .catch(err => Swal.fire('âŒ Error', err.message, 'error'));
   };
 
   window.renombrarGrupoPuntos = async function(grupoActual){
     const { value: grupoNuevo } = await Swal.fire({
       title: 'Renombrar grupo',
+      target: document.getElementById('modalGruposPuntos') || document.body,
       input: 'text',
       inputLabel: `Nuevo nombre para ${grupoActual}`,
       inputValue: grupoActual,
@@ -3829,9 +4804,15 @@ if (Array.isArray(rasterLayersData)) {
         autocapitalize: 'off',
         autocorrect: 'off'
       },
+      focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
+      didOpen: () => {
+        const input = Swal.getInput();
+        input?.focus();
+        input?.select();
+      },
       inputValidator: (value) => {
         if (!value || !value.trim()) return 'El nombre del grupo no puede quedar vacio.';
         if (value.trim() === grupoActual) return 'Ingresa un nombre distinto.';
@@ -3855,6 +4836,33 @@ if (Array.isArray(rasterLayersData)) {
       .catch(err => Swal.fire('Error', err.message, 'error'));
   };
 
+  window.eliminarGrupoPuntos = function(grupo){
+    Swal.fire({
+      title: '¿Eliminar grupo?',
+      text: `Se eliminarán tus puntos del grupo ${grupo}. Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      fetch('/puntos/grupo-eliminar/', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ grupo })
+      })
+        .then(r => r.json())
+        .then(json => {
+          if (!json.success) throw new Error(json.error || 'No se pudo eliminar el grupo.');
+          Swal.fire('Grupo eliminado', `Se eliminaron ${json.eliminados || 0} puntos del grupo ${grupo}.`, 'success')
+            .then(() => window.location.reload());
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    });
+  };
+
   aplicarVisibilidadPuntos();
 
   /* ================================
@@ -3873,9 +4881,9 @@ if (Array.isArray(rasterLayersData)) {
       .then(r=>r.json())
       .then(j=>{
         if (!j.success) throw new Error(j.error || 'No se pudo eliminar el punto.');
-        Swal.fire('✅ Eliminado','El punto ha sido borrado.','success').then(()=> location.reload());
+        Swal.fire('âœ… Eliminado','El punto ha sido borrado.','success').then(()=> location.reload());
       })
-      .catch(err=> Swal.fire('❌ Error', err.message, 'error'));
+      .catch(err=> Swal.fire('âŒ Error', err.message, 'error'));
     });
   };
 
@@ -3894,7 +4902,7 @@ function renderFilaCapa(c) {
       <td>${c.ogc_fid}</td>
       <td>${c.nombre || 'Sin nombre'}</td>
       <td class="col-owner">${owner}</td>
-      <td>${(c.area_km2 ?? 0).toLocaleString()}</td>
+      <td>${(c.area_km2 + 0).toLocaleString()}</td>
       <td>${fecha}</td>
       <td>
         <button class="btn btn-outline-secondary btn-sm me-1 btn-preview">Previsualizar</button>
@@ -3953,7 +4961,7 @@ function wireFilaEventos(tr) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        confirmButtonText: 'Sí, eliminar'
+        confirmButtonText: 'S?, eliminar'
       }).then(res => {
         if (!res.isConfirmed) return;
         fetch(`/eliminar-capa/${id}/`, {
@@ -4018,12 +5026,12 @@ function abrirModalMisCapas() {
           <td>${c.id}</td>
           <td>${c.nombre}</td>
           <td>${c.estado}</td>
-          <td>${c.comentario_revision || '—'}</td>
+          <td>${c.comentario_revision || 'â€”'}</td>
           <td>${new Date(c.fecha_subida).toLocaleString()}</td>
           <td>
             <button class="btn btn-sm btn-danger" onclick="eliminarCapa(${c.id})">🗑️ Eliminar</button>
             ${c.estado === 'privada' 
-              ? `<button class="btn btn-sm btn-warning" onclick="solicitarPublicacion(${c.id})">📤 Solicitar publicación</button>` 
+              ? `<button class="btn btn-sm btn-warning" onclick="solicitarPublicacion(${c.id})">Solicitar publicación</button>` 
               : ''}
           </td>
         </tr>`).join('');
@@ -4053,7 +5061,7 @@ function solicitarPublicacion(capaId) {
     .then(r => r.json())
     .then(j => {
       if (!j.success) throw new Error(j.error || 'No se pudo registrar la solicitud.');
-      Swal.fire('Solicitud enviada', 'La capa quedó pendiente de aprobación por un administrador.', 'success')
+      Swal.fire('Solicitud enviada', 'La capa qued? pendiente de aprobaci?n por un administrador.', 'success')
         .then(() => abrirModalMisCapas());
     })
     .catch(err => Swal.fire('Error', err.message, 'error'));
@@ -4169,7 +5177,7 @@ function abrirModalSolicitudesPublicacion() {
           <td>${s.reviewed_at ? new Date(s.reviewed_at).toLocaleString() : '-'}</td>
           <td>${s.comentario_revision || '-'}</td>
         </tr>`).join('');
-      tbodyResolved.innerHTML = rowsResolved || `<tr><td colspan="8" class="text-center text-muted">No hay solicitudes resueltas todavía.</td></tr>`;
+      tbodyResolved.innerHTML = rowsResolved || `<tr><td colspan="8" class="text-center text-muted">No hay solicitudes resueltas todav?a.</td></tr>`;
     })
     .catch(err => {
       tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error: ${err.message}</td></tr>`;
@@ -4184,17 +5192,25 @@ function abrirModalSolicitudesPublicacion() {
 
 function resolverSolicitudPublicacion(solicitudId, decision) {
   const accionLabel = decision === 'aprobar' ? 'aprobar' : 'rechazar';
+  const modalTarget = document.getElementById('modalSolicitudesPublicacion') || document.body;
   Swal.fire({
+    target: modalTarget,
     input: 'textarea',
     inputLabel: 'Comentario para el solicitante (opcional)',
     inputPlaceholder: decision === 'aprobar'
-      ? 'Ej.: Se aprueba por cumplir con los criterios de publicacion.'
+      ? 'Ej.: Se aprueba por cumplir con los criterios de publicación.'
       : 'Ej.: Faltan metadatos o la capa necesita ajustes antes de publicarse.',
     title: `¿Querés ${accionLabel} esta solicitud?`,
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: decision === 'aprobar' ? 'Sí, aprobar' : 'Sí, rechazar',
-    cancelButtonText: 'Cancelar'
+    cancelButtonText: 'Cancelar',
+    focusConfirm: false,
+    didOpen: () => {
+      const input = document.querySelector('#swal2-textarea');
+      input?.focus();
+      input?.select?.();
+    }
   }).then(result => {
     if (!result.isConfirmed) return;
     fetch(`/api/solicitudes-publicacion/${solicitudId}/resolver/`, {
@@ -4234,15 +5250,15 @@ function ensureFiltroModalLayout() {
           </select>
         </div>
         <div class="col-md-6">
-          <label for="filtroTexto" class="form-label">Nombre o código</label>
+          <label for="filtroTexto" class="form-label">Nombre o c?digo</label>
           <input type="text" class="form-control" id="filtroTexto" placeholder="Ej.: CL-P0001 o nombre del punto">
         </div>
         <div class="col-md-6">
-          <label for="filtroCampo" class="form-label">Parámetro</label>
+          <label for="filtroCampo" class="form-label">Par?metro</label>
           <select class="form-select" id="filtroCampo" onchange="actualizarControlesFiltro()"></select>
         </div>
         <div class="col-md-6">
-          <label for="filtroOperador" class="form-label">Condición</label>
+          <label for="filtroOperador" class="form-label">Condici?n</label>
           <select class="form-select" id="filtroOperador" onchange="actualizarControlesFiltro()">
             <option value="gt">Mayor que</option>
             <option value="gte">Mayor o igual que</option>
@@ -4259,12 +5275,12 @@ function ensureFiltroModalLayout() {
           <input type="number" class="form-control" id="filtroValor" step="any">
         </div>
         <div class="col-md-6" id="filtroValorHastaWrapper" style="display:none;">
-          <label for="filtroValorHasta" class="form-label">Valor máximo</label>
+          <label for="filtroValorHasta" class="form-label">Valor m?ximo</label>
           <input type="number" class="form-control" id="filtroValorHasta" step="any">
         </div>
       </div>
       <div id="filtroAyuda" class="small text-muted mt-3">
-        Podés filtrar por grupo, por nombre/código o por uno de los parámetros medidos.
+        Pod?s filtrar por grupo, por nombre/c?digo o por uno de los par?metros medidos.
       </div>
       <div id="filtroResumen" class="small text-muted mt-2">
         Sin filtro activo. Se muestran los estilos originales de los puntos visibles.
@@ -4370,12 +5386,12 @@ window.aplicarFiltro = function() {
   window.filtroPuntosEstado = filtroPuntosEstado;
 
   if (filtroPuntosEstado.campo && !['has_data', 'no_data'].includes(filtroPuntosEstado.operador) && !filtroPuntosEstado.valor1) {
-    Swal.fire('Falta un valor', 'Ingresá el valor principal para aplicar el filtro.', 'warning');
+    Swal.fire('Falta un valor', 'Ingres? el valor principal para aplicar el filtro.', 'warning');
     return;
   }
 
   if (filtroPuntosEstado.campo && filtroPuntosEstado.operador === 'between' && !filtroPuntosEstado.valor2) {
-    Swal.fire('Falta el rango', 'Ingresá también el valor máximo del rango.', 'warning');
+    Swal.fire('Falta el rango', 'Ingres? tambi?n el valor m?ximo del rango.', 'warning');
     return;
   }
 
@@ -4507,14 +5523,14 @@ function renderReglasFiltro(reglas) {
         </div>
         <div class="col-md-2 regla-valor1-wrap" data-index="${index}">
           <label class="form-label">Valor</label>
-          <input type="number" class="form-control filtro-regla-valor1" data-index="${index}" value="${regla.valor1 ?? ''}" step="any">
+          <input type="number" class="form-control filtro-regla-valor1" data-index="${index}" value="${regla.valor1 + ''}" step="any">
         </div>
         <div class="col-md-2 regla-valor2-wrap" data-index="${index}">
           <label class="form-label">Valor maximo</label>
-          <input type="number" class="form-control filtro-regla-valor2" data-index="${index}" value="${regla.valor2 ?? ''}" step="any">
+          <input type="number" class="form-control filtro-regla-valor2" data-index="${index}" value="${regla.valor2 + ''}" step="any">
         </div>
         <div class="col-md-1 d-grid">
-          <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarReglaFiltro(${index})" ${reglasNormalizadas.length === 1 ? 'disabled' : ''}>×</button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarReglaFiltro(${index})" ${reglasNormalizadas.length === 1 ? 'disabled' : ''}>&times;</button>
         </div>
       </div>
     </div>
@@ -4584,7 +5600,7 @@ window.abrirModalFiltro = function() {
         <div class="col-12">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <label class="form-label mb-0">Condiciones</label>
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarReglaFiltro()">+ Añadir condicion</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarReglaFiltro()">+ A?adir condicion</button>
           </div>
           <div id="filtroReglas"></div>
         </div>
@@ -4676,7 +5692,7 @@ window.limpiarFiltro = function() {
 let puntoActual = null;
 
 function mostrarModalDetallePunto(props) {
-  const isAdmin = !!(window.IS_ADMIN ?? false);
+  const isAdmin = !!(window.IS_ADMIN + false);
   puntoActual = props; // guardamos datos globalmente
 
   const tbody = document.getElementById("detallePuntoBody");
@@ -4684,10 +5700,10 @@ function mostrarModalDetallePunto(props) {
   const hiddenKeys = new Set(['usu_insercion_nombre', 'usu_modificacion_nombre']);
   const adminOnlyKeys = new Set(['fec_insercion', 'usu_insercion', 'fec_modificacion', 'usu_modificacion']);
   const labelMap = {
-    fec_insercion: 'Fecha de inserción',
-    usu_insercion: 'Usuario de inserción',
-    fec_modificacion: 'Fecha de modificación',
-    usu_modificacion: 'Usuario de modificación'
+    fec_insercion: 'Fecha de inserci?n',
+    usu_insercion: 'Usuario de inserci?n',
+    fec_modificacion: 'Fecha de modificaci?n',
+    usu_modificacion: 'Usuario de modificaci?n'
   };
 
   title.textContent = props.nombre || "Detalle del punto";
@@ -4729,89 +5745,122 @@ function mostrarModalDetallePunto(props) {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <p>Elegí cómo querés cargar tus puntos.</p>
+          <p>Eleg&iacute; c&oacute;mo quer&eacute;s cargar tus puntos.</p>
           <div class="d-grid gap-2">
-            <button type="button" class="btn btn-primary" onclick="abrirCargaCsvPuntos()">📄 Cargar desde CSV</button>
-            <button type="button" class="btn btn-outline-secondary" onclick="abrirCargaManualPuntos()">📍 Cargar manualmente</button>
+            <button type="button" class="btn btn-primary" onclick="abrirCargaCsvPuntos()">Cargar desde CSV</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="abrirCargaManualPuntos()">Cargar manualmente</button>
           </div>
-          <small class="text-muted d-block mt-3">La opción manual te deja elegir la ubicación en el mapa o cargar coordenadas manualmente en EPSG:4326.</small>
+          <small class="text-muted d-block mt-3">La opci&oacute;n manual te deja elegir la ubicaci&oacute;n en el mapa o cargar coordenadas manualmente en EPSG:4326.</small>
         </div>
       </div>
     </div>
   </div>
 
   <div class="modal fade" id="modalCargaPuntosCsv" tabindex="-1" aria-labelledby="modalCargaPuntosCsvLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="modalCargaPuntosCsvLabel">Carga masiva de puntos por CSV</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <div class="alert alert-info">
-            <strong>Formato estricto requerido</strong><br>
-            El archivo debe ser un <code>CSV</code> o <code>TSV</code> con encabezados en la primera fila. Para que la importación funcione correctamente, respetá la estructura de columnas y el sistema de coordenadas indicado.
+          <div class="csv-upload-layout">
+            <div class="csv-upload-card csv-upload-hero">
+              <h6>Subí el archivo sin perder tiempo</h6>
+              <p class="mb-3">Primero elegí el grupo, el archivo y el sistema de coordenadas de origen. La vista previa técnica se genera sola y las advertencias quedan resumidas abajo.</p>
+              <form id="formCargaPuntosCsv" enctype="multipart/form-data">
+                <div class="mb-3">
+                  <label for="grupoPuntosCsv" class="form-label">Nombre del grupo de puntos</label>
+                  <input type="text" id="grupoPuntosCsv" name="grupo" class="form-control" value="PATINO1" required>
+                </div>
+                <div class="mb-3">
+                  <label for="archivoPuntosCsv" class="form-label">Archivo CSV</label>
+                  <input type="file" id="archivoPuntosCsv" name="archivo" accept=".csv,.txt" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label for="sridPuntosCsv" class="form-label">Sistema de coordenadas</label>
+                  <select id="sridPuntosCsv" name="srid" class="form-select">
+                    <option value="32721">EPSG:32721 (Recomendado para planillas históricas)</option>
+                    <option value="4326">EPSG:4326 (Longitud / Latitud)</option>
+                  </select>
+                  <div class="form-text mt-2">
+                    Indicá cómo vienen las coordenadas en el archivo. El sistema toma ese SRID como <strong>origen</strong> y luego convierte automáticamente los puntos a <code>EPSG:4326</code> para que sean visualizables en el mapa.
+                  </div>
+                </div>
+                <div id="csvPreviewPanel" class="csv-upload-card mt-3" style="display:none; padding:16px;">
+                  <strong>Vista previa del archivo</strong>
+                  <div id="csvPreviewResumen" class="mt-3"></div>
+                  <div class="mt-3 small"><strong>Columnas reconocidas</strong></div>
+                  <div id="csvPreviewColumnas" class="mt-2"></div>
+                  <div id="csvPreviewFaltantes" class="mt-2"></div>
+                </div>
+              </form>
+            </div>
+
+            <div class="d-flex flex-column gap-3">
+              <div class="csv-upload-card">
+                <h6>Resumen de formato</h6>
+                <div class="csv-upload-grid">
+                  <div class="csv-upload-stat">
+                    <strong>Obligatorias</strong>
+                    <span><code>x</code>, <code>y</code></span>
+                  </div>
+                  <div class="csv-upload-stat">
+                    <strong>Descriptivas recomendadas</strong>
+                    <span><code>codigo_pozo</code> o <code>nombre_lugar</code></span>
+                  </div>
+                  <div class="csv-upload-stat">
+                    <strong>SRID histórico</strong>
+                    <span><code>EPSG:32721</code></span>
+                  </div>
+                  <div class="csv-upload-stat">
+                    <strong>SRID GPS</strong>
+                    <span><code>EPSG:4326</code></span>
+                  </div>
+                  <div class="csv-upload-stat">
+                    <strong>Visualización web</strong>
+                    <span>Conversión automática a <code>EPSG:4326</code></span>
+                  </div>
+                </div>
+              </div>
+
+              <details class="csv-upload-details">
+                <summary>Ver instrucciones completas</summary>
+                <div class="csv-upload-details-body">
+                  <p><strong>Formato estricto requerido.</strong> El archivo debe ser <code>CSV</code> o <code>TSV</code> con encabezados en la primera fila.</p>
+                  <p><strong>Reglas rápidas.</strong> Cada fila representa un único punto, las coordenadas deben ser numéricas y las columnas faltantes o celdas vacías se guardan como <code>NULL</code>.</p>
+                  <p><strong>Sobre las coordenadas.</strong> El valor que elegís en <code>EPSG:32721</code> o <code>EPSG:4326</code> indica cómo vienen las coordenadas en el archivo. Antes de guardar, el sistema las reproyecta a <code>EPSG:4326</code> para que los puntos puedan verse correctamente en el visor.</p>
+                  <p><strong>Columnas aceptadas.</strong> Se reconocen encabezados como <code>codigo_pozo</code>, <code>nombre_lugar</code>, <code>x</code>, <code>y</code>, <code>Fecha_muestreo</code>, <code>N-Amoniacal (mg/L)</code>, <code>N-Nitritos (mg/L)</code>, <code>N-Nitratos (mg/L)</code>, <code>Alcalinidad Total (mg/L)</code>, <code>Materia Organica (mg/L)</code>, <code>Conductividad (uS/cm)</code>, <code>pH</code>, <code>Bicarbonato (mg/L)</code>, <code>Carbonato (mg/L)</code>, <code>Sulfato (mg/L)</code>, <code>Magnesio (mg/L)</code>, <code>Calcio (mg/L)</code>, <code>Sodio (mg/L)</code>, <code>Potasio (mg/L)</code>, <code>Cloruro (mg/L)</code>, <code>Arsenico (mg/L)</code>, <code>Mercurio (mg/L)</code>, <code>Manganeso (mg/L)</code>, <code>Cobre (mg/L)</code>, <code>Cromo Total (mg/L)</code> y <code>Coliformes Fecales (UFC/100 mL)</code>.</p>
+                  <p><strong>Recomendación práctica.</strong> Si ya tenés archivos <code>_para_subir.csv</code>, reutilizalos con los mismos encabezados para evitar errores.</p>
+                </div>
+              </details>
+            </div>
           </div>
-
-          <p><strong>Columnas obligatorias</strong><br>
-          El archivo debe incluir como mínimo:
-          <br><code>x</code>
-          <br><code>y</code>
-          <br>Además, se recomienda incluir al menos una columna descriptiva:
-          <br><code>codigo_pozo</code> o <code>nombre_lugar</code></p>
-
-          <p><strong>Columnas aceptadas</strong><br>
-          El formato recomendado es usar nombres como:
-          <br><code>codigo_pozo</code>, <code>nombre_lugar</code>, <code>x</code>, <code>y</code>, <code>Fecha_muestreo</code>
-          <br><code>N-Amoniacal (mg/L)</code>, <code>N-Nitritos (mg/L)</code>, <code>N-Nitratos (mg/L)</code>
-          <br><code>Alcalinidad Total (mg/L)</code>, <code>Materia Organica (mg/L)</code>, <code>Conductividad (uS/cm)</code>, <code>pH</code>
-          <br><code>Bicarbonato (mg/L)</code>, <code>Carbonato (mg/L)</code>, <code>Sulfato (mg/L)</code>, <code>Magnesio (mg/L)</code>
-          <br><code>Calcio (mg/L)</code>, <code>Sodio (mg/L)</code>, <code>Potasio (mg/L)</code>, <code>Cloruro (mg/L)</code>
-          <br><code>Arsenico (mg/L)</code>, <code>Mercurio (mg/L)</code>, <code>Manganeso (mg/L)</code>, <code>Cobre (mg/L)</code>
-          <br><code>Cromo Total (mg/L)</code>, <code>Coliformes Fecales (UFC/100 mL)</code></p>
-
-          <p><strong>Reglas de formato</strong><br>
-          Las coordenadas deben ser numéricas.
-          <br>La primera fila debe contener solo encabezados.
-          <br>Cada fila siguiente debe representar un único punto.
-          <br>Las columnas no incluidas o las celdas vacías se guardarán como <code>NULL</code>.
-          <br>No uses celdas combinadas, títulos extra, notas al pie ni filas vacías antes del encabezado.</p>
-
-          <p><strong>Sistema de coordenadas</strong><br>
-          Si el archivo usa coordenadas UTM como tus planillas históricas, elegí <code>EPSG:32721</code>.
-          <br>Si el archivo ya está en longitud/latitud GPS, elegí <code>EPSG:4326</code>.</p>
-
-          <p><strong>Recomendación práctica</strong><br>
-          La forma más segura es reutilizar uno de los archivos <code>_para_subir.csv</code> ya generados, manteniendo exactamente los mismos encabezados.</p>
-
-          <form id="formCargaPuntosCsv" enctype="multipart/form-data">
-            <div class="mb-3">
-              <label for="grupoPuntosCsv" class="form-label">Nombre del grupo de puntos</label>
-              <input type="text" id="grupoPuntosCsv" name="grupo" class="form-control" value="PATINO1" required>
-            </div>
-            <div class="mb-3">
-              <label for="archivoPuntosCsv" class="form-label">Archivo CSV</label>
-              <input type="file" id="archivoPuntosCsv" name="archivo" accept=".csv,.txt" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label for="sridPuntosCsv" class="form-label">Sistema de coordenadas</label>
-              <select id="sridPuntosCsv" name="srid" class="form-select">
-                <option value="32721">EPSG:32721 (Recomendado para tu planilla)</option>
-                <option value="4326">EPSG:4326 (Longitud / Latitud)</option>
-              </select>
-            </div>
-            <div id="csvPreviewPanel" class="alert alert-light border" style="display:none;">
-              <strong>Vista previa del archivo</strong>
-              <div id="csvPreviewResumen" class="mt-2 small"></div>
-              <div class="mt-2 small"><strong>Columnas reconocidas:</strong></div>
-              <div id="csvPreviewColumnas" class="mt-1"></div>
-              <div id="csvPreviewFaltantes" class="mt-2 small"></div>
-            </div>
-          </form>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-outline-primary" type="button" onclick="abrirVistaPreviaCsv()">Vista previa</button>
           <button class="btn btn-primary" onclick="enviarPuntosCsv()">Subir puntos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalVistaPreviaCsv" tabindex="-1" aria-labelledby="modalVistaPreviaCsvLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalVistaPreviaCsvLabel">Vista previa de carga CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="csvPreviewModalResumen"></div>
+          <div id="csvPreviewModalAlertas"></div>
+          <div id="csvPreviewModalTabla" class="mt-3"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" onclick="volverDesdeVistaPreviaCsv()">Volver</button>
+          <button class="btn btn-primary" type="button" onclick="enviarPuntosCsv()">Cargar puntos</button>
         </div>
       </div>
     </div>
@@ -4829,7 +5878,7 @@ function mostrarModalDetallePunto(props) {
           <form id="formNuevoPunto">
             <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <strong>Ubicación del nuevo punto</strong><br>
+                <strong>Ubicaci?n del nuevo punto</strong><br>
                 <span id="nuevo_punto_coords_texto">Sin ubicación definida todavía.</span>
               </div>
               <button type="button" class="btn btn-outline-primary btn-sm" onclick="solicitarUbicacionNuevoPunto()">
@@ -4838,11 +5887,11 @@ function mostrarModalDetallePunto(props) {
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label for="nuevo_estacionid" class="form-label">Código de pozo</label>
+                <label for="nuevo_estacionid" class="form-label">C?digo de pozo</label>
                 <input type="text" class="form-control" id="nuevo_estacionid">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="nuevo_codigoorig" class="form-label">Código origen</label>
+                <label for="nuevo_codigoorig" class="form-label">C?digo origen</label>
                 <input type="text" class="form-control" id="nuevo_codigoorig">
               </div>
             </div>
@@ -4869,17 +5918,17 @@ function mostrarModalDetallePunto(props) {
               <div class="accordion-item">
                 <h2 class="accordion-header" id="headingNuevoWqi">
                   <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNuevoWqi" aria-expanded="true" aria-controls="collapseNuevoWqi">
-                    Parámetros clave para WQI
+                    Par?metros clave para WQI
                   </button>
                 </h2>
                 <div id="collapseNuevoWqi" class="accordion-collapse collapse show" aria-labelledby="headingNuevoWqi" data-bs-parent="#accordionNuevoPunto">
                   <div class="accordion-body">
                     <div class="alert alert-info py-2 small">
-                      Para poder calcular WQI después, este punto debería tener al menos <strong>6 de estos 8 parámetros críticos</strong>.
+                      Para poder calcular WQI despu?s, este punto deber?a tener al menos <strong>6 de estos 8 par?metros cr?ticos</strong>.
                     </div>
                     <div class="row">
                       <div class="col-md-6 mb-3">
-                        <label for="conductivi" class="form-label">Conductividad eléctrica</label>
+                        <label for="conductivi" class="form-label">Conductividad el?ctrica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="conductivi">
                           <span class="input-group-text">uS/cm</span>
@@ -4918,7 +5967,7 @@ function mostrarModalDetallePunto(props) {
                         <input type="number" step="any" class="form-control" id="ph">
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_materia_or" class="form-label">Materia orgánica</label>
+                        <label for="nuevo_materia_or" class="form-label">Materia org?nica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_materia_or">
                           <span class="input-group-text">mg/L</span>
@@ -4939,7 +5988,7 @@ function mostrarModalDetallePunto(props) {
               <div class="accordion-item mt-2">
                 <h2 class="accordion-header" id="headingNuevoExtras">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNuevoExtras" aria-expanded="false" aria-controls="collapseNuevoExtras">
-                    Otros parámetros disponibles
+                    Otros par?metros disponibles
                   </button>
                 </h2>
                 <div id="collapseNuevoExtras" class="accordion-collapse collapse" aria-labelledby="headingNuevoExtras" data-bs-parent="#accordionNuevoPunto">
@@ -5002,7 +6051,7 @@ function mostrarModalDetallePunto(props) {
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="arsenico" class="form-label">Arsénico</label>
+                        <label for="arsenico" class="form-label">Ars?nico</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="arsenico">
                           <span class="input-group-text">mg/L</span>
@@ -5047,7 +6096,7 @@ function mostrarModalDetallePunto(props) {
                         <label for="nuevo_temperatur" class="form-label">Temperatura</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_temperatur">
-                          <span class="input-group-text">°C</span>
+                          <span class="input-group-text">?C</span>
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
@@ -5072,14 +6121,14 @@ function mostrarModalDetallePunto(props) {
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_dureza_cal" class="form-label">Dureza cálcica</label>
+                        <label for="nuevo_dureza_cal" class="form-label">Dureza c?lcica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_dureza_cal">
                           <span class="input-group-text">mg/L</span>
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_dureza_mag" class="form-label">Dureza magnésica</label>
+                        <label for="nuevo_dureza_mag" class="form-label">Dureza magn?sica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_dureza_mag">
                           <span class="input-group-text">mg/L</span>
@@ -5119,7 +6168,7 @@ function mostrarModalDetallePunto(props) {
             <input type="hidden" id="editar_lng">
             <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <strong>Ubicación actual</strong><br>
+                <strong>Ubicaci?n actual</strong><br>
                 <span id="editar_coords_texto">Sin coordenadas</span>
               </div>
               <button type="button" class="btn btn-outline-primary btn-sm" onclick="solicitarCambioUbicacionPunto()">
@@ -5128,11 +6177,11 @@ function mostrarModalDetallePunto(props) {
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label for="editar_estacionid" class="form-label">Código de pozo</label>
+                <label for="editar_estacionid" class="form-label">C?digo de pozo</label>
                 <input type="text" class="form-control" id="editar_estacionid">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_codigoorig" class="form-label">Código origen</label>
+                <label for="editar_codigoorig" class="form-label">C?digo origen</label>
                 <input type="text" class="form-control" id="editar_codigoorig">
               </div>
             </div>
@@ -5170,7 +6219,7 @@ function mostrarModalDetallePunto(props) {
                 <input type="number" step="any" class="form-control" id="editar_alcalinida">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_materia_or" class="form-label">Materia orgánica</label>
+                <label for="editar_materia_or" class="form-label">Materia org?nica</label>
                 <input type="number" step="any" class="form-control" id="editar_materia_or">
               </div>
               <div class="col-md-6 mb-3">
@@ -5214,7 +6263,7 @@ function mostrarModalDetallePunto(props) {
                 <input type="number" step="any" class="form-control" id="editar_cloruro">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_arsenico" class="form-label">Arsénico</label>
+                <label for="editar_arsenico" class="form-label">Ars?nico</label>
                 <input type="number" step="any" class="form-control" id="editar_arsenico">
               </div>
               <div class="col-md-6 mb-3">
@@ -5285,7 +6334,7 @@ function mostrarModalDetallePunto(props) {
         </div>
         <div class="modal-body">
           <div class="alert alert-info">
-            Subí un GeoTIFF para analizarlo primero. El sistema lo va a normalizar a <code>EPSG:4326</code> y te deja elegir si querés mostrarlo como PNG coloreado o renderizarlo directamente desde el raster georreferenciado.
+            Sub? un GeoTIFF para analizarlo primero. El sistema lo va a normalizar a <code>EPSG:4326</code> y te deja elegir si quer?s mostrarlo como PNG coloreado o renderizarlo directamente desde el raster georreferenciado.
           </div>
 
           <div class="mb-3">
@@ -5332,7 +6381,7 @@ function mostrarModalDetallePunto(props) {
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalCargaGeoJSONLabel">🧭 Cargar capa GeoJSON</h5>
+          <h5 class="modal-title" id="modalCargaGeoJSONLabel">Cargar capa GeoJSON</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
@@ -5343,11 +6392,11 @@ function mostrarModalDetallePunto(props) {
           Este visor trabaja con el sistema de coordenadas <code>EPSG:4326</code>, también conocido como <em>WGS 84</em>, el estándar GPS global. 
           Asegurate de que tus coordenadas estén en latitud y longitud.</p>
 
-          <p><strong>🔁 ¿Cómo se guarda la capa?</strong><br>
+          <p><strong>¿Cómo se guarda la capa?</strong><br>
           Cada geometría del archivo se transforma en un objeto <code>MultiPolygon</code> y se guarda en la base de datos en la tabla <code>patino</code>, usando PostGIS. 
           Este modelo requiere geometría válida (cerrada, sin errores topológicos).</p>
 
-          <p><strong>📂 Seleccioná tu archivo</strong></p>
+          <p><strong>Seleccioná tu archivo</strong></p>
           <form id="formCargaGeojson" enctype="multipart/form-data">
             <input type="file" name="archivo" accept=".geojson,.json" class="form-control" required />
           </form>
@@ -5375,7 +6424,7 @@ function mostrarModalDetallePunto(props) {
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalUsuariosLabel">👥 Usuarios registrados</h5>
+          <h5 class="modal-title" id="modalUsuariosLabel">Usuarios registrados</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
@@ -5390,11 +6439,11 @@ function mostrarModalDetallePunto(props) {
                   <th>Grupos</th>
                   <th>Staff</th>
                   <th>Superuser</th>
-                  <th>Último login</th>
+                  <th>Ãšltimo login</th>
                   <th>Alta</th>
                 </tr>
               </thead>
-              <tbody><!-- rows dinámicas --></tbody>
+              <tbody><!-- rows din?micas --></tbody>
             </table>
           </div>
         </div>
@@ -5422,13 +6471,13 @@ function mostrarModalDetallePunto(props) {
               <tr>
                 <th>ID</th>
                 <th>Nombre</th>
-                <th>Dueño</th>
-                <th>Área (km²)</th>
+                <th>Due?o</th>
+                <th>?rea (km?)</th>
                 <th>Subida</th>
                 <th style="width:180px;">Acciones</th>
               </tr>
             </thead>
-            <tbody><!-- filas dinámicas --></tbody>
+            <tbody><!-- filas din?micas --></tbody>
           </table>
         </div>
       </div>
@@ -5445,7 +6494,7 @@ function mostrarModalDetallePunto(props) {
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalSolicitudesPublicacionLabel">📨 Solicitudes de publicación</h5>
+        <h5 class="modal-title" id="modalSolicitudesPublicacionLabel">Solicitudes de publicaci?n</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
@@ -5488,7 +6537,7 @@ function mostrarModalDetallePunto(props) {
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="tablaSolicitudesPublicacion"><!-- filas dinámicas --></tbody>
+            <tbody id="tablaSolicitudesPublicacion"><!-- filas din?micas --></tbody>
           </table>
         </div>
         </div>
@@ -5504,11 +6553,11 @@ function mostrarModalDetallePunto(props) {
                   <th>Objetivo</th>
                   <th>Solicitante</th>
                   <th>Revisado por</th>
-                  <th>Fecha resolución</th>
+                  <th>Fecha resoluci?n</th>
                   <th>Comentario</th>
                 </tr>
               </thead>
-              <tbody id="tablaSolicitudesResueltas"><!-- filas dinámicas --></tbody>
+              <tbody id="tablaSolicitudesResueltas"><!-- filas din?micas --></tbody>
             </table>
           </div>
         </div>
@@ -5546,7 +6595,7 @@ function mostrarModalDetallePunto(props) {
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalMisCapasLabel">📂 Mis capas</h5>
+        <h5 class="modal-title" id="modalMisCapasLabel">Mis capas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body" style="max-height: calc(100vh - 10rem);">
@@ -5563,7 +6612,7 @@ function mostrarModalDetallePunto(props) {
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="tablaMisCapas"><!-- filas dinámicas --></tbody>
+            <tbody id="tablaMisCapas"><!-- filas din?micas --></tbody>
           </table>
         </div>
       </div>
@@ -5606,7 +6655,7 @@ function mostrarModalDetallePunto(props) {
         <select class="form-select" id="filtroCampo">
           <option value="nitratos">Nitratos</option>
           <option value="col_fecale">Coliformes</option>
-          <option value="arsenico">Arsénico</option>
+          <option value="arsenico">Ars?nico</option>
           <option value="ph">pH</option>
         </select>
         <label class="mt-2">Mayor que</label>
@@ -5652,12 +6701,12 @@ function mostrarModalDetallePunto(props) {
       <div class="modal-body">
         <table class="table table-sm table-striped">
           <tbody id="detallePuntoBody">
-            <!-- filas dinámicas -->
+            <!-- filas din?micas -->
           </tbody>
         </table>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="btnCalcularWQI">🧮 Calcular WQI</button>
+        <button class="btn btn-primary" id="btnCalcularWQI">ðŸ§® Calcular WQI</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
@@ -5666,3 +6715,4 @@ function mostrarModalDetallePunto(props) {
 
   </body>
   </html>
+

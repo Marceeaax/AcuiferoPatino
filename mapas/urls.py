@@ -18,6 +18,7 @@ urlpatterns = [
     path('cargar-puntos-csv/', views.cargar_puntos_csv, name='cargar_puntos_csv'),
     path('puntos/grupo-publico/', views.cambiar_publicacion_grupo_puntos, name='cambiar_publicacion_grupo_puntos'),
     path('puntos/grupo-renombrar/', views.renombrar_grupo_puntos, name='renombrar_grupo_puntos'),
+    path('puntos/grupo-eliminar/', views.eliminar_grupo_puntos, name='eliminar_grupo_puntos'),
     path('eliminar-punto/<int:id>/', views.eliminar_punto_view, name='eliminar_punto'),
     path('preview-capa-tiff/', views.preview_capa_tiff, name='preview_capa_tiff'),
     path('cargar-capa-tiff/', views.cargar_capa_tiff, name='cargar_capa_tiff'),
