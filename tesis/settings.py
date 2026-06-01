@@ -30,6 +30,7 @@ def configure_gis_paths():
     """
     gdal_library_path = os.getenv("GDAL_LIBRARY_PATH")
     proj_lib = os.getenv("PROJ_LIB")
+    gdal_data = os.getenv("GDAL_DATA")
 
     if not gdal_library_path and os.name == "nt":
         candidate = BASE_DIR.parent / ".conda" / "envs" / "tesis" / "Library" / "bin" / "gdal308.dll"
@@ -41,10 +42,17 @@ def configure_gis_paths():
         if candidate.exists():
             proj_lib = str(candidate)
 
+    if not gdal_data and os.name == "nt":
+        candidate = BASE_DIR.parent / ".conda" / "envs" / "tesis" / "Library" / "share" / "gdal"
+        if candidate.exists():
+            gdal_data = str(candidate)
+
     if gdal_library_path:
-        os.environ.setdefault("GDAL_LIBRARY_PATH", gdal_library_path)
+        os.environ["GDAL_LIBRARY_PATH"] = gdal_library_path
     if proj_lib:
-        os.environ.setdefault("PROJ_LIB", proj_lib)
+        os.environ["PROJ_LIB"] = proj_lib
+    if gdal_data:
+        os.environ["GDAL_DATA"] = gdal_data
 
 
 configure_gis_paths()

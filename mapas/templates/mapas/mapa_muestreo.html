@@ -167,6 +167,70 @@
         border-color: #11998e;
       }
 
+      .mis-capas-switch {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 12px 0 18px;
+      }
+
+      .mis-capas-tab {
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
+        border-radius: 12px;
+        padding: 11px 14px;
+        font-weight: 700;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .mis-capas-tab:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+      }
+
+      .mis-capas-tab.is-active {
+        background: #11998e;
+        color: #fff;
+        border-color: #11998e;
+      }
+
+      .mis-capas-panel {
+        display: none;
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      .mis-capas-panel.is-active {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+        animation: misCapasPanelIn .22s ease;
+      }
+
+      @keyframes misCapasPanelIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .mis-capas-intro {
+        border: 1px solid rgba(56, 189, 248, 0.26);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(186, 230, 253, 0.9), rgba(224, 242, 254, 0.86));
+        color: #0f4c6e;
+        padding: 16px 18px;
+      }
+
+      .mis-capas-intro h6 {
+        margin: 0 0 4px;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .mis-capas-intro p {
+        margin: 0;
+      }
+
       .auth-panel-note {
         font-size: 0.9rem;
         color: #64748b;
@@ -796,6 +860,14 @@
     width:24px;
     border-radius:999px;
   }
+  #layerPanel .layer-marker.layer-marker--image{
+    width:24px;
+    height:20px;
+    border:none;
+    border-radius:6px;
+    box-shadow:none;
+    background:transparent center/contain no-repeat;
+  }
   #layerPanel.is-minimized{
     top:auto;
     bottom:14px;
@@ -952,6 +1024,64 @@
     line-height:1;
     font-size:16px;
   }
+  .grupo-punto-item--gestion{
+    display:block;
+    padding:14px 0 12px;
+  }
+  .grupo-punto-gestion-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+  }
+  .grupo-punto-gestion-head .grupo-punto-left{
+    align-items:flex-start;
+    gap:12px;
+    flex:1 1 auto;
+  }
+  .grupo-punto-gestion-main{
+    min-width:0;
+  }
+  .grupo-punto-gestion-meta{
+    display:block;
+    margin-top:2px;
+    font-size:.92rem;
+    color:#6b7280;
+    line-height:1.2;
+  }
+  .grupo-punto-gestion-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:12px;
+    padding-left:40px;
+  }
+  .grupo-punto-gestion-actions .btn,
+  .grupo-punto-gestion-actions .color-tools-btn{
+    min-height:38px;
+  }
+  .grupo-punto-gestion-actions .color-tools-btn{
+    padding:7px 12px;
+    border:1px solid rgba(15, 23, 42, .12);
+    border-radius:.5rem;
+    background:#fff7;
+    font-size:15px;
+  }
+  .grupo-punto-gestion-comment{
+    margin-top:8px;
+    padding-left:40px;
+    font-size:.88rem;
+    color:#6b7280;
+  }
+  body.dark-mode .grupo-punto-gestion-meta,
+  body.dark-mode .grupo-punto-gestion-comment{
+    color:#cbd5e1;
+  }
+  body.dark-mode .grupo-punto-gestion-actions .color-tools-btn{
+    background:#1f2937;
+    border-color:#475569;
+    color:#e5e7eb;
+  }
 
   body.dark-mode .modal-content{
     background:#222;
@@ -978,6 +1108,21 @@
     background:#11998e;
     color:#fff;
     border-color:#11998e;
+  }
+  body.dark-mode .mis-capas-tab{
+    background:#1f2937;
+    color:#e5e7eb;
+    border-color:#475569;
+  }
+  body.dark-mode .mis-capas-tab.is-active{
+    background:#11998e;
+    color:#fff;
+    border-color:#11998e;
+  }
+  body.dark-mode .mis-capas-intro{
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.24), rgba(14, 116, 144, 0.22));
+    border-color: rgba(110, 231, 221, 0.18);
+    color:#d1fae5;
   }
   body.dark-mode .auth-panel-note{
     color:#cbd5e1;
@@ -1280,7 +1425,6 @@
       <button onclick="abrirModalCargaPuntos()">Subir puntos</button>
       <button onclick="abrirModalCargaGeoJSON()">Subir capa</button>
       <button onclick="abrirModalCargaTiff()">Subir TIFF</button>
-      <button onclick="abrirModalGruposPuntos()">Todos los puntos</button>
       <button onclick="abrirModalMisCapas()">Mis capas</button>
       {% if es_admin %}
         <button onclick="abrirModalSolicitudesPublicacion()">Solicitudes{% if solicitudes_admin_pendientes_count %} ({{ solicitudes_admin_pendientes_count }}){% endif %}</button>
@@ -1664,19 +1808,20 @@ document.addEventListener('DOMContentLoaded', function () {
   const rasterLayersData = {{ rasters|safe }};
   const estadoGruposPuntos = new Map();
   const metadatosGruposPuntos = new Map();
+  window.rasterLayersData = rasterLayersData;
   window.estadoGruposPuntos = estadoGruposPuntos;
   window.metadatosGruposPuntos = metadatosGruposPuntos;
   let mostrarTodosLosPuntos = true;
 
   const WQI_MIN_REQUIRED_PARAMS = 6;
   const WQI_PARAM_CONFIG = [
-    { key: 'conductivi', label: 'Conductividad el?ctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
+    { key: 'conductivi', label: 'Conductividad eléctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
     { key: 'alcalinida', label: 'Alcalinidad total', unit: 'mg/L', standard: 250, weight: 5 },
     { key: 'magnesio', label: 'Magnesio', unit: 'mg/L', standard: 50, weight: 5 },
     { key: 'nitratos', label: 'Nitrato', unit: 'mg/L', standard: 45, weight: 4 },
     { key: 'nitritos', label: 'Nitrito', unit: 'mg/L', standard: 0.5, weight: 4 },
     { key: 'ph', label: 'pH', unit: '', standard: [6.5, 8.5], weight: 4, type: 'ph' },
-    { key: 'materia_or', label: 'Materia org?nica', unit: 'mg/L', standard: 5, weight: 3 },
+    { key: 'materia_or', label: 'Materia orgánica', unit: 'mg/L', standard: 5, weight: 3 },
     { key: 'col_fecale', label: 'Coliformes fecales', unit: 'CFU/100ml', standard: 0, weight: 1, type: 'coliformes' }
   ];
   const WQI_PARAM_KEYS = WQI_PARAM_CONFIG.map(param => param.key);
@@ -1684,6 +1829,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const COLOR_PRESETS = ['#ff6b6b', '#f97316', '#facc15', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6366f1', '#ec4899', '#8b5cf6'];
   const POINT_COLOR_STORAGE_KEY = 'mapa_muestreo_point_colors_v1';
   const LAYER_COLOR_STORAGE_KEY = 'mapa_muestreo_layer_colors_v1';
+  const RASTER_MARKER_IMAGE_URL = "{% static 'mapas/img/tesisraster.png' %}";
 
   function loadColorState(storageKey) {
     try {
@@ -1737,10 +1883,24 @@ document.addEventListener('DOMContentLoaded', function () {
     return layerColorState[String(layerId)] || '#ff6b6b';
   }
 
-  function createLayerMarker({ background, isPill = false, isCircle = false, title = '' } = {}) {
+  function applyImageMarker(marker, imageUrl) {
+    if (!marker || !imageUrl) return;
+    marker.classList.add('layer-marker--image');
+    marker.style.background = 'transparent';
+    marker.style.backgroundImage = `url("${imageUrl}")`;
+    marker.style.backgroundRepeat = 'no-repeat';
+    marker.style.backgroundPosition = 'center';
+    marker.style.backgroundSize = 'contain';
+  }
+
+  function createLayerMarker({ background, isPill = false, isCircle = false, imageUrl = '', title = '' } = {}) {
     const marker = document.createElement('span');
     marker.className = `layer-marker${isPill ? ' layer-marker--pill' : ''}${isCircle ? ' layer-marker--circle' : ''}`;
-    if (background) marker.style.background = background;
+    if (imageUrl) {
+      applyImageMarker(marker, imageUrl);
+    } else if (background) {
+      marker.style.background = background;
+    }
     if (title) marker.title = title;
     return marker;
   }
@@ -1786,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const entry = dynamicLayers.get(String(layerId)) || dynamicLayers.get(`RASTER_${layerId}`);
     if (!entry?.markerEl) return;
     if (entry.isRaster) {
-      entry.markerEl.style.background = entry.legendBackground || 'linear-gradient(135deg, #60a5fa 0%, #34d399 100%)';
+      applyImageMarker(entry.markerEl, RASTER_MARKER_IMAGE_URL);
       return;
     }
     entry.markerEl.style.background = getLayerColor(layerId);
@@ -1811,15 +1971,16 @@ document.addEventListener('DOMContentLoaded', function () {
       confirmButtonText: 'Guardar color',
       cancelButtonText: 'Cancelar',
       didOpen: () => {
-        const picker = document.getElementById('swalColorPicker');
+        const popup = Swal.getPopup();
+        const picker = popup?.querySelector('#swalColorPicker');
         picker?.focus();
-        document.querySelectorAll('.swal-color-preset').forEach(btn => {
+        popup?.querySelectorAll('.swal-color-preset').forEach(btn => {
           btn.addEventListener('click', () => {
             if (picker) picker.value = btn.dataset.color || currentColor;
           });
         });
       },
-      preConfirm: () => document.getElementById('swalColorPicker')?.value || currentColor
+      preConfirm: () => Swal.getPopup()?.querySelector('#swalColorPicker')?.value || currentColor
     });
 
     return result.isConfirmed ? result.value : null;
@@ -1903,6 +2064,17 @@ document.addEventListener('DOMContentLoaded', function () {
     return Math.max(0.12, Math.min(wqi / 300, 1));
   }
 
+  function getWqiStandardDisplay(param) {
+    if (!param) return 'N/D';
+    if (param.type === 'ph' && Array.isArray(param.standard)) {
+      return `${param.standard[0]} - ${param.standard[1]}${param.unit ? ` ${param.unit}` : ''}`;
+    }
+    if (param.type === 'coliformes') {
+      return `${param.standard}${param.unit ? ` ${param.unit}` : ''}`;
+    }
+    return `${param.standard}${param.unit ? ` ${param.unit}` : ''}`;
+  }
+
   function colorWqi(valor) {
     if (valor == null || isNaN(valor)) return null;
     if (valor <= 50) return '#2ecc71';
@@ -1912,7 +2084,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function reconstruirHeatmap() {
-    if (!heatLayer || !muestreoLayer || !heatLayer._map) return;
+    if (!heatLayer || !muestreoLayer) return;
 
     const puntosHeat = [];
     muestreoLayer.eachLayer(layer => {
@@ -1934,7 +2106,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     heatLayer.setLatLngs(puntosHeat);
+    heatLayer.redraw?.();
   }
+  window.reconstruirHeatmap = reconstruirHeatmap;
 
   function estiloPuntoVisible(feature) {
     const esDelUsuario = esPuntoDelUsuarioActual(feature.properties);
@@ -2197,6 +2371,12 @@ document.addEventListener('DOMContentLoaded', function () {
       checkboxModal.checked = allChecked;
       checkboxModal.indeterminate = anyChecked && !allChecked;
     }
+
+    const checkboxMisCapas = document.getElementById('toggleTodosLosPuntosMisCapas');
+    if (checkboxMisCapas) {
+      checkboxMisCapas.checked = allChecked;
+      checkboxMisCapas.indeterminate = anyChecked && !allChecked;
+    }
   }
 
   function aplicarToggleTodosMisPuntos(checked) {
@@ -2276,16 +2456,27 @@ document.addEventListener('DOMContentLoaded', function () {
     aplicarVisibilidadPuntos();
     renderGruposPuntosPanel();
     renderGruposPuntosModal();
+    if (document.getElementById('listaGruposPuntosMisCapas')) {
+      renderGruposPuntosEnContenedor({ containerId: 'listaGruposPuntosMisCapas' });
+    }
     syncBaseLegendMarkers();
   }
 
   async function personalizarColorGrupoPuntos(grupo) {
     const meta = metadatosGruposPuntos.get(grupo) || {};
     const currentColor = getPointGroupColor(grupo, !!meta.tienePropios);
+    const modalMisCapas = document.getElementById('modalMisCapas');
+    const modalGruposPuntos = document.getElementById('modalGruposPuntos');
+    const targetModal =
+      modalMisCapas?.classList.contains('show')
+        ? (modalMisCapas.querySelector('.modal-content') || modalMisCapas)
+        : modalGruposPuntos?.classList.contains('show')
+          ? (modalGruposPuntos.querySelector('.modal-content') || modalGruposPuntos)
+          : document.body;
     const selectedColor = await promptColorSelection({
       title: `Color de ${grupo}`,
       currentColor,
-      target: document.getElementById('modalGruposPuntos') || document.body
+      target: targetModal
     });
     if (!selectedColor) return;
     pointColorState = { ...pointColorState, [normalizePointGroupKey(grupo)]: selectedColor };
@@ -2436,7 +2627,7 @@ if (btnWQI) {
         title: 'No se puede calcular WQI',
         html: buildWqiWarningHtml(
           readiness,
-          `Este punto necesita al menos <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.`
+          `Este punto necesita al menos <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.`
         ),
         icon: 'warning',
       });
@@ -2446,7 +2637,7 @@ if (btnWQI) {
     const tbody = document.getElementById("detallePuntoBody");
     const title = document.getElementById("detallePuntoTitle");
 
-    title.textContent = "C?lculo del ?ndice de Calidad de Agua (WQI)";
+    title.textContent = "Cálculo del Índice de Calidad de Agua (WQI)";
     tbody.innerHTML = "";
 
     /* ================================
@@ -2455,9 +2646,10 @@ if (btnWQI) {
 
     tbody.innerHTML += `
       <tr class="table-secondary">
-        <th>Par?metro</th>
+        <th>Parámetro</th>
+        <th>Estándar / rango usado</th>
         <th>Valor medido</th>
-        <th>Sub?ndice (qi)</th>
+        <th>Subíndice (qi)</th>
         <th>Aporte ponderado</th>
       </tr>
     `;
@@ -2486,6 +2678,7 @@ if (btnWQI) {
       tbody.innerHTML += `
         <tr>
           <td>${param.label}</td>
+          <td>${getWqiStandardDisplay(param)}</td>
           <td>${valor ?? "N/D"}${param.unit ? ` ${param.unit}` : ""}</td>
           <td>${qi.toFixed(2)}</td>
           <td>${aporte.toFixed(2)}</td>
@@ -2502,11 +2695,11 @@ if (btnWQI) {
 
     if (WQI <= 25) {
       clasificacion = "Excelente";
-      interpretacion = "La calidad del agua es ?ptima y apta para consumo humano sin tratamiento significativo.";
+      interpretacion = "La calidad del agua es óptima y apta para consumo humano sin tratamiento significativo.";
     }
     else if (WQI <= 50) {
       clasificacion = "Buena";
-      interpretacion = "El agua presenta buena calidad, con bajo nivel de contaminaci?n.";
+      interpretacion = "El agua presenta buena calidad, con bajo nivel de contaminación.";
     }
     else if (WQI <= 75) {
       clasificacion = "Deficiente";
@@ -2518,7 +2711,7 @@ if (btnWQI) {
     }
     else {
       clasificacion = "No apta para consumo";
-      interpretacion = "El agua presenta niveles cr?ticos de contaminaci?n y no es apta para consumo humano.";
+      interpretacion = "El agua presenta niveles críticos de contaminación y no es apta para consumo humano.";
     }
 
     /* ================================
@@ -2527,42 +2720,47 @@ if (btnWQI) {
 
     tbody.innerHTML += `
       <tr class="table-dark">
-        <td colspan="3"><strong>WQI Final</strong></td>
+        <td colspan="4"><strong>WQI Final</strong></td>
         <td><strong>${WQI.toFixed(2)}</strong></td>
       </tr>
       <tr class="table-warning">
-        <td colspan="4"><strong>Clasificaci?n: ${clasificacion}</strong></td>
+        <td colspan="5"><strong>Clasificación: ${clasificacion}</strong></td>
       </tr>
       <tr>
-        <td colspan="4">
+        <td colspan="5">
           <div class="alert alert-light border">
-            <strong>Interpretaci?n t?cnica:</strong><br>
+            <strong>Interpretación técnica:</strong><br>
             ${interpretacion}
           </div>
         </td>
       </tr>
       <tr>
-        <td colspan="4">
+        <td colspan="5">
           <div class="alert alert-info">
-            <h6><strong>Metodolog?a aplicada</strong></h6>
+            <h6><strong>Metodología aplicada</strong></h6>
             <p>
-              El ?ndice de Calidad de Agua (WQI) se determina mediante la suma
-              ponderada de sub?ndices individuales (qi) para cada par?metro cr?tico evaluado.
+              El Índice de Calidad de Agua (WQI) se determina mediante la suma
+              ponderada de subíndices individuales (qi) para cada parámetro crítico evaluado.
             </p>
-            <p><strong>F?rmulas utilizadas:</strong></p>
+            <p><strong>Fórmulas utilizadas:</strong></p>
             <ul>
-              <li>qi = (Ci / Si) Ã— 100</li>
-              <li>WQI = Î£ (Wi Ã— qi)</li>
+              <li>qi = (Ci / Si) × 100</li>
+              <li>WQI = Σ (Wi × qi)</li>
             </ul>
             <p>
               Donde:
-              <br>Ci = concentraci?n medida
-              <br>Si = est?ndar normativo
-              <br>Wi = peso relativo del par?metro
+              <br>Ci = concentración medida
+              <br>Si = estándar normativo
+              <br>Wi = peso relativo del parámetro
             </p>
             <p>
-              Para este c?lculo se exige un m?nimo de ${WQI_MIN_REQUIRED_PARAMS} par?metros cr?ticos disponibles.
-              Si faltan algunos par?metros, los pesos se normalizan sobre los par?metros efectivamente presentes.
+              <strong>Rangos y criterios especiales usados en este cálculo:</strong>
+              <br>pH: rango aceptable de 6.5 a 8.5.
+              <br>Coliformes fecales: estándar de 0 CFU/100ml; cualquier valor positivo penaliza el subíndice.
+            </p>
+            <p>
+              Para este cálculo se exige un mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos disponibles.
+              Si faltan algunos parámetros, los pesos se normalizan sobre los parámetros efectivamente presentes.
             </p>
           </div>
         </td>
@@ -2726,7 +2924,7 @@ if (btnWQI) {
     return `
       <div class="text-start">
         <p class="mb-2">${titleText}</p>
-        <p class="mb-2"><strong>Par?metros cr?ticos disponibles:</strong> ${readiness.availableCount} de ${WQI_PARAM_CONFIG.length}</p>
+        <p class="mb-2"><strong>Parámetros críticos disponibles:</strong> ${readiness.availableCount} de ${WQI_PARAM_CONFIG.length}</p>
         <p class="mb-2"><strong>Disponibles:</strong> ${available}</p>
         <p class="mb-0"><strong>Faltantes:</strong> ${missing}</p>
       </div>
@@ -3651,14 +3849,22 @@ if (btnWQI) {
         if (!json.success) throw new Error(json.error || 'No se pudo leer el TIFF.');
         previewTiffToken = json.token;
         const p = json.preview || {};
+        const advertenciaHtml = p.warning
+          ? `<div class="alert alert-warning mt-3 mb-0">
+               <strong>Advertencia de georreferenciación:</strong><br>
+               ${p.warning}
+             </div>`
+          : '';
         resumen.innerHTML = `
+          <div><strong>Driver:</strong> ${p.driver || 'N/D'}</div>
           <div><strong>Tamaño:</strong> ${(p.size || []).join(' x ') || 'N/D'} px</div>
-          <div><strong>CRS:</strong> ${p.crs || p.epsg || 'N/D'}</div>
+          <div><strong>CRS:</strong> ${p.crs_display || p.crs || p.epsg || 'N/D'}</div>
           <div><strong>Bandas:</strong> ${p.band_count ?? 'N/D'}</div>
           <div><strong>Tipo de dato:</strong> ${p.band_type || 'N/D'}</div>
           <div><strong>NoData:</strong> ${p.nodata ?? 'N/D'}</div>
           <div><strong>Resolución:</strong> ${p.pixel_size ? `${Number(p.pixel_size[0]).toFixed(4)}, ${Number(p.pixel_size[1]).toFixed(4)}` : 'N/D'}</div>
           <div><strong>Límites:</strong> ${JSON.stringify(p.bounds || [])}</div>
+          ${advertenciaHtml}
         `;
         panel.style.display = 'block';
       })
@@ -4137,11 +4343,11 @@ window.enviarPuntosCsv = async function(){
     const label = document.createElement('span'); label.className='layer-item-label'; label.textContent = name;
     const tools = document.createElement('div'); tools.className='tools';
 
-    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa'; btnZoom.textContent='Zoom';
+    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa'; btnZoom.setAttribute('aria-label', 'Acercar a la capa'); btnZoom.textContent='🔍';
     tools.appendChild(btnZoom);
 
     const btnColor = document.createElement('button');
-    btnColor.className='icon-btn'; btnColor.title='Personalizar color'; btnColor.textContent='Color';
+    btnColor.className='icon-btn'; btnColor.title='Personalizar color'; btnColor.setAttribute('aria-label', 'Personalizar color'); btnColor.textContent='🎨';
     tools.appendChild(btnColor);
 
     let btnDelete=null;
@@ -4179,18 +4385,14 @@ window.enviarPuntosCsv = async function(){
     li.dataset.layer = `RASTER_${rasterId}`;
 
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true;
-    const legendBackground = raster.modo_despliegue === 'geotiff'
-      ? getHeatLegendBackground()
-      : 'linear-gradient(135deg, #60a5fa 0%, #34d399 100%)';
     const marker = createLayerMarker({
-      background: legendBackground,
-      isPill: true,
+      imageUrl: RASTER_MARKER_IMAGE_URL,
       title: raster.modo_despliegue === 'geotiff' ? 'Raster georreferenciado' : 'Imagen raster'
     });
     const label = document.createElement('span'); label.className='layer-item-label'; label.textContent = name;
     const tools = document.createElement('div'); tools.className='tools';
 
-    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa raster'; btnZoom.textContent='Zoom';
+    const btnZoom = document.createElement('button'); btnZoom.className='icon-btn'; btnZoom.title='Acercar a la capa raster'; btnZoom.setAttribute('aria-label', 'Acercar a la capa raster'); btnZoom.textContent='🔍';
     tools.appendChild(btnZoom);
 
     let btnDelete = null;
@@ -4209,7 +4411,7 @@ window.enviarPuntosCsv = async function(){
     const paneName = `paneRASTER_${rasterId}`; makePane(paneName, 545);
     const layer = await buildRasterLeafletLayer(raster, paneName);
     if (cb.checked) layer.addTo(map);
-    dynamicLayers.set(`RASTER_${rasterId}`, { layer, paneName, li, isRaster: true, markerEl: marker, legendBackground });
+    dynamicLayers.set(`RASTER_${rasterId}`, { layer, paneName, li, isRaster: true, markerEl: marker });
 
     cb.addEventListener('change', ()=> { cb.checked ? map.addLayer(layer) : map.removeLayer(layer); });
     btnZoom.addEventListener('click', ()=> {
@@ -4258,12 +4460,27 @@ window.enviarPuntosCsv = async function(){
         .then(res=>res.json())
         .then(json=>{
           if(!json?.success) throw new Error(json?.error || 'No se pudo eliminar');
-          map.removeLayer(layer); li.remove(); dynamicLayers.delete(`RASTER_${rasterId}`);
-          setBadge(); updateZ(); Swal.fire('Eliminada','La capa raster fue eliminada','success');
+          const entry = dynamicLayers.get(`RASTER_${rasterId}`);
+          const targetLayer = layer || entry?.layer;
+          const targetLi = li || entry?.li;
+          if (targetLayer) { try { map.removeLayer(targetLayer); } catch {} }
+          if (targetLi) { try { targetLi.remove(); } catch {} }
+          dynamicLayers.delete(`RASTER_${rasterId}`);
+          const rasterIndex = Array.isArray(rasterLayersData) ? rasterLayersData.findIndex(raster => Number(raster.id) === Number(rasterId)) : -1;
+          if (rasterIndex >= 0) {
+            rasterLayersData.splice(rasterIndex, 1);
+          }
+          setBadge();
+          updateZ();
+          const modalMisCapasEl = document.getElementById('modalMisCapas');
+          const modalAbierto = modalMisCapasEl?.classList.contains('show');
+          Swal.fire('Eliminada','La capa raster fue eliminada','success')
+            .then(() => { if (modalAbierto) abrirModalMisCapas(); });
         })
         .catch(err=> Swal.fire('Error', err.message, 'error'));
     });
   }
+  window.eliminarRaster = eliminarRaster;
 
   function centrarYResaltarCapaUsuario(capaId) {
     const entry = dynamicLayers.get(String(capaId));
@@ -4411,6 +4628,7 @@ window.enviarPuntosCsv = async function(){
     const queryString = query.toString();
     return queryString ? `${basePath}?${queryString}` : basePath;
   }
+  window.buildDownloadUrl = buildDownloadUrl;
 
   function buildDownloadActionButton(label, url, variant = 'outline-primary') {
     return `<a class="btn btn-${variant} btn-sm" href="${url}">${label}</a>`;
@@ -4536,7 +4754,7 @@ window.enviarPuntosCsv = async function(){
         actions.push(buildDownloadActionButton('PNG', buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' }), 'outline-secondary'));
       }
       return renderDownloadRow({
-        markerHtml: buildMarkerHtml({ background: raster.modo_despliegue === 'geotiff' ? getHeatLegendBackground() : 'linear-gradient(135deg, #60a5fa 0%, #34d399 100%)', isPill: true, title: raster.nombre }),
+        markerHtml: buildMarkerHtml({ imageUrl: RASTER_MARKER_IMAGE_URL, title: raster.nombre }),
         title: raster.nombre || `Raster ${raster.id}`,
         subtitle: raster.publico ? 'Raster público descargable.' : 'Raster propio descargable.',
         actionsHtml: actions.join('')
@@ -4570,7 +4788,13 @@ window.enviarPuntosCsv = async function(){
       null;
     if (!layer || !cb) return;
     cb.addEventListener('change', ()=> {
+      if (id === 'HEAT') {
+        reconstruirHeatmap();
+      }
       cb.checked ? map.addLayer(layer) : map.removeLayer(layer);
+      if (id === 'HEAT' && cb.checked) {
+        reconstruirHeatmap();
+      }
       updateZ();
     });
     wireDnD(li, listBase);
@@ -4629,19 +4853,23 @@ if (Array.isArray(rasterLayersData)) {
     sincronizarToggleMisPuntosDesdeGrupos();
   }
 
-  function renderGruposPuntosModal() {
-    const contenedor = document.getElementById('listaGruposPuntos');
-    const checkboxTodos = document.getElementById('toggleTodosLosPuntos');
-    if (!contenedor || !checkboxTodos) return;
+  function renderGruposPuntosEnContenedor({ containerId, toggleId }) {
+    const contenedor = document.getElementById(containerId);
+    const checkboxTodos = toggleId ? document.getElementById(toggleId) : null;
+    if (!contenedor) return;
+    const esVistaGestion = containerId === 'listaGruposPuntosMisCapas' || !!contenedor.closest('#modalMisCapas');
 
-    actualizarCheckboxTodosLosPuntos();
-    actualizarCheckboxMisPuntosPanel();
+    if (!esVistaGestion) {
+      actualizarCheckboxTodosLosPuntos();
+      actualizarCheckboxMisPuntosPanel();
+    }
     contenedor.innerHTML = '';
 
     [...estadoGruposPuntos.keys()].sort().forEach(grupo => {
       const meta = metadatosGruposPuntos.get(grupo) || { tienePropios:false, tienePublicos:false, estadoSolicitud:null, total:0, ownTotal:0, publicTotal:0 };
       const item = document.createElement('div');
       item.className = 'grupo-punto-item';
+      if (esVistaGestion) item.classList.add('grupo-punto-item--gestion');
       item.dataset.group = grupo;
 
       const left = document.createElement('div');
@@ -4649,32 +4877,38 @@ if (Array.isArray(rasterLayersData)) {
       const chip = document.createElement('span');
       chip.className = 'color-chip';
       chip.style.background = getPointGroupColor(grupo, !!meta.tienePropios);
-      const input = document.createElement('input');
-      input.className = 'form-check-input';
-      input.type = 'checkbox';
-      input.id = `grupoPunto_${grupo}`;
-      input.checked = estadoGruposPuntos.get(grupo);
-      input.addEventListener('change', () => {
-        estadoGruposPuntos.set(grupo, input.checked);
-        actualizarCheckboxesGrupoPuntos(grupo, input.checked);
-        if (meta.tienePropios) {
-          sincronizarToggleMisPuntosDesdeGrupos();
-        }
-        aplicarVisibilidadPuntos();
-      });
 
       const label = document.createElement('label');
       label.className = 'form-check-label mb-0';
-      label.htmlFor = input.id;
-      label.innerHTML = `<span class="grupo-punto-nombre">${grupo}</span> <small class="text-muted">(${meta.total})</small>`;
-      if (meta.comentarioSolicitud && !meta.tienePublicos) {
-        label.innerHTML += `<div class="small text-muted mt-1">Comentario admin: ${meta.comentarioSolicitud}</div>`;
+      if (!esVistaGestion) {
+        const input = document.createElement('input');
+        input.className = 'form-check-input';
+        input.type = 'checkbox';
+        input.id = `grupoPunto_${grupo}`;
+        input.checked = estadoGruposPuntos.get(grupo);
+        input.addEventListener('change', () => {
+          estadoGruposPuntos.set(grupo, input.checked);
+          actualizarCheckboxesGrupoPuntos(grupo, input.checked);
+          if (meta.tienePropios) {
+            sincronizarToggleMisPuntosDesdeGrupos();
+          }
+          aplicarVisibilidadPuntos();
+        });
+        label.htmlFor = input.id;
+        left.appendChild(input);
+      }
+      if (esVistaGestion) {
+        label.innerHTML = `
+          <div class="grupo-punto-gestion-main">
+            <span class="grupo-punto-nombre">${grupo}</span>
+            <span class="grupo-punto-gestion-meta">(${meta.total})</span>
+          </div>`;
+      } else {
+        label.innerHTML = `<span class="grupo-punto-nombre">${grupo}</span> <small class="text-muted">(${meta.total})</small>`;
       }
 
       left.appendChild(chip);
-      left.appendChild(input);
       left.appendChild(label);
-      item.appendChild(left);
 
       if (IS_AUTH) {
         const right = document.createElement('div');
@@ -4718,17 +4952,21 @@ if (Array.isArray(rasterLayersData)) {
           btn.type = 'button';
           if (meta.tienePublicos) {
             btn.className = 'btn btn-sm btn-outline-secondary';
+          } else if (IS_ADMIN) {
+            btn.className = 'btn btn-sm btn-outline-success';
           } else if (estadoSolicitud === 'pendiente') {
             btn.className = 'btn btn-sm btn-outline-warning';
             btn.disabled = true;
           } else {
             btn.className = 'btn btn-sm btn-outline-primary';
           }
-        btn.textContent = meta.tienePublicos
-          ? 'Hacer privado'
-          : estadoSolicitud === 'pendiente'
-            ? 'Solicitud enviada'
-            : 'Solicitar publicación';
+          btn.textContent = meta.tienePublicos
+            ? 'Hacer privado'
+            : IS_ADMIN
+              ? 'Hacer público'
+            : estadoSolicitud === 'pendiente'
+              ? 'Solicitud enviada'
+              : 'Solicitar publicación';
           if (!btn.disabled) {
             btn.addEventListener('click', () => cambiarPublicacionGrupoPuntos(grupo, meta.tienePublicos ? false : true));
           }
@@ -4742,21 +4980,58 @@ if (Array.isArray(rasterLayersData)) {
           right.appendChild(btnDelete);
         }
 
-        item.appendChild(right);
+        if (esVistaGestion) {
+          const head = document.createElement('div');
+          head.className = 'grupo-punto-gestion-head';
+          head.appendChild(left);
+          head.appendChild(badge);
+          item.appendChild(head);
+
+          const acciones = document.createElement('div');
+          acciones.className = 'grupo-punto-gestion-actions';
+          [...right.children].forEach(child => {
+            if (child === badge) return;
+            acciones.appendChild(child);
+          });
+          item.appendChild(acciones);
+
+          if (meta.comentarioSolicitud && !meta.tienePublicos) {
+            const comentario = document.createElement('div');
+            comentario.className = 'grupo-punto-gestion-comment';
+            comentario.textContent = `Comentario admin: ${meta.comentarioSolicitud}`;
+            item.appendChild(comentario);
+          }
+        } else {
+          item.appendChild(left);
+          item.appendChild(right);
+          if (meta.comentarioSolicitud && !meta.tienePublicos) {
+            label.innerHTML += `<div class="small text-muted mt-1">Comentario admin: ${meta.comentarioSolicitud}</div>`;
+          }
+        }
+      } else {
+        item.appendChild(left);
       }
 
       contenedor.appendChild(item);
     });
 
-    checkboxTodos.onchange = () => {
-      aplicarToggleTodosMisPuntos(checkboxTodos.checked);
-    };
+    if (checkboxTodos) {
+      checkboxTodos.onchange = () => {
+        aplicarToggleTodosMisPuntos(checkboxTodos.checked);
+      };
+    }
+  }
+  window.renderGruposPuntosEnContenedor = renderGruposPuntosEnContenedor;
+
+  function renderGruposPuntosModal() {
+    renderGruposPuntosEnContenedor({
+      containerId: 'listaGruposPuntos',
+      toggleId: 'toggleTodosLosPuntos'
+    });
   }
 
   window.abrirModalGruposPuntos = function () {
-    window.cerrarFabMenu?.();
-    renderGruposPuntosModal();
-    new bootstrap.Modal(document.getElementById('modalGruposPuntos')).show();
+    abrirModalMisCapas();
   };
 
   window.cambiarPublicacionGrupoPuntos = function(grupo, publico){
@@ -4771,8 +5046,8 @@ if (Array.isArray(rasterLayersData)) {
 
         muestreoLayer.eachLayer(layer => {
           const p = layer.feature.properties || {};
-          if (p.grupo === grupo && esPuntoDelUsuarioActual(p) && !publico) {
-            p.publico = false;
+          if (p.grupo === grupo && esPuntoDelUsuarioActual(p)) {
+            p.publico = !!json.publico;
           }
         });
 
@@ -4784,8 +5059,17 @@ if (Array.isArray(rasterLayersData)) {
         }
 
         renderGruposPuntosModal();
+        window.renderGruposPuntosEnContenedor?.({
+          containerId: 'listaGruposPuntosMisCapas'
+        });
         if (publico) {
-          Swal.fire('Solicitud enviada', json.mensaje || `El grupo ${grupo} quedÃƒÂ³ pendiente de aprobaciÃƒÂ³n.`, 'success');
+          Swal.fire(
+            json.publico ? 'Grupo actualizado' : 'Solicitud enviada',
+            json.mensaje || (json.publico
+              ? `El grupo ${grupo} ahora es público.`
+              : `El grupo ${grupo} quedó pendiente de aprobación.`),
+            'success'
+          );
           return;
         }
         Swal.fire('Grupo actualizado', `El grupo ${grupo} ahora es ${publico ? 'público' : 'privado'}.`, 'success');
@@ -5009,11 +5293,53 @@ function abrirModalCapas() {
   modal.show();
 }
 
+let misCapasTabActiva = 'puntos';
+
+function setMisCapasTab(tab) {
+  misCapasTabActiva = tab;
+  ['puntos', 'capas', 'raster'].forEach(nombre => {
+    const btn = document.getElementById(`misCapasTabBtn-${nombre}`);
+    const panel = document.getElementById(`misCapasPanel-${nombre}`);
+    btn?.classList.toggle('is-active', nombre === tab);
+    panel?.classList.toggle('is-active', nombre === tab);
+  });
+}
+window.setMisCapasTab = setMisCapasTab;
+
 function abrirModalMisCapas() {
   window.cerrarFabMenu?.();
-  const modal  = new bootstrap.Modal(document.getElementById('modalMisCapas'));
+  const modalEl = document.getElementById('modalMisCapas');
+  const modal  = bootstrap.Modal.getOrCreateInstance(modalEl);
   const tbody  = document.getElementById('tablaMisCapas');
+  const tbodyRasters = document.getElementById('tablaMisRasters');
   const loader = document.getElementById('misCapasLoader');
+
+  window.renderGruposPuntosEnContenedor?.({
+    containerId: 'listaGruposPuntosMisCapas'
+  });
+
+  if (tbodyRasters) {
+    const rastersPropios = Array.isArray(window.rasterLayersData) ? window.rasterLayersData.filter(raster => !!raster.es_propia) : [];
+    const rowsRasters = rastersPropios.map(raster => {
+      const descargas = [];
+      if (raster.archivo_4326_url) {
+        descargas.push(`<a class="btn btn-sm btn-outline-primary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'geotiff' })}">GeoTIFF</a>`);
+      }
+      if (raster.archivo_png_url) {
+        descargas.push(`<a class="btn btn-sm btn-outline-secondary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' })}">PNG</a>`);
+      }
+      descargas.push(`<button class="btn btn-sm btn-danger" onclick="window.eliminarRaster(${raster.id})">Eliminar</button>`);
+      return `
+        <tr>
+          <td>${raster.id}</td>
+          <td>${raster.nombre || 'Raster sin nombre'}</td>
+          <td>${raster.modo_despliegue === 'geotiff' ? 'GeoTIFF' : 'PNG procesado'}</td>
+          <td>${raster.publico ? 'Pública' : 'Privada'}</td>
+          <td class="d-flex flex-wrap gap-2">${descargas.join('')}</td>
+        </tr>`;
+    }).join('');
+    tbodyRasters.innerHTML = rowsRasters || `<tr><td colspan="5" class="text-center">No tienes capas raster cargadas</td></tr>`;
+  }
 
   tbody.innerHTML = '';
   loader.style.display = 'block';
@@ -5030,8 +5356,12 @@ function abrirModalMisCapas() {
           <td>${new Date(c.fecha_subida).toLocaleString()}</td>
           <td>
             <button class="btn btn-sm btn-danger" onclick="eliminarCapa(${c.id})">🗑️ Eliminar</button>
-            ${c.estado === 'privada' 
-              ? `<button class="btn btn-sm btn-warning" onclick="solicitarPublicacion(${c.id})">Solicitar publicación</button>` 
+            ${c.estado !== 'publica'
+              ? (IS_ADMIN
+                ? `<button class="btn btn-sm btn-success" onclick="hacerPublicaCapaPropia(${c.id})">Hacer pública</button>`
+                : c.estado === 'privada'
+                  ? `<button class="btn btn-sm btn-warning" onclick="solicitarPublicacion(${c.id})">Solicitar publicación</button>`
+                  : '')
               : ''}
           </td>
         </tr>`).join('');
@@ -5042,6 +5372,7 @@ function abrirModalMisCapas() {
     })
     .finally(() => loader.style.display = 'none');
 
+  setMisCapasTab(misCapasTabActiva || 'puntos');
   modal.show();
 }
 
@@ -5065,6 +5396,30 @@ function solicitarPublicacion(capaId) {
         .then(() => abrirModalMisCapas());
     })
     .catch(err => Swal.fire('Error', err.message, 'error'));
+}
+
+function hacerPublicaCapaPropia(capaId) {
+  Swal.fire({
+    title: '¿Hacer pública esta capa?',
+    text: 'Pasará a ser visible para todos y dejará de pertenecer a tu cuenta.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, hacer pública',
+    cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if (!result.isConfirmed) return;
+    fetch(`/capas/${capaId}/hacer-publica/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo publicar la capa.');
+        Swal.fire('Capa publicada', 'La capa ahora es pública.', 'success')
+          .then(() => abrirModalMisCapas());
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
 }
 
 function getSolicitudesPublicacionFilters() {
@@ -6599,21 +6954,81 @@ function mostrarModalDetallePunto(props) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body" style="max-height: calc(100vh - 10rem);">
-        <div id="misCapasLoader" class="text-center my-3" style="display:none;">Cargando...</div>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Estado</th>
-                <th>Comentario admin</th>
-                <th>Subida</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tablaMisCapas"><!-- filas din?micas --></tbody>
-          </table>
+        <div class="mis-capas-intro">
+          <h6>Gestioná todo desde un solo lugar</h6>
+          <p>Elegí si querés trabajar con tus puntos, tus capas vectoriales o tus capas raster sin salir del mapa principal.</p>
+        </div>
+        <div class="mis-capas-switch" role="tablist" aria-label="Elegir contenido de Mis capas">
+          <button type="button" class="mis-capas-tab is-active" id="misCapasTabBtn-puntos" onclick="setMisCapasTab('puntos')">Puntos</button>
+          <button type="button" class="mis-capas-tab" id="misCapasTabBtn-capas" onclick="setMisCapasTab('capas')">Capas</button>
+          <button type="button" class="mis-capas-tab" id="misCapasTabBtn-raster" onclick="setMisCapasTab('raster')">Raster</button>
+        </div>
+        <div class="mis-capas-panel is-active" id="misCapasPanel-puntos">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="mb-1">Grupos de puntos</h6>
+                  <div class="small text-muted">Concentra la lógica de visibilidad, color, nombre, publicación y eliminación de tus grupos.</div>
+                </div>
+              </div>
+              <div id="listaGruposPuntosMisCapas"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mis-capas-panel" id="misCapasPanel-capas">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="mb-1">Capas vectoriales</h6>
+                  <div class="small text-muted">Capas superficiales cargadas por vos, con seguimiento de su estado y solicitudes de publicación.</div>
+                </div>
+              </div>
+              <div id="misCapasLoader" class="text-center my-3" style="display:none;">Cargando...</div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Estado</th>
+                      <th>Comentario admin</th>
+                      <th>Subida</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tablaMisCapas"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mis-capas-panel" id="misCapasPanel-raster">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="mb-1">Capas raster</h6>
+                  <div class="small text-muted">Tus TIFF y derivados raster disponibles para descarga o eliminación.</div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Modo</th>
+                      <th>Visibilidad</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tablaMisRasters"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -6706,7 +7121,7 @@ function mostrarModalDetallePunto(props) {
         </table>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="btnCalcularWQI">ðŸ§® Calcular WQI</button>
+        <button class="btn btn-primary" id="btnCalcularWQI">Calcular WQI</button>
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>

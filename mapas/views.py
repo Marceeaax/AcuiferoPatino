@@ -488,13 +488,107 @@ def _ensure_raster_dirs():
     return dirs
 
 
+def _gdal_runtime_env():
+    env = os.environ.copy()
+    if os.name != "nt":
+        return env
+
+    conda_env = Path(settings.BASE_DIR).parent / ".conda" / "envs" / "tesis"
+    proj_dir = conda_env / "Library" / "share" / "proj"
+    gdal_data_dir = conda_env / "Library" / "share" / "gdal"
+    bin_dir = conda_env / "Library" / "bin"
+    scripts_dir = conda_env / "Scripts"
+
+    if proj_dir.exists():
+        env["PROJ_LIB"] = str(proj_dir)
+    if gdal_data_dir.exists():
+        env["GDAL_DATA"] = str(gdal_data_dir)
+    path_parts = []
+    if bin_dir.exists():
+        path_parts.append(str(bin_dir))
+    if scripts_dir.exists():
+        path_parts.append(str(scripts_dir))
+    if path_parts:
+        env["PATH"] = os.pathsep.join(path_parts + [env.get("PATH", "")])
+    return env
+
+
 def _run_command(cmd):
-    return subprocess.run(cmd, check=True, capture_output=True, text=True)
+    try:
+        return subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            env=_gdal_runtime_env(),
+        )
+    except subprocess.CalledProcessError as exc:
+        detalle = (exc.stderr or exc.stdout or "").strip()
+        if detalle:
+            raise RuntimeError(f"{cmd[0]} falló: {detalle}") from exc
+        raise RuntimeError(f"{cmd[0]} falló con código {exc.returncode}.") from exc
 
 
 def _gdalinfo_json(path):
     result = _run_command(["gdalinfo", "-json", str(path)])
     return json.loads(result.stdout)
+
+
+def _raster_epsg_from_info(info):
+    stac = info.get("stac") or {}
+    proj_epsg = stac.get("proj:epsg")
+    if isinstance(proj_epsg, int):
+        return proj_epsg
+    if isinstance(proj_epsg, list):
+        for item in proj_epsg:
+            if isinstance(item, dict) and item.get("code"):
+                try:
+                    return int(item.get("code"))
+                except (TypeError, ValueError):
+                    continue
+    wkt = ((info.get("coordinateSystem") or {}).get("wkt") or "").strip()
+    if not wkt:
+        return None
+    match = re.search(r'ID\["EPSG",\s*(\d+)\]', wkt)
+    if match:
+        try:
+            return int(match.group(1))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _raster_crs_name_from_info(info):
+    wkt = ((info.get("coordinateSystem") or {}).get("wkt") or "").strip()
+    if not wkt:
+        return None
+    parts = wkt.split('"')
+    return parts[1] if len(parts) > 1 else None
+
+
+def _infer_raster_source_epsg(info):
+    epsg = _raster_epsg_from_info(info)
+    if epsg:
+        return epsg, False, None
+
+    corners = info.get("cornerCoordinates", {})
+    upper_left = corners.get("upperLeft")
+    lower_right = corners.get("lowerRight")
+    if not upper_left or not lower_right:
+        return None, False, None
+
+    xs = [upper_left[0], lower_right[0]]
+    ys = [upper_left[1], lower_right[1]]
+    looks_like_utm_21s = (
+        all(100000 <= x <= 900000 for x in xs)
+        and all(6000000 <= y <= 9000000 for y in ys)
+    )
+    if looks_like_utm_21s:
+        return 32721, True, (
+            "El archivo no declara CRS. Por el rango de coordenadas se infirió "
+            "EPSG:32721 como sistema de origen y se convertirá a EPSG:4326 para mostrarlo en el mapa."
+        )
+    return None, False, None
 
 
 def _bounds_from_gdalinfo(info):
@@ -508,13 +602,19 @@ def _bounds_from_gdalinfo(info):
 
 def _resumen_raster(info):
     band = (info.get("bands") or [{}])[0]
+    epsg, inferred, warning = _infer_raster_source_epsg(info)
+    crs_name = _raster_crs_name_from_info(info)
+    crs_display = crs_name or (f"EPSG:{epsg}" if epsg else None)
+    if inferred and epsg:
+        crs_display = f"EPSG:{epsg} (inferido)"
     return {
+        "driver": info.get("driverShortName"),
         "size": info.get("size"),
-        "crs": (((info.get("coordinateSystem") or {}).get("wkt", "").split('"')[1:2]) or [None])[0],
-        "epsg": next(
-            (item.get("code") for item in (info.get("stac") or {}).get("proj:epsg", []) if isinstance(item, dict)),
-            None
-        ) if isinstance((info.get("stac") or {}).get("proj:epsg"), list) else (info.get("stac") or {}).get("proj:epsg"),
+        "crs": crs_name,
+        "crs_display": crs_display,
+        "epsg": epsg,
+        "source_crs_inferred": inferred,
+        "warning": warning,
         "band_count": len(info.get("bands") or []),
         "band_type": band.get("type"),
         "nodata": band.get("noDataValue"),
@@ -540,19 +640,26 @@ def _crear_color_relief(path_txt):
 
 def _procesar_raster(origen_path, base_name):
     dirs = _ensure_raster_dirs()
+    info_origen = _gdalinfo_json(origen_path)
+    source_epsg, source_inferred, source_warning = _infer_raster_source_epsg(info_origen)
     processed_tif = dirs["processed"] / f"{base_name}_4326.tif"
     colored_tif = dirs["processed"] / f"{base_name}_colored.tif"
     png_path = dirs["png"] / f"{base_name}.png"
     color_map = dirs["tmp"] / f"{base_name}_colormap.txt"
 
-    _run_command([
+    warp_cmd = [
         "gdalwarp",
+    ]
+    if source_epsg and not _raster_epsg_from_info(info_origen):
+        warp_cmd.extend(["-s_srs", f"EPSG:{source_epsg}"])
+    warp_cmd.extend([
         "-t_srs", "EPSG:4326",
         "-dstalpha",
         "-overwrite",
         str(origen_path),
         str(processed_tif),
     ])
+    _run_command(warp_cmd)
 
     _crear_color_relief(color_map)
     _run_command([
@@ -571,13 +678,20 @@ def _procesar_raster(origen_path, base_name):
     ])
 
     info_4326 = _gdalinfo_json(processed_tif)
+    metadata = _resumen_raster(info_4326)
+    metadata.update({
+        "source_driver": info_origen.get("driverShortName"),
+        "source_epsg": source_epsg,
+        "source_crs_inferred": source_inferred,
+        "source_warning": source_warning,
+    })
     return {
         "processed_tif": processed_tif,
         "png_path": png_path,
         "colored_tif": colored_tif,
         "color_map": color_map,
         "bounds": _bounds_from_gdalinfo(info_4326),
-        "metadata": _resumen_raster(info_4326),
+        "metadata": metadata,
     }
 
 
@@ -1299,6 +1413,44 @@ def cambiar_publicacion_grupo_puntos(request):
 
         if publico:
             ahora = timestamp_auditoria()
+            if es_admin(request.user):
+                puntos = list(puntos_qs)
+                for punto in puntos:
+                    before = serialize_instance_for_audit(punto)
+                    punto.publico = True
+                    mark_instance_modified(punto, request.user, ahora)
+                    punto.save(update_fields=audit_update_fields("publico"))
+                    audit_instance_update(
+                        punto,
+                        request.user,
+                        before,
+                        request=request,
+                        metadata={"motivo": "publicar_grupo_directamente_admin"},
+                    )
+                solicitudes_relacionadas = list(SolicitudPublicacion.objects.filter(
+                    requester=request.user,
+                    tipo=SolicitudPublicacion.TIPO_GRUPO,
+                    grupo_nombre=grupo,
+                ))
+                for solicitud in solicitudes_relacionadas:
+                    before = serialize_instance_for_audit(solicitud)
+                    solicitud.delete()
+                    audit_instance_delete(
+                        solicitud,
+                        request.user,
+                        before=before,
+                        request=request,
+                        metadata={"motivo": "limpiar_solicitudes_grupo_publicado_directamente"},
+                    )
+                return JsonResponse({
+                    'success': True,
+                    'grupo': grupo,
+                    'publico': True,
+                    'actualizados': len(puntos),
+                    'estado_solicitud': None,
+                    'comentario_revision': '',
+                    'mensaje': 'El grupo quedó publicado directamente.',
+                })
             solicitud, creada = SolicitudPublicacion.objects.get_or_create(
                 requester=request.user,
                 tipo=SolicitudPublicacion.TIPO_GRUPO,
