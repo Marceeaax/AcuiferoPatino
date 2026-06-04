@@ -227,3 +227,43 @@ class SolicitudPublicacion(AuditFieldsMixin, models.Model):
     def __str__(self):
         target = self.capa_nombre or self.grupo_nombre or self.tipo
         return f"{self.get_tipo_display()} - {target} ({self.estado})"
+
+
+class SolicitudRegistroUsuario(AuditFieldsMixin, models.Model):
+    ESTADO_PENDIENTE = "pendiente"
+    ESTADO_APROBADA = "aprobada"
+    ESTADO_RECHAZADA = "rechazada"
+    ESTADOS = [
+        (ESTADO_PENDIENTE, "Pendiente"),
+        (ESTADO_APROBADA, "Aprobada"),
+        (ESTADO_RECHAZADA, "Rechazada"),
+    ]
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="solicitud_registro",
+    )
+    nombre_solicitado = models.CharField(max_length=150)
+    apellido_solicitado = models.CharField(max_length=150)
+    cedula_solicitada = models.CharField(max_length=32)
+    email_solicitado = models.EmailField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
+    review_comment = models.TextField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="solicitudes_registro_revisadas",
+        blank=True,
+        null=True,
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "solicitud_registro_usuario"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Registro de {self.user.username} ({self.estado})"

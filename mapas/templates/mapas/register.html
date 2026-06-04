@@ -3,16 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crear cuenta</title>
+  <title>Solicitar acceso</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       background: linear-gradient(to right, #11998e, #38ef7d);
+      padding: 24px;
+      box-sizing: border-box;
     }
 
     #back-arrow {
@@ -22,77 +24,117 @@
       text-decoration: none;
       font-size: 1.8rem;
       color: white;
-      background-color: rgba(0,0,0,0.1);
+      background-color: rgba(0,0,0,0.12);
       padding: 6px 12px;
       border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
       transition: background 0.2s ease;
     }
 
     #back-arrow:hover {
-      background-color: rgba(0,0,0,0.3);
+      background-color: rgba(0,0,0,0.28);
     }
 
     .register-box {
       background-color: #ffffff;
-      padding: 2rem 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      width: 360px;
+      padding: 2rem 2.25rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+      width: min(720px, 100%);
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.5rem;
       color: #11998e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #475569;
+      font-size: 0.96rem;
+      margin: 0 0 1.5rem;
     }
 
     form {
       display: flex;
       flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 18px;
+    }
+
+    .span-2 {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+      display: block;
     }
 
     input[type="text"],
+    input[type="email"],
     input[type="password"] {
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
       font-size: 1rem;
-      margin-bottom: 1rem;
       outline-color: #38ef7d;
     }
 
-    input::placeholder {
-      color: #aaa;
+    .field-errors,
+    .errorlist {
+      color: #b91c1c;
+      font-size: 0.88rem;
+      margin: 6px 0 0;
+      padding-left: 18px;
+    }
+
+    .form-alert {
+      border-radius: 10px;
+      padding: 11px 13px;
+      font-size: 0.93rem;
+    }
+
+    .form-alert--success {
+      background: rgba(34, 197, 94, 0.12);
+      color: #166534;
+      border: 1px solid rgba(34, 197, 94, 0.24);
+    }
+
+    .form-alert--error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #991b1b;
+      border: 1px solid rgba(239, 68, 68, 0.18);
     }
 
     .helptext {
-      font-size: 0.85rem;
-      color: #666;
-      margin: -8px 0 10px 0;
-    }
-
-    ul.errorlist, .errorlist {
-      color: red;
-      font-size: 0.85rem;
-      margin-bottom: 10px;
-    }
-
-    ul {
-      padding-left: 20px;
+      font-size: 0.87rem;
+      color: #64748b;
+      margin-top: 6px;
     }
 
     .submit-btn {
       background-color: #38ef7d;
       color: white;
       border: none;
-      padding: 10px;
-      border-radius: 6px;
+      padding: 11px 12px;
+      border-radius: 8px;
       font-weight: bold;
       font-size: 1rem;
       cursor: pointer;
       transition: background-color 0.3s;
-      margin-top: 10px;
+      margin-top: 6px;
     }
 
     .submit-btn:hover {
@@ -102,7 +144,7 @@
     .links {
       margin-top: 1rem;
       text-align: center;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
     }
 
     .links a {
@@ -113,37 +155,120 @@
     .links a:hover {
       text-decoration: underline;
     }
+
+    @media (max-width: 640px) {
+      .register-box {
+        padding: 1.5rem;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .span-2 {
+        grid-column: auto;
+      }
+    }
   </style>
 </head>
 <body>
-  <a href="/mapa-muestreo/" id="back-arrow" title="Volver al mapa">←</a>
+  <a href="/mapa-muestreo/" id="back-arrow" title="Volver al mapa">&larr;</a>
 
   <div class="register-box">
-    <h2>Crear cuenta</h2>
+    <h2>Solicitar acceso</h2>
+    <p class="subtitle">Tu cuenta quedar&aacute; pendiente hasta que un administrador apruebe la solicitud.</p>
+
+    {% if success_message %}
+      <div class="form-alert form-alert--success">{{ success_message }}</div>
+    {% endif %}
+
+    {% if errors.non_field %}
+      <div class="form-alert form-alert--error">{{ errors.non_field|join:" " }}</div>
+    {% endif %}
+
     <form method="post">
       {% csrf_token %}
-      {{ form.non_field_errors }}
 
-      {{ form.username.errors }}
-      <input type="text" name="username" placeholder="Usuario" required id="id_username">
+      <div class="form-grid">
+        <div>
+          <label for="id_first_name">Nombre</label>
+          <input type="text" name="first_name" id="id_first_name" placeholder="Tu nombre" required value="{{ prefill.first_name|default:'' }}" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’ -]+" title="Ingresá solo letras, espacios, guiones o apóstrofes.">
+          {% if errors.first_name %}
+            <ul class="field-errors">
+              {% for error in errors.first_name %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      {{ form.password1.errors }}
-      <input type="password" name="password1" placeholder="Contraseña" required id="id_password1">
-      {% if form.password1.help_text %}
-        <div class="helptext">{{ form.password1.help_text|safe }}</div>
-      {% endif %}
+        <div>
+          <label for="id_last_name">Apellido</label>
+          <input type="text" name="last_name" id="id_last_name" placeholder="Tu apellido" required value="{{ prefill.last_name|default:'' }}" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’ -]+" title="Ingresá solo letras, espacios, guiones o apóstrofes.">
+          {% if errors.last_name %}
+            <ul class="field-errors">
+              {% for error in errors.last_name %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      {{ form.password2.errors }}
-      <input type="password" name="password2" placeholder="Confirmar contraseña" required id="id_password2">
-      {% if form.password2.help_text %}
-        <div class="helptext">{{ form.password2.help_text|safe }}</div>
-      {% endif %}
+        <div>
+          <label for="id_cedula">C&eacute;dula</label>
+          <input type="text" name="cedula" id="id_cedula" placeholder="Tu n&uacute;mero de c&eacute;dula" required value="{{ prefill.cedula|default:'' }}">
+          {% if errors.cedula %}
+            <ul class="field-errors">
+              {% for error in errors.cedula %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
 
-      <input type="submit" value="Registrarse" class="submit-btn" />
+        <div>
+          <label for="id_username">Usuario</label>
+          <input type="text" name="username" id="id_username" placeholder="Usuario" required value="{{ prefill.username|default:'' }}">
+          {% if errors.username %}
+            <ul class="field-errors">
+              {% for error in errors.username %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <div class="span-2">
+          <label for="id_email">Correo electr&oacute;nico</label>
+          <input type="email" name="email" id="id_email" placeholder="tu.correo@ejemplo.com" required value="{{ prefill.email|default:'' }}">
+          {% if errors.email %}
+            <ul class="field-errors">
+              {% for error in errors.email %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <div class="span-2">
+          <label for="id_password">Contrase&ntilde;a</label>
+          <input type="password" name="password" id="id_password" placeholder="Contrase&ntilde;a" required>
+          <div class="helptext">Por ahora se solicita una contrase&ntilde;a simple para la fase de desarrollo.</div>
+          {% if errors.password %}
+            <ul class="field-errors">
+              {% for error in errors.password %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+
+      <input type="submit" value="Enviar solicitud" class="submit-btn" />
     </form>
 
     <div class="links">
-      <a href="{% url 'login' %}">¿Ya tenés cuenta? Inicia sesión</a>
+      <a href="{% url 'login' %}">&iquest;Ya ten&eacute;s una cuenta aprobada? Iniciar sesi&oacute;n</a>
     </div>
   </div>
 </body>

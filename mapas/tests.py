@@ -2,7 +2,7 @@ import inspect
 import json
 from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import ANY, Mock, MagicMock, patch
 from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,7 +12,7 @@ from django.http import HttpResponse
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 
 from . import views
-from .models import PreferenciasMapa, SolicitudPublicacion
+from .models import PreferenciasMapa, SolicitudPublicacion, SolicitudRegistroUsuario
 
 
 class HelperFunctionsTests(SimpleTestCase):
@@ -1071,6 +1071,126 @@ class MisCapasListJsonTests(SimpleTestCase):
         mock_filter.assert_called_once_with(user=self.user)
 
 
+class ActivityViewsTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.group_view = inspect.unwrap(views.cambiar_actividad_grupo_puntos)
+        self.layer_view = inspect.unwrap(views.cambiar_actividad_capa_view)
+        self.raster_view = inspect.unwrap(views.cambiar_actividad_raster_view)
+        self.user = SimpleNamespace(id=12, is_authenticated=True)
+
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.Muestreo.objects.filter")
+    def test_cambiar_actividad_grupo_actualiza_solo_puntos_necesarios(
+        self,
+        mock_filter,
+        _mock_now,
+        _mock_serialize,
+        _mock_audit,
+    ):
+        punto_activo = Mock(activo=True)
+        punto_inactivo = Mock(activo=False)
+        mock_filter.return_value = [punto_activo, punto_inactivo]
+        request = self.factory.post(
+            "/puntos/grupo-actividad/",
+            data=json.dumps({"grupo": "PATINO2", "activo": False}),
+            content_type="application/json",
+        )
+        request.user = self.user
+
+        response = self.group_view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["actualizados"], 1)
+        self.assertFalse(punto_activo.activo)
+        punto_activo.save.assert_called_once()
+        punto_inactivo.save.assert_not_called()
+
+    @patch("mapas.views.create_audit_event")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.load_boolean_column_map", return_value={3: True})
+    @patch("mapas.views.Capa.objects.get")
+    @patch("mapas.views.db_has_column", return_value=True)
+    @patch("mapas.views.connection")
+    def test_cambiar_actividad_capa_actualiza_sql_y_audita(
+        self,
+        mock_connection,
+        _mock_has_column,
+        mock_get,
+        _mock_load_state,
+        _mock_now,
+        _mock_serialize,
+        mock_audit,
+    ):
+        capa = Mock(ogc_fid=3)
+        mock_get.return_value = capa
+        cursor = MagicMock()
+        cursor.rowcount = 1
+        mock_connection.cursor.return_value.__enter__.return_value = cursor
+        request = self.factory.post(
+            "/capas/3/actividad/",
+            data=json.dumps({"activo": False}),
+            content_type="application/json",
+        )
+        request.user = self.user
+
+        response = self.layer_view(request, 3)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertFalse(data["activo"])
+        mock_get.assert_called_once_with(pk=3, user=self.user)
+        cursor.execute.assert_called_once()
+        self.assertEqual(cursor.execute.call_args.args[1], [False, "ahora", self.user.id, 3, self.user.id])
+        mock_audit.assert_called_once()
+
+    @patch("mapas.views.create_audit_event")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.load_boolean_column_map", return_value={7: True})
+    @patch("mapas.views.CapaRaster.objects.get")
+    @patch("mapas.views.db_has_column", return_value=True)
+    @patch("mapas.views.connection")
+    def test_cambiar_actividad_raster_actualiza_sql_y_audita(
+        self,
+        mock_connection,
+        _mock_has_column,
+        mock_get,
+        _mock_load_state,
+        _mock_now,
+        _mock_serialize,
+        mock_audit,
+    ):
+        raster = Mock(id=7)
+        mock_get.return_value = raster
+        cursor = MagicMock()
+        cursor.rowcount = 1
+        mock_connection.cursor.return_value.__enter__.return_value = cursor
+        request = self.factory.post(
+            "/capas-raster/7/actividad/",
+            data=json.dumps({"activo": False}),
+            content_type="application/json",
+        )
+        request.user = self.user
+
+        response = self.raster_view(request, 7)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertFalse(data["activo"])
+        mock_get.assert_called_once_with(pk=7, user=self.user)
+        cursor.execute.assert_called_once()
+        self.assertEqual(cursor.execute.call_args.args[1], [False, "ahora", self.user.id, 7, self.user.id])
+        mock_audit.assert_called_once()
+
+
 class SolicitarPublicacionTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -1115,6 +1235,145 @@ class SolicitarPublicacionTests(SimpleTestCase):
         self.assertFalse(data["success"])
         mock_get.assert_called_once_with(pk=8, user=self.user)
 
+
+class PublicacionDirectaAdminTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.group_view = inspect.unwrap(views.hacer_publico_grupo_puntos_admin)
+        self.raster_view = inspect.unwrap(views.hacer_publica_capa_tiff_admin)
+        self.admin = SimpleNamespace(id=2, is_authenticated=True, is_staff=True)
+
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views.Muestreo.objects.filter")
+    def test_admin_publica_grupo_directamente_y_resuelve_solicitudes(
+        self,
+        mock_puntos_filter,
+        mock_solicitudes_filter,
+        _mock_now,
+        _mock_serialize,
+        _mock_audit,
+    ):
+        punto_privado = Mock(publico=False)
+        punto_publico = Mock(publico=True)
+        mock_puntos_filter.return_value = [punto_privado, punto_publico]
+        solicitud = Mock(review_comment=None)
+        mock_solicitudes_filter.return_value = [solicitud]
+        request = self.factory.post(
+            "/puntos/grupo-publico-admin/",
+            data=json.dumps({"grupo": "PATINO2", "owner_id": 4}),
+            content_type="application/json",
+        )
+        request.user = self.admin
+
+        response = self.group_view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["actualizados"], 1)
+        self.assertEqual(data["aprobadas"], 1)
+        self.assertTrue(punto_privado.publico)
+        punto_privado.save.assert_called_once()
+        punto_publico.save.assert_not_called()
+        self.assertEqual(solicitud.estado, SolicitudPublicacion.ESTADO_APROBADA)
+        self.assertEqual(solicitud.reviewed_by, self.admin)
+        solicitud.save.assert_called_once()
+
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.CapaRaster.objects.get")
+    def test_admin_publica_raster_directamente(self, mock_get, _mock_serialize, _mock_audit):
+        raster = Mock(publico=False)
+        mock_get.return_value = raster
+        request = self.factory.post("/capas-raster/5/hacer-publica/")
+        request.user = self.admin
+
+        response = self.raster_view(request, 5)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertTrue(data["publico"])
+        self.assertTrue(raster.publico)
+        raster.save.assert_called_once()
+
+
+class CapasAdminDashboardTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.view = inspect.unwrap(views.capas_admin_dashboard_json)
+        self.admin = SimpleNamespace(id=2, is_authenticated=True, is_staff=True)
+
+    @patch("mapas.views.Muestreo.objects.filter")
+    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views.CapaRaster.objects.select_related")
+    @patch("mapas.views.connection")
+    def test_dashboard_admin_devuelve_vectoriales_raster_y_grupos(
+        self,
+        mock_connection,
+        mock_rasters,
+        mock_solicitudes,
+        mock_grupos_filter,
+    ):
+        fecha_iso = "2026-06-03T12:00:00"
+        fecha_obj = SimpleNamespace(isoformat=lambda: fecha_iso)
+
+        cursor = MagicMock()
+        cursor.fetchall.return_value = [
+            (7, "Capa Norte", 3, "marcelo", fecha_obj, "privada", 12.345),
+        ]
+        mock_connection.cursor.return_value.__enter__.return_value = cursor
+
+        mock_rasters.return_value.order_by.return_value = [
+            SimpleNamespace(
+                id=9,
+                nombre="Alcalinidad",
+                user_id=3,
+                user=SimpleNamespace(username="marcelo"),
+                publico=False,
+                modo_despliegue="png",
+                created_at=fecha_obj,
+                archivo_png=SimpleNamespace(url="/media/alc.png"),
+                archivo_4326=SimpleNamespace(url="/media/alc.tif"),
+            )
+        ]
+        mock_solicitudes.return_value.select_related.return_value.order_by.return_value = [
+            SimpleNamespace(
+                requester_id=3,
+                grupo_nombre="PATINO2",
+                estado=SolicitudPublicacion.ESTADO_PENDIENTE,
+                review_comment="Pendiente",
+            )
+        ]
+        mock_grupos_filter.return_value.values.return_value.annotate.return_value.order_by.return_value = [
+            {
+                "grupo": "PATINO2",
+                "user_id": 3,
+                "user__username": "marcelo",
+                "cantidad": 10,
+                "publicos": 0,
+                "fecha_ultima": fecha_obj,
+                "archivo_origen": "muestreo.csv",
+            }
+        ]
+
+        request = self.factory.get("/api/capas/")
+        request.user = self.admin
+
+        response = self.view(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data["vectoriales"]), 1)
+        self.assertEqual(data["vectoriales"][0]["nombre"], "Capa Norte")
+        self.assertEqual(len(data["rasters"]), 1)
+        self.assertEqual(data["rasters"][0]["nombre"], "Alcalinidad")
+        self.assertEqual(len(data["grupos_puntos"]), 1)
+        self.assertEqual(data["grupos_puntos"][0]["grupo"], "PATINO2")
+        self.assertEqual(data["grupos_puntos"][0]["estado_solicitud"], SolicitudPublicacion.ESTADO_PENDIENTE)
 
 class AdminRoleTests(SimpleTestCase):
     def setUp(self):
@@ -1168,11 +1427,14 @@ class SolicitudesPublicacionAdminTests(SimpleTestCase):
         self.factory = RequestFactory()
         self.list_view = inspect.unwrap(views.solicitudes_publicacion_list_json)
         self.resolve_view = inspect.unwrap(views.resolver_solicitud_publicacion)
+        self.resolve_registration_view = inspect.unwrap(views.resolver_solicitud_registro)
         self.admin = SimpleNamespace(id=2, is_authenticated=True, is_staff=True)
 
     @patch("mapas.views.SolicitudPublicacion.objects.filter")
     @patch("mapas.views.SolicitudPublicacion.objects.exclude")
-    def test_admin_lista_solicitudes_pendientes_y_resueltas(self, mock_exclude, mock_filter):
+    @patch("mapas.views.SolicitudRegistroUsuario.objects.filter")
+    @patch("mapas.views.SolicitudRegistroUsuario.objects.exclude")
+    def test_admin_lista_solicitudes_pendientes_y_resueltas(self, mock_user_exclude, mock_user_filter, mock_exclude, mock_filter):
         fecha = SimpleNamespace(isoformat=lambda: "2026-05-18T12:00:00")
         mock_filter.return_value.select_related.return_value.order_by.return_value = [
             SimpleNamespace(
@@ -1202,6 +1464,36 @@ class SolicitudesPublicacionAdminTests(SimpleTestCase):
                 reviewed_at=fecha,
             )
         ]
+        mock_user_filter.return_value.select_related.return_value.order_by.return_value = [
+            SimpleNamespace(
+                id=21,
+                user=SimpleNamespace(username="solicitante", first_name="Ana", last_name="Gomez"),
+                user_id=8,
+                nombre_solicitado="Ana",
+                apellido_solicitado="Gomez",
+                cedula_solicitada="1234567",
+                email_solicitado="solicitante@fpuna.edu.py",
+                estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+                review_comment="",
+                created_at=fecha,
+            )
+        ]
+        mock_user_exclude.return_value.select_related.return_value.order_by.return_value.__getitem__.return_value = [
+            SimpleNamespace(
+                id=22,
+                user=SimpleNamespace(username="rechazado", first_name="Luis", last_name="Perez"),
+                user_id=9,
+                nombre_solicitado="Luis",
+                apellido_solicitado="Perez",
+                cedula_solicitada="7654321",
+                email_solicitado="rechazado@fpuna.edu.py",
+                estado=SolicitudRegistroUsuario.ESTADO_RECHAZADA,
+                reviewed_by=SimpleNamespace(username="admin"),
+                review_comment="Faltan datos.",
+                created_at=fecha,
+                reviewed_at=fecha,
+            )
+        ]
         request = self.factory.get("/api/solicitudes-publicacion/")
         request.user = self.admin
 
@@ -1213,11 +1505,19 @@ class SolicitudesPublicacionAdminTests(SimpleTestCase):
         self.assertEqual(data["pending"][0]["objetivo"], "PATINO2")
         self.assertEqual(len(data["resolved"]), 1)
         self.assertEqual(data["resolved"][0]["reviewed_by"], "admin")
+        self.assertEqual(len(data["user_pending"]), 1)
+        self.assertEqual(data["user_pending"][0]["username"], "solicitante")
+        self.assertEqual(data["user_pending"][0]["full_name"], "Ana Gomez")
+        self.assertEqual(data["user_pending"][0]["cedula"], "1234567")
+        self.assertEqual(len(data["user_resolved"]), 1)
+        self.assertEqual(data["user_resolved"][0]["reviewed_by"], "admin")
 
-    @patch("mapas.views.timezone.now", return_value="ahora")
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", return_value={"mock": True})
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
     @patch("mapas.views.Muestreo.objects.filter")
     @patch("mapas.views.SolicitudPublicacion.objects.select_related")
-    def test_admin_aprueba_solicitud_de_grupo(self, mock_select_related, mock_filter, _mock_now):
+    def test_admin_aprueba_solicitud_de_grupo(self, mock_select_related, mock_filter, _mock_now, _mock_serialize, _mock_audit):
         solicitud = Mock(
             tipo=SolicitudPublicacion.TIPO_GRUPO,
             requester=SimpleNamespace(id=3),
@@ -1231,6 +1531,9 @@ class SolicitudesPublicacionAdminTests(SimpleTestCase):
             content_type="application/json",
         )
         request.user = self.admin
+        punto_1 = Mock(publico=False)
+        punto_2 = Mock(publico=False)
+        mock_filter.return_value = [punto_1, punto_2]
 
         response = self.resolve_view(request, 9)
         data = json.loads(response.content)
@@ -1238,13 +1541,273 @@ class SolicitudesPublicacionAdminTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["success"])
         mock_filter.assert_called_once_with(user=solicitud.requester, grupo="PATINO2")
-        update_kwargs = mock_filter.return_value.update.call_args.kwargs
-        self.assertTrue(update_kwargs["publico"])
-        self.assertEqual(update_kwargs["usu_modificacion_id"], self.admin.id)
-        self.assertEqual(update_kwargs["fec_modificacion"], "ahora")
+        self.assertTrue(punto_1.publico)
+        self.assertTrue(punto_2.publico)
+        punto_1.save.assert_called_once()
+        punto_2.save.assert_called_once()
         self.assertEqual(solicitud.estado, SolicitudPublicacion.ESTADO_APROBADA)
         self.assertEqual(solicitud.review_comment, "Publicacion aprobada.")
         solicitud.save.assert_called_once()
+
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", side_effect=[{"is_active": False}, {"estado": "pendiente"}])
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.SolicitudRegistroUsuario.objects.select_related")
+    def test_admin_aprueba_solicitud_de_registro(self, mock_select_related, _mock_now, _mock_serialize, _mock_audit):
+        user = Mock(is_active=False)
+        solicitud = Mock(
+            user=user,
+            user_id=14,
+            estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+        )
+        mock_select_related.return_value.get.return_value = solicitud
+        request = self.factory.post(
+            "/api/solicitudes-registro/14/resolver/",
+            data=json.dumps({"decision": "aprobar", "comentario": "Acceso habilitado."}),
+            content_type="application/json",
+        )
+        request.user = self.admin
+
+        response = self.resolve_registration_view(request, 14)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["estado"], SolicitudRegistroUsuario.ESTADO_APROBADA)
+        self.assertTrue(user.is_active)
+        self.assertEqual(solicitud.review_comment, "Acceso habilitado.")
+        self.assertEqual(solicitud.reviewed_by, self.admin)
+        user.save.assert_called_once_with(update_fields=['is_active'])
+        solicitud.save.assert_called_once()
+
+    @patch("mapas.views.audit_instance_update")
+    @patch("mapas.views.serialize_instance_for_audit", side_effect=[{"is_active": True}, {"estado": "pendiente"}])
+    @patch("mapas.views.timestamp_auditoria", return_value="ahora")
+    @patch("mapas.views.SolicitudRegistroUsuario.objects.select_related")
+    def test_admin_rechaza_solicitud_de_registro(self, mock_select_related, _mock_now, _mock_serialize, _mock_audit):
+        user = Mock(is_active=True)
+        solicitud = Mock(
+            user=user,
+            user_id=15,
+            estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+        )
+        mock_select_related.return_value.get.return_value = solicitud
+        request = self.factory.post(
+            "/api/solicitudes-registro/15/resolver/",
+            data=json.dumps({"decision": "rechazar", "comentario": "Por favor, completar datos institucionales."}),
+            content_type="application/json",
+        )
+        request.user = self.admin
+
+        response = self.resolve_registration_view(request, 15)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["estado"], SolicitudRegistroUsuario.ESTADO_RECHAZADA)
+        self.assertFalse(user.is_active)
+        self.assertEqual(solicitud.review_comment, "Por favor, completar datos institucionales.")
+        user.save.assert_called_once_with(update_fields=['is_active'])
+        solicitud.save.assert_called_once()
+
+
+class RegistroSolicitudesUnitTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @patch("mapas.views.audit_instance_insert")
+    @patch("mapas.views.SolicitudRegistroUsuario.objects.create")
+    @patch("mapas.views.User.objects.create_user")
+    @patch("mapas.views.User.objects.filter")
+    def test_register_modal_crea_usuario_inactivo_y_solicitud_pendiente(
+        self,
+        mock_filter,
+        mock_create_user,
+        mock_solicitud_create,
+        mock_audit_insert,
+    ):
+        mock_filter.side_effect = [
+            SimpleNamespace(exists=lambda: False),
+            SimpleNamespace(exists=lambda: False),
+        ]
+        mock_user = Mock(username="solicitante", is_active=False)
+        mock_create_user.return_value = mock_user
+        mock_solicitud_create.return_value = Mock()
+        request = self.factory.post(
+            "/register/",
+            data={
+                "first_name": "Ana",
+                "last_name": "Gomez",
+                "cedula": "1234567",
+                "username": "solicitante",
+                "email": "solicitante@fpuna.edu.py",
+                "password": "ClaveTemporal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        response = views.register(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertTrue(data["pending_approval"])
+        mock_create_user.assert_called_once_with(
+            username="solicitante",
+            email="solicitante@fpuna.edu.py",
+            password="ClaveTemporal123",
+            first_name="Ana",
+            last_name="Gomez",
+            is_active=False,
+        )
+        mock_solicitud_create.assert_called_once_with(
+            user=mock_user,
+            nombre_solicitado="Ana",
+            apellido_solicitado="Gomez",
+            cedula_solicitada="1234567",
+            email_solicitado="solicitante@fpuna.edu.py",
+            fec_insercion=ANY,
+            fec_modificacion=ANY,
+            usu_insercion=None,
+            usu_modificacion=None,
+        )
+        self.assertEqual(mock_audit_insert.call_count, 2)
+
+    @patch("mapas.views.User.objects.filter")
+    def test_register_modal_rechaza_email_duplicado(self, mock_filter):
+        mock_filter.side_effect = [
+            SimpleNamespace(exists=lambda: False),
+            SimpleNamespace(exists=lambda: True),
+        ]
+        request = self.factory.post(
+            "/register/",
+            data={
+                "first_name": "Ana",
+                "last_name": "Gomez",
+                "cedula": "1234567",
+                "username": "solicitante",
+                "email": "yaexiste@fpuna.edu.py",
+                "password": "ClaveTemporal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        response = views.register(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+        self.assertIn("email", data["field_errors"])
+
+    @patch("mapas.views.User.objects.filter")
+    def test_register_modal_rechaza_faltantes_obligatorios(self, mock_filter):
+        mock_filter.return_value.exists.return_value = False
+        request = self.factory.post(
+            "/register/",
+            data={
+                "username": "solicitante",
+                "email": "solicitante@fpuna.edu.py",
+                "password": "ClaveTemporal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        response = views.register(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+        self.assertIn("first_name", data["field_errors"])
+        self.assertIn("last_name", data["field_errors"])
+        self.assertIn("cedula", data["field_errors"])
+
+    @patch("mapas.views.User.objects.filter")
+    def test_register_modal_rechaza_nombre_con_numeros(self, mock_filter):
+        mock_filter.side_effect = [
+            SimpleNamespace(exists=lambda: False),
+            SimpleNamespace(exists=lambda: False),
+        ]
+        request = self.factory.post(
+            "/register/",
+            data={
+                "first_name": "Ana1",
+                "last_name": "Gomez",
+                "cedula": "1234567",
+                "username": "solicitante",
+                "email": "solicitante@fpuna.edu.py",
+                "password": "ClaveTemporal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        response = views.register(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+        self.assertIn("first_name", data["field_errors"])
+
+    @patch("mapas.views.User.objects.filter")
+    def test_register_modal_rechaza_correo_invalido(self, mock_filter):
+        mock_filter.side_effect = [
+            SimpleNamespace(exists=lambda: False),
+        ]
+        request = self.factory.post(
+            "/register/",
+            data={
+                "first_name": "Ana",
+                "last_name": "Gomez",
+                "cedula": "1234567",
+                "username": "solicitante",
+                "email": "correoinvalido",
+                "password": "ClaveTemporal123",
+                "modal_register": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        response = views.register(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+        self.assertIn("email", data["field_errors"])
+
+    @patch("mapas.views.User.objects.get")
+    @patch("mapas.views.CustomLoginForm")
+    def test_login_modal_informa_solicitud_pendiente(self, mock_form_class, mock_get_user):
+        form = Mock()
+        form.is_valid.return_value = False
+        form.errors = {}
+        mock_form_class.return_value = form
+        target = Mock(is_active=False)
+        target.check_password.return_value = True
+        solicitud = SimpleNamespace(
+            estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+            review_comment="",
+        )
+        mock_get_user.return_value = target
+        request = self.factory.post(
+            "/login/",
+            data={
+                "username": "pendiente",
+                "password": "ClaveTemporal123",
+                "modal_login": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        with patch("mapas.views._latest_registration_request_for_user", return_value=solicitud):
+            response = views.login_view(request)
+
+        data = json.loads(response.content)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data["success"])
+        self.assertIn("pendiente de aprobación", data["error"])
 
 
 class AuthAndPreferencesIntegrationTests(TestCase):
@@ -1252,6 +1815,7 @@ class AuthAndPreferencesIntegrationTests(TestCase):
         self.client = Client()
         self.user = User.objects.create_user(
             username="marce",
+            email="marce@fpuna.edu.py",
             password="ClaveSegura123",
         )
 
@@ -1278,11 +1842,15 @@ class AuthAndPreferencesIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"success": True, "redirect_url": "/mapa-muestreo/"})
 
-    def test_register_modal_crea_usuario_y_autentica(self):
+    def test_register_modal_crea_usuario_inactivo_y_solicitud_pendiente(self):
         response = self.client.post(
             "/register/",
             data={
+                "first_name": "Nadia",
+                "last_name": "Benitez",
+                "cedula": "1234567",
                 "username": "nuevo_modal",
+                "email": "nuevo_modal@fpuna.edu.py",
                 "password": "ClaveModal123",
                 "modal_register": "1",
             },
@@ -1292,15 +1860,29 @@ class AuthAndPreferencesIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertTrue(data["success"])
-        self.assertEqual(data["redirect_url"], "/mapa-muestreo/")
-        self.assertTrue(User.objects.filter(username="nuevo_modal").exists())
-        self.assertEqual(int(self.client.session["_auth_user_id"]), User.objects.get(username="nuevo_modal").id)
+        self.assertTrue(data["pending_approval"])
+        user = User.objects.get(username="nuevo_modal")
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.first_name, "Nadia")
+        self.assertEqual(user.last_name, "Benitez")
+        self.assertFalse("_auth_user_id" in self.client.session)
+        self.assertTrue(
+            SolicitudRegistroUsuario.objects.filter(
+                user=user,
+                estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+                cedula_solicitada="1234567",
+            ).exists()
+        )
 
     def test_register_modal_rechaza_usuario_duplicado(self):
         response = self.client.post(
             "/register/",
             data={
+                "first_name": "Nadia",
+                "last_name": "Benitez",
+                "cedula": "1234567",
                 "username": "marce",
+                "email": "otro@fpuna.edu.py",
                 "password": "ClaveModal123",
                 "modal_register": "1",
             },
@@ -1319,19 +1901,63 @@ class AuthAndPreferencesIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/mapa-muestreo/")
 
-    def test_register_crea_usuario_y_redirige_al_login(self):
+    def test_register_form_crea_solicitud_y_muestra_confirmacion(self):
         response = self.client.post(
             "/register/",
             data={
+                "first_name": "Lia",
+                "last_name": "Sosa",
+                "cedula": "2345678",
                 "username": "nuevo_usuario",
-                "password1": "OtraClaveSegura123",
-                "password2": "OtraClaveSegura123",
+                "email": "nuevo_usuario@fpuna.edu.py",
+                "password": "OtraClaveSegura123",
             },
         )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, "/login/")
-        self.assertTrue(User.objects.filter(username="nuevo_usuario").exists())
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La solicitud de acceso fue enviada")
+        user = User.objects.get(username="nuevo_usuario")
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.first_name, "Lia")
+        self.assertEqual(user.last_name, "Sosa")
+        self.assertTrue(
+            SolicitudRegistroUsuario.objects.filter(
+                user=user,
+                estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+                cedula_solicitada="2345678",
+            ).exists()
+        )
+
+    def test_login_view_informa_usuario_pendiente_en_ajax(self):
+        pendiente = User.objects.create_user(
+            username="pendiente",
+            email="pendiente@fpuna.edu.py",
+            password="ClavePendiente123",
+            is_active=False,
+        )
+        SolicitudRegistroUsuario.objects.create(
+            user=pendiente,
+            nombre_solicitado="Pablo",
+            apellido_solicitado="Martinez",
+            cedula_solicitada="9988776",
+            email_solicitado="pendiente@fpuna.edu.py",
+            estado=SolicitudRegistroUsuario.ESTADO_PENDIENTE,
+        )
+
+        response = self.client.post(
+            "/login/",
+            data={
+                "username": "pendiente",
+                "password": "ClavePendiente123",
+                "modal_login": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertFalse(data["success"])
+        self.assertIn("pendiente", data["error"].lower())
 
     def test_guardar_centro_mapa_crea_preferencia_real(self):
         self.client.force_login(self.user)

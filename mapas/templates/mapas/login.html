@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <title>Iniciar sesión</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       background: linear-gradient(to right, #11998e, #38ef7d);
+      padding: 24px;
+      box-sizing: border-box;
     }
 
     #back-arrow {
@@ -23,61 +24,83 @@
       text-decoration: none;
       font-size: 1.8rem;
       color: white;
-      background-color: rgba(0,0,0,0.1);
+      background-color: rgba(0,0,0,0.12);
       padding: 6px 12px;
       border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
       transition: background 0.2s ease;
     }
 
     #back-arrow:hover {
-      background-color: rgba(0,0,0,0.3);
+      background-color: rgba(0,0,0,0.28);
     }
 
     .login-box {
       background-color: #ffffff;
-      padding: 2rem 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      width: 360px;
+      padding: 2rem 2.25rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+      width: min(400px, 100%);
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.5rem;
       color: #11998e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #475569;
+      font-size: 0.96rem;
+      margin: 0 0 1.5rem;
     }
 
     form {
       display: flex;
       flex-direction: column;
+      gap: 12px;
     }
 
     input[type="text"],
     input[type="password"] {
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
       font-size: 1rem;
-      margin-bottom: 1rem;
       outline-color: #38ef7d;
     }
 
-    input::placeholder {
-      color: #999;
+    .errorlist {
+      color: #b91c1c;
+      font-size: 0.88rem;
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .form-alert {
+      border-radius: 10px;
+      padding: 11px 13px;
+      font-size: 0.93rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #991b1b;
+      border: 1px solid rgba(239, 68, 68, 0.18);
+      margin-bottom: 12px;
     }
 
     .submit-btn {
       background-color: #38ef7d;
       color: white;
       border: none;
-      padding: 10px;
-      border-radius: 6px;
+      padding: 11px 12px;
+      border-radius: 8px;
       font-weight: bold;
       font-size: 1rem;
       cursor: pointer;
       transition: background-color 0.3s;
-      margin-top: 10px;
+      margin-top: 6px;
     }
 
     .submit-btn:hover {
@@ -87,7 +110,7 @@
     .links {
       margin-top: 1rem;
       text-align: center;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
     }
 
     .links a {
@@ -103,10 +126,22 @@
   </style>
 </head>
 <body>
-  <a href="/mapa-muestreo/" id="back-arrow" title="Volver al mapa">←</a>
+  <a href="/mapa-muestreo/" id="back-arrow" title="Volver al mapa">&larr;</a>
 
   <div class="login-box">
     <h2>Iniciar sesión</h2>
+    <p class="subtitle">Ingresá con una cuenta ya aprobada por administración.</p>
+
+    {% if form.non_field_errors %}
+      <div class="form-alert">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% elif error %}
+      <div class="form-alert">Usuario o contraseña incorrectos.</div>
+    {% endif %}
+
     <form method="post">
       {% csrf_token %}
       <input type="text" name="username" placeholder="Usuario" required />
@@ -115,20 +150,8 @@
     </form>
     <div class="links">
       <a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a>
-      <a href="{% url 'register' %}">¿No tienes cuenta? Regístrate</a>
+      <a href="{% url 'register' %}">¿Todavía no tenés acceso? Solicitalo aquí</a>
     </div>
   </div>
 </body>
 </html>
-
-{% if error %}
-<script>
-  Swal.fire({
-    icon: 'error',
-    title: 'Error de autenticación',
-    text: 'Usuario o contraseña incorrectos.',
-    confirmButtonColor: '#38ef7d',
-    heightAuto: false,
-  });
-</script>
-{% endif %}

@@ -239,25 +239,68 @@
 
       .auth-panels {
         position: relative;
-        min-height: 250px;
-        transition: height 0.32s cubic-bezier(.22, 1, .36, 1);
+        min-height: 0;
       }
 
       .auth-panel {
-        position: absolute;
-        inset: 0;
+        display: none;
         opacity: 0;
         transform: translateY(10px) scale(0.985);
-        pointer-events: none;
-        transition:
-          opacity 0.24s ease,
-          transform 0.34s cubic-bezier(.22, 1, .36, 1);
       }
 
       .auth-panel.is-active {
+        display: block;
         opacity: 1;
         transform: translateY(0) scale(1);
-        pointer-events: auto;
+        animation: authPanelIn 0.26s cubic-bezier(.22, 1, .36, 1);
+      }
+
+      .auth-register-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 14px;
+      }
+
+      .auth-register-grid .span-2 {
+        grid-column: 1 / -1;
+      }
+
+      .auth-modal-dialog {
+        max-width: min(840px, calc(100vw - 1rem));
+      }
+
+      @keyframes authPanelIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @media (max-width: 767.98px) {
+        .auth-register-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .auth-register-grid .span-2 {
+          grid-column: auto;
+        }
+      }
+
+      .solicitudes-panel {
+        display: none;
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      .solicitudes-panel.is-active {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+        animation: misCapasPanelIn .22s ease;
       }
 
       .download-section-card {
@@ -266,6 +309,42 @@
         padding: 14px;
         background: rgba(248, 250, 252, 0.72);
         margin-bottom: 14px;
+      }
+
+      .capas-admin-modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        height: min(72vh, 760px);
+        overflow: hidden;
+      }
+
+      .capas-admin-panels-wrap {
+        flex: 1;
+        min-height: 0;
+      }
+
+      .capas-admin-panel-card {
+        height: 100%;
+      }
+
+      .capas-admin-panel-card .download-section-card {
+        height: 100%;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .capas-admin-panel-card .table-responsive {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      .capas-admin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .download-row {
@@ -524,6 +603,68 @@
       #map {
         height: calc(100vh - 70px);
         width: 100%;
+      }
+
+      #mapCoordinatesReadout{
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        z-index: 9998;
+        min-width: 260px;
+        max-width: min(92vw, 520px);
+        padding: 9px 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,.94);
+        border: 1px solid rgba(17, 153, 142, 0.18);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, .12);
+        backdrop-filter: blur(10px);
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        transition: opacity .18s ease, transform .18s ease, background-color .24s ease, border-color .24s ease;
+      }
+
+      #mapCoordinatesReadout .coords-title{
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        color: #0f766e;
+        text-transform: uppercase;
+      }
+
+      #mapCoordinatesReadout .coords-value{
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: .9rem;
+        color: #1f2937;
+        white-space: nowrap;
+      }
+
+      body.dark-mode #mapCoordinatesReadout{
+        background: rgba(17, 24, 39, .92);
+        border-color: rgba(94, 234, 212, 0.22);
+        box-shadow: 0 12px 26px rgba(0, 0, 0, .34);
+      }
+
+      body.dark-mode #mapCoordinatesReadout .coords-title{
+        color: #99f6e4;
+      }
+
+      body.dark-mode #mapCoordinatesReadout .coords-value{
+        color: #e5e7eb;
+      }
+
+      @media (max-width: 768px) {
+        #mapCoordinatesReadout{
+          bottom: 12px;
+          min-width: 220px;
+          padding: 8px 12px;
+        }
+
+        #mapCoordinatesReadout .coords-value{
+          font-size: .82rem;
+        }
       }
 
       .fab {
@@ -813,6 +954,48 @@
     cursor:move;
     transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
+  #layerPanel .layer-list li.layer-item--stacked{
+    display:block;
+    cursor:default;
+  }
+  #layerPanel .layer-list li.layer-item--stacked[draggable="true"]{
+    cursor:move;
+  }
+  #layerPanel .layer-item-main{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+  }
+  #layerPanel .layer-item-subcontrol{
+    margin-top:8px;
+    padding-left:32px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  #layerPanel .layer-item-subcontrol label{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:#475569;
+    text-transform:uppercase;
+  }
+  #layerPanel .layer-item-subcontrol select{
+    width:100%;
+    min-height:34px;
+    border:1px solid rgba(148,163,184,.4);
+    border-radius:10px;
+    background:#f8fafc;
+    color:#0f172a;
+    padding:6px 10px;
+    font-size:13px;
+  }
+  #layerPanel .layer-item-subhint{
+    font-size:11px;
+    color:#64748b;
+    line-height:1.35;
+  }
   #layerPanel .layer-list li:hover{
     transform:translateY(-1px);
     box-shadow:0 8px 16px rgba(15,23,42,.08);
@@ -957,6 +1140,17 @@
     border-color:rgba(226, 232, 240, .24);
     box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .24);
   }
+  body.dark-mode #layerPanel .layer-item-subcontrol label{
+    color:#cbd5e1;
+  }
+  body.dark-mode #layerPanel .layer-item-subcontrol select{
+    background:#0f172a;
+    color:#e2e8f0;
+    border-color:rgba(71,85,105,.8);
+  }
+  body.dark-mode #layerPanel .layer-item-subhint{
+    color:#94a3b8;
+  }
   body.dark-mode #layerPanelBody{
     scrollbar-color: rgba(159, 227, 219, .5) rgba(159, 227, 219, .12);
   }
@@ -977,7 +1171,8 @@
   }
   body.ui-modal-open #layerPanel,
   body.ui-modal-open .fab,
-  body.ui-modal-open #fabMenu{
+  body.ui-modal-open #fabMenu,
+  body.ui-modal-open #mapCoordinatesReadout{
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -1130,6 +1325,9 @@
   body.dark-mode .download-section-card{
     background: rgba(30, 41, 59, .62);
     border-color: rgba(148, 163, 184, .18);
+  }
+  body.dark-mode .capas-admin-panel-card .table-responsive{
+    border-color:#444;
   }
   body.dark-mode .download-row{
     border-bottom-color: rgba(71, 85, 105, 0.9);
@@ -1328,10 +1526,17 @@
       <hr style="margin:8px 0" />
       <div class="panel-title-static"><span>Capas base</span></div>
       <ul class="layer-list" id="listBase">
-        <li draggable="true" data-layer="HEAT">
-          <input type="checkbox" checked />
-          <span class="layer-marker layer-marker--pill" data-marker="HEAT"></span>
-          <span class="layer-item-label">Mapa de calor WQI</span>
+        <li draggable="true" data-layer="HEAT" class="layer-item--stacked">
+          <div class="layer-item-main">
+            <input type="checkbox" checked />
+            <span class="layer-marker" data-marker="HEAT"></span>
+            <span class="layer-item-label">Mapa de calor WQI</span>
+          </div>
+          <div class="layer-item-subcontrol">
+            <label for="heatmapGroupSelect">Fuente del heatmap</label>
+            <select id="heatmapGroupSelect" aria-label="Seleccionar grupo para el heatmap WQI"></select>
+            <span class="layer-item-subhint" id="heatmapGroupHint">Seleccioná el grupo que querés interpolar.</span>
+          </div>
         </li>
         <li draggable="true" data-layer="PATINO">
           <input type="checkbox" checked />
@@ -1343,10 +1548,14 @@
 
     </div>
     <div id="map"></div>
+    <div id="mapCoordinatesReadout" aria-live="polite">
+      <div class="coords-title">Coordenadas del mapa · EPSG:4326</div>
+      <div class="coords-value" id="mapCoordinatesValue">Mové el cursor sobre el mapa</div>
+    </div>
 
     {% if not user.is_authenticated %}
     <div class="modal fade" id="modalLogin" tabindex="-1" aria-labelledby="modalLoginLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-lg modal-dialog-centered auth-modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="modalLoginLabel">Acceso</h5>
@@ -1359,7 +1568,7 @@
             </div>
             <div class="auth-mode-switch" role="tablist" aria-label="Elegir modo de acceso">
               <button type="button" class="auth-mode-btn is-active" id="authModeLoginBtn" onclick="setModalAuthMode('login')">Iniciar sesi&oacute;n</button>
-              <button type="button" class="auth-mode-btn" id="authModeRegisterBtn" onclick="setModalAuthMode('register')">Registrarse</button>
+              <button type="button" class="auth-mode-btn" id="authModeRegisterBtn" onclick="setModalAuthMode('register')">Solicitar acceso</button>
             </div>
 
             <div class="auth-panels" id="modalAuthPanels">
@@ -1378,7 +1587,7 @@
                   </div>
                   <div class="login-modal-links">
                     <a href="{% url 'password_reset' %}">&iquest;Olvidaste tu contrase&ntilde;a?</a>
-                    <a href="#" onclick="event.preventDefault(); setModalAuthMode('register');">Crear cuenta</a>
+                    <a href="#" onclick="event.preventDefault(); setModalAuthMode('register');">Solicitar acceso</a>
                   </div>
                 </form>
               </div>
@@ -1388,16 +1597,34 @@
                 <form id="modalRegisterForm" method="post" action="{% url 'register' %}">
                   {% csrf_token %}
                   <input type="hidden" name="modal_register" value="1">
-                  <div class="mb-3">
-                    <label class="form-label" for="modalRegisterUsername">Usuario</label>
-                    <input type="text" class="form-control" id="modalRegisterUsername" name="username" placeholder="Eleg&iacute; un usuario" autocomplete="username">
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label" for="modalRegisterPassword">Contrase&ntilde;a</label>
-                    <input type="password" class="form-control" id="modalRegisterPassword" name="password" placeholder="Defin&iacute; una contrase&ntilde;a" autocomplete="new-password">
+                  <div class="auth-register-grid">
+                    <div>
+                      <label class="form-label" for="modalRegisterFirstName">Nombre</label>
+                      <input type="text" class="form-control" id="modalRegisterFirstName" name="first_name" placeholder="Tu nombre" autocomplete="given-name" required pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’ -]+" title="Ingresá solo letras, espacios, guiones o apóstrofes.">
+                    </div>
+                    <div>
+                      <label class="form-label" for="modalRegisterLastName">Apellido</label>
+                      <input type="text" class="form-control" id="modalRegisterLastName" name="last_name" placeholder="Tu apellido" autocomplete="family-name" required pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’ -]+" title="Ingresá solo letras, espacios, guiones o apóstrofes.">
+                    </div>
+                    <div>
+                      <label class="form-label" for="modalRegisterCedula">C&eacute;dula</label>
+                      <input type="text" class="form-control" id="modalRegisterCedula" name="cedula" placeholder="Tu n&uacute;mero de c&eacute;dula" inputmode="numeric" required>
+                    </div>
+                    <div>
+                      <label class="form-label" for="modalRegisterUsername">Usuario</label>
+                      <input type="text" class="form-control" id="modalRegisterUsername" name="username" placeholder="Eleg&iacute; un usuario" autocomplete="username" required>
+                    </div>
+                    <div class="span-2">
+                      <label class="form-label" for="modalRegisterEmail">Correo electr&oacute;nico</label>
+                      <input type="email" class="form-control" id="modalRegisterEmail" name="email" placeholder="tu.correo@ejemplo.com" autocomplete="email" required>
+                    </div>
+                    <div class="span-2">
+                      <label class="form-label" for="modalRegisterPassword">Contrase&ntilde;a</label>
+                      <input type="password" class="form-control" id="modalRegisterPassword" name="password" placeholder="Defin&iacute; una contrase&ntilde;a" autocomplete="new-password" required>
+                    </div>
                   </div>
                   <div class="auth-panel-note">
-                    Todav&iacute;a en fase de prueba.
+                    Tu acceso quedar&aacute; pendiente hasta que un administrador apruebe la solicitud. Nombre, apellido y c&eacute;dula son obligatorios.
                   </div>
                   <div class="login-modal-links">
                     <a href="#" onclick="event.preventDefault(); setModalAuthMode('login');">Ya tengo cuenta</a>
@@ -1409,7 +1636,7 @@
           <div class="modal-footer">
             <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancelar</button>
             <button class="btn btn-success" type="submit" form="modalLoginForm" id="modalLoginSubmit">Entrar</button>
-            <button class="btn btn-primary d-none" type="submit" form="modalRegisterForm" id="modalRegisterSubmit">Crear cuenta</button>
+            <button class="btn btn-primary d-none" type="submit" form="modalRegisterForm" id="modalRegisterSubmit">Enviar solicitud</button>
           </div>
         </div>
       </div>
@@ -1456,9 +1683,7 @@ function abrirModalLogin() {
 function updateModalAuthHeight() {
   const panels = document.getElementById('modalAuthPanels');
   if (!panels) return;
-  const activePanel = panels.querySelector('.auth-panel.is-active');
-  if (!activePanel) return;
-  panels.style.height = `${activePanel.scrollHeight}px`;
+  panels.style.height = '';
 }
 
 function setModalAuthMode(mode) {
@@ -1482,11 +1707,11 @@ function setModalAuthMode(mode) {
   registerBtn?.classList.toggle('is-active', isRegister);
 
   if (heroTitle) {
-    heroTitle.textContent = isRegister ? 'Creá tu cuenta' : 'Accedé a tus herramientas';
+    heroTitle.textContent = isRegister ? 'Solicitá acceso' : 'Accedé a tus herramientas';
   }
   if (heroText) {
     heroText.textContent = isRegister
-      ? 'Registrate sin salir del mapa para empezar a subir puntos y trabajar con tus capas.'
+      ? 'Completá tus datos para enviar una solicitud de acceso. Un administrador deberá aprobarla antes de habilitar tu cuenta.'
       : 'Iniciá sesión para subir puntos, gestionar capas y editar solo tu información dentro del visor.';
   }
   if (loginError) {
@@ -1498,9 +1723,7 @@ function setModalAuthMode(mode) {
     registerError.textContent = '';
   }
 
-  requestAnimationFrame(() => {
-    updateModalAuthHeight();
-  });
+  updateModalAuthHeight();
 }
 
 async function enviarLoginModal(event) {
@@ -1552,7 +1775,7 @@ async function enviarRegistroModal(event) {
   errorBox.classList.add('d-none');
   errorBox.textContent = '';
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Creando...';
+  submitBtn.textContent = 'Enviando...';
 
   try {
     const response = await fetch(form.action, {
@@ -1566,18 +1789,29 @@ async function enviarRegistroModal(event) {
 
     const data = await response.json();
     if (response.ok && data.success) {
-      window.location.href = data.redirect_url || '/mapa-muestreo/';
+      const modalEl = document.getElementById('modalLogin');
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Solicitud enviada',
+        text: data.message || 'La solicitud de acceso fue enviada correctamente.',
+      });
+      form.reset();
+      setModalAuthMode('login');
       return;
     }
 
-    errorBox.textContent = data.error || 'No se pudo crear la cuenta.';
+    const fieldErrors = Object.values(data.field_errors || {}).flat();
+    errorBox.textContent = fieldErrors.length
+      ? `${data.error || 'No se pudo enviar la solicitud.'} ${fieldErrors.join(' ')}`
+      : (data.error || 'No se pudo enviar la solicitud.');
     errorBox.classList.remove('d-none');
   } catch (_) {
-    errorBox.textContent = 'Ocurrió un error al registrar la cuenta. Intentá de nuevo.';
+    errorBox.textContent = 'Ocurrió un error al enviar la solicitud. Intentá de nuevo.';
     errorBox.classList.remove('d-none');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Crear cuenta';
+    submitBtn.textContent = 'Enviar solicitud';
   }
 }
 
@@ -1587,7 +1821,7 @@ let previewLayerMap = null;
 let previewLayerOverlay = null;
 let previewingLayerId = null;
 let reopenCapasAfterPreview = false;
-let solicitudesPublicacionState = { pending: [], resolved: [] };
+let solicitudesPublicacionState = { pending: [], resolved: [], userPending: [], userResolved: [] };
 const LAYER_PANEL_MINIMIZED_KEY = 'layer-panel-minimized-v1';
 const LAYER_PANEL_SECTIONS_KEY = 'layer-panel-sections-v1';
 
@@ -1608,7 +1842,7 @@ document.addEventListener('DOMContentLoaded', function () {
       updateModalAuthHeight();
       const registerVisible = document.getElementById('authPanelRegister')?.classList.contains('is-active');
       if (registerVisible) {
-        document.getElementById('modalRegisterUsername')?.focus();
+        document.getElementById('modalRegisterFirstName')?.focus();
       } else {
         document.getElementById('modalLoginUsername')?.focus();
       }
@@ -1779,6 +2013,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // helper de formato
   function format(val){ return val != null && !isNaN(val) ? Number(val).toFixed(3) : 'N/D'; }
+  const mapCoordinatesValueEl = document.getElementById('mapCoordinatesValue');
+
+  function formatMapCoordinate(value) {
+    return Number.isFinite(value) ? value.toFixed(6) : 'N/D';
+  }
+
+  function updateMapCoordinatesReadout(latlng) {
+    if (!mapCoordinatesValueEl || !latlng) return;
+    mapCoordinatesValueEl.textContent = `Lat ${formatMapCoordinate(latlng.lat)} · Lon ${formatMapCoordinate(latlng.lng)}`;
+  }
+
+  function resetMapCoordinatesReadout() {
+    if (!mapCoordinatesValueEl) return;
+    mapCoordinatesValueEl.textContent = 'Mové el cursor sobre el mapa';
+  }
+
+  map.on('mousemove', function (event) {
+    updateMapCoordinatesReadout(event.latlng);
+  });
+
+  map.getContainer().addEventListener('mouseleave', resetMapCoordinatesReadout);
+  document.querySelectorAll('.modal').forEach((modalEl) => {
+    modalEl.addEventListener('show.bs.modal', resetMapCoordinatesReadout);
+  });
 
   /* ================================
      Capas â€œfijasâ€ del visor
@@ -1814,6 +2072,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let mostrarTodosLosPuntos = true;
 
   const WQI_MIN_REQUIRED_PARAMS = 6;
+  const HEATMAP_GROUP_STORAGE_KEY = 'mapa_muestreo_heatmap_group_v1';
   const WQI_PARAM_CONFIG = [
     { key: 'conductivi', label: 'Conductividad eléctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
     { key: 'alcalinida', label: 'Alcalinidad total', unit: 'mg/L', standard: 250, weight: 5 },
@@ -1847,6 +2106,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let pointColorState = loadColorState(POINT_COLOR_STORAGE_KEY);
   let layerColorState = loadColorState(LAYER_COLOR_STORAGE_KEY);
+  let heatmapSelectedGroup = localStorage.getItem(HEATMAP_GROUP_STORAGE_KEY) || '';
 
   function normalizePointGroupKey(group) {
     return (group || 'SIN_GRUPO').trim().toUpperCase();
@@ -1920,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function getPointLegendBackground() {
     const groupColors = [...metadatosGruposPuntos.entries()]
-      .filter(([, meta]) => (meta?.total || 0) > 0)
+      .filter(([, meta]) => (meta?.visibleTotal || 0) > 0)
       .map(([group, meta]) => getPointGroupColor(group, !!meta?.tienePropios));
     return buildLegendBackgroundFromColors(groupColors, '#00BCD4');
   }
@@ -1938,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const heatMarker = listBase?.querySelector('[data-marker="HEAT"]');
     const patinoMarker = listBase?.querySelector('[data-marker="PATINO"]');
     if (pointMarker) pointMarker.style.background = getPointLegendBackground();
-    if (heatMarker) heatMarker.style.background = getHeatLegendBackground();
+    if (heatMarker) applyImageMarker(heatMarker, RASTER_MARKER_IMAGE_URL);
     if (patinoMarker) patinoMarker.style.background = getPatinoLegendBackground();
   }
 
@@ -2083,18 +2343,80 @@ document.addEventListener('DOMContentLoaded', function () {
     return '#c0392b';
   }
 
+  function getHeatmapSelectableGroups() {
+    return [...metadatosGruposPuntos.entries()]
+      .filter(([, meta]) => IS_AUTH ? ((meta?.publicActiveTotal || 0) > 0 || (meta?.ownActiveTotal || 0) > 0) : (meta?.publicActiveTotal || 0) > 0)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([grupo, meta]) => ({
+        grupo,
+        count: IS_AUTH ? ((meta?.publicActiveTotal || 0) + (meta?.ownActiveTotal || 0)) : (meta?.publicActiveTotal || 0),
+        isOwn: !!meta?.tienePropios,
+        isPublic: !!meta?.tienePublicos
+      }));
+  }
+
+  function ensureHeatmapGroupSelection() {
+    const groups = getHeatmapSelectableGroups();
+    const selectedStillExists = groups.some(item => item.grupo === heatmapSelectedGroup);
+    if (!selectedStillExists) {
+      heatmapSelectedGroup = groups[0]?.grupo || '';
+      if (heatmapSelectedGroup) {
+        localStorage.setItem(HEATMAP_GROUP_STORAGE_KEY, heatmapSelectedGroup);
+      } else {
+        localStorage.removeItem(HEATMAP_GROUP_STORAGE_KEY);
+      }
+    }
+    return groups;
+  }
+
+  function renderHeatmapGroupControl() {
+    const select = document.getElementById('heatmapGroupSelect');
+    const hint = document.getElementById('heatmapGroupHint');
+    if (!select || !hint) return;
+
+    const groups = ensureHeatmapGroupSelection();
+
+    if (!groups.length) {
+      select.innerHTML = '<option value="">Sin grupos disponibles</option>';
+      select.disabled = true;
+      hint.textContent = 'No hay grupos de puntos disponibles para calcular el heatmap.';
+      return;
+    }
+
+    select.innerHTML = groups.map(item => {
+      const suffix = item.isOwn && item.isPublic ? ' · propio y público'
+        : item.isOwn ? ' · propio'
+        : item.isPublic ? ' · público' : '';
+      return `<option value="${item.grupo}">${item.grupo} (${item.count})${suffix}</option>`;
+    }).join('');
+    select.disabled = groups.length <= 1;
+    select.value = heatmapSelectedGroup;
+
+    const selectedMeta = groups.find(item => item.grupo === heatmapSelectedGroup) || groups[0];
+    if (selectedMeta) {
+      hint.textContent = `Mostrando el heatmap WQI del grupo ${selectedMeta.grupo}.`;
+    }
+  }
+
   function reconstruirHeatmap() {
     if (!heatLayer || !muestreoLayer) return;
+
+    const groups = ensureHeatmapGroupSelection();
+    const selectedGroup = heatmapSelectedGroup || groups[0]?.grupo || '';
 
     const puntosHeat = [];
     muestreoLayer.eachLayer(layer => {
       const props = layer.feature?.properties || {};
       const grupo = obtenerGrupoPunto(props);
       const grupoVisible = estadoGruposPuntos.has(grupo) ? estadoGruposPuntos.get(grupo) : true;
-      const esVisible = (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
-      const esPublico = !!props.publico || !props.user;
+      const puntoActivo = props.activo !== false;
+      const esVisible = puntoActivo && (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
+      const esAccesible = IS_AUTH
+        ? (!!props.publico || esPuntoDelUsuarioActual(props))
+        : (!!props.publico || !props.user);
 
-      if (!esVisible || !esPublico) return;
+      if (!esVisible || !esAccesible) return;
+      if (selectedGroup && grupo !== selectedGroup) return;
 
       const latlng = layer.getLatLng?.();
       if (!latlng) return;
@@ -2107,6 +2429,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     heatLayer.setLatLngs(puntosHeat);
     heatLayer.redraw?.();
+    renderHeatmapGroupControl();
   }
   window.reconstruirHeatmap = reconstruirHeatmap;
 
@@ -2293,7 +2616,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const props = layer.feature?.properties || {};
       const grupo = obtenerGrupoPunto(props);
       const grupoVisible = estadoGruposPuntos.has(grupo) ? estadoGruposPuntos.get(grupo) : true;
-      const visible = (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
+      const puntoActivo = props.activo !== false;
+      const visible = puntoActivo && (!esPuntoDelUsuarioActual(props) || mostrarTodosLosPuntos) && grupoVisible;
       const cumpleFiltro = puntoCumpleFiltro(props);
       const mostrarNoCoinciden = getFiltroPuntosEstado().mostrarNoCoinciden !== false;
       const filtroActivo = hayFiltroPuntosActivo();
@@ -2334,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function getOwnPointGroups() {
     return [...metadatosGruposPuntos.entries()]
-      .filter(([, meta]) => !!meta?.tienePropios)
+      .filter(([, meta]) => !!meta?.tienePropios && meta?.activoPropio !== false)
       .map(([grupo]) => grupo);
   }
 
@@ -2432,17 +2756,18 @@ document.addEventListener('DOMContentLoaded', function () {
     [...metadatosGruposPuntos.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([grupo, meta]) => {
-        if (meta.tienePropios && listPropiasPuntos) {
-          listPropiasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.ownTotal || 0));
+        if (meta.tienePropios && meta.activoPropio !== false && listPropiasPuntos) {
+          listPropiasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.ownActiveTotal || 0));
         }
-        if (meta.tienePublicos && !meta.tienePropios && listPublicasPuntos) {
-          listPublicasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.publicTotal || 0));
+        if (meta.tienePublicos && !meta.tienePropios && listPublicasPuntos && (meta.publicActiveTotal || 0) > 0) {
+          listPublicasPuntos.appendChild(buildPanelPointGroupItem(grupo, meta, meta.publicActiveTotal || 0));
         }
       });
 
     sincronizarToggleMisPuntosDesdeGrupos();
     setBadge();
     syncBaseLegendMarkers();
+    renderHeatmapGroupControl();
   }
 
   function refreshPointGroupStyles(targetGroup = null) {
@@ -2523,7 +2848,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const esDelUsuario = esPuntoDelUsuarioActual(p);
       p.grupo = obtenerGrupoPunto(p);
       p.publico = !!p.publico || !p.user;
-      estadoGruposPuntos.set(p.grupo, true);
+      p.activo = p.activo !== false;
+      if (!estadoGruposPuntos.has(p.grupo)) {
+        estadoGruposPuntos.set(p.grupo, p.activo);
+      } else if (p.activo) {
+        estadoGruposPuntos.set(p.grupo, true);
+      }
       const metaGrupo = metadatosGruposPuntos.get(p.grupo) || {
         tienePropios: false,
         tienePublicos: false,
@@ -2531,17 +2861,29 @@ document.addEventListener('DOMContentLoaded', function () {
         comentarioSolicitud: '',
         total: 0,
         ownTotal: 0,
-        publicTotal: 0
+        publicTotal: 0,
+        ownActiveTotal: 0,
+        publicActiveTotal: 0,
+        visibleTotal: 0,
+        activoPropio: null
       };
       metaGrupo.total += 1;
       metaGrupo.tienePropios = metaGrupo.tienePropios || esDelUsuario;
       metaGrupo.tienePublicos = metaGrupo.tienePublicos || p.publico;
-      if (esDelUsuario) metaGrupo.ownTotal += 1;
+      if (esDelUsuario) {
+        metaGrupo.ownTotal += 1;
+        metaGrupo.activoPropio = metaGrupo.activoPropio === null ? p.activo : (metaGrupo.activoPropio || p.activo);
+        if (p.activo) metaGrupo.ownActiveTotal += 1;
+      }
       if (esDelUsuario && SOLICITUDES_GRUPO[p.grupo]) {
         metaGrupo.estadoSolicitud = SOLICITUDES_GRUPO[p.grupo].estado || null;
         metaGrupo.comentarioSolicitud = SOLICITUDES_GRUPO[p.grupo].comentario || '';
       }
-      if (p.publico) metaGrupo.publicTotal += 1;
+      if (p.publico) {
+        metaGrupo.publicTotal += 1;
+        if (p.activo) metaGrupo.publicActiveTotal += 1;
+      }
+      metaGrupo.visibleTotal = (metaGrupo.ownActiveTotal || 0) + (metaGrupo.publicActiveTotal || 0);
       metadatosGruposPuntos.set(p.grupo, metaGrupo);
       layer.__visibleStyle = estiloPuntoVisible(feature);
 
@@ -2620,6 +2962,10 @@ if (btnWQI) {
   btnWQI.addEventListener("click", function () {
 
     if (!puntoActual) return;
+    if ((btnWQI.dataset.mode || 'detalle') === 'wqi') {
+      renderDetallePunto(puntoActual);
+      return;
+    }
 
     const readiness = getWqiReadiness(puntoActual);
     if (!readiness.isReady) {
@@ -2766,6 +3112,7 @@ if (btnWQI) {
         </td>
       </tr>
     `;
+    actualizarAccionDetallePunto('wqi');
 
   });
 
@@ -2843,8 +3190,80 @@ if (btnWQI) {
     new bootstrap.Modal(document.getElementById("nuevoPuntoModal")).show();
   };
 
+  const POINT_UPLOAD_MODE_CONFIG = {
+    csv: {
+      key: 'csv',
+      sourceLabel: 'CSV',
+      modalTitle: 'Carga masiva de puntos por CSV',
+      fileLabel: 'Archivo CSV',
+      accept: '.csv,.txt',
+      heroTitle: 'Subí un CSV sin perder tiempo',
+      heroBody: 'Primero elegí el grupo, el archivo CSV y el sistema de coordenadas de origen. La vista previa técnica se genera sola y las advertencias quedan resumidas abajo.',
+      implementationNotice: '',
+      instructionsLead: 'El archivo debe estar en formato <code>CSV</code> o <code>TSV</code>, con encabezados en la primera fila.',
+      triggerWarning: 'Elegí un CSV antes de continuar.'
+    },
+    excel: {
+      key: 'excel',
+      sourceLabel: 'Excel',
+      modalTitle: 'Carga masiva de puntos por Excel',
+      fileLabel: 'Archivo Excel',
+      accept: '.xlsx,.xlsm',
+      heroTitle: 'Subí un Excel en formato tabular',
+      heroBody: 'Primero elegí el grupo, la planilla y el sistema de coordenadas de origen. La vista previa técnica se genera sola y las advertencias quedan resumidas abajo.',
+      implementationNotice: '<strong>Excel en fase de implementación.</strong> Ya podés subir archivos <code>.xlsx</code>, pero por ahora se recomienda una sola hoja, encabezados en la primera fila y columnas estrictamente tabulares, sin celdas fusionadas ni notas auxiliares.',
+      instructionsLead: 'El archivo debe estar en formato <code>Excel (.xlsx)</code> con encabezados en la primera fila y estructura tabular simple.',
+      triggerWarning: 'Elegí un Excel antes de continuar.'
+    }
+  };
+  let pointUploadMode = 'csv';
+
+  function configurarModalCargaTabularPuntos(mode) {
+    const config = POINT_UPLOAD_MODE_CONFIG[mode] || POINT_UPLOAD_MODE_CONFIG.csv;
+    pointUploadMode = config.key;
+
+    const titleEl = document.getElementById('modalCargaPuntosCsvLabel');
+    const fileLabelEl = document.querySelector('label[for="archivoPuntosCsv"]');
+    const fileInputEl = document.getElementById('archivoPuntosCsv');
+    const heroTitleEl = document.getElementById('pointUploadHeroTitle');
+    const heroBodyEl = document.getElementById('pointUploadHeroBody');
+    const implementationEl = document.getElementById('pointUploadImplementationNotice');
+    const instructionsLeadEl = document.getElementById('pointUploadInstructionsLead');
+    const previewTitleEl = document.getElementById('modalVistaPreviaCsvLabel');
+
+    if (titleEl) titleEl.textContent = config.modalTitle;
+    if (fileLabelEl) fileLabelEl.textContent = config.fileLabel;
+    if (fileInputEl) fileInputEl.setAttribute('accept', config.accept);
+    if (heroTitleEl) heroTitleEl.textContent = config.heroTitle;
+    if (heroBodyEl) heroBodyEl.textContent = config.heroBody;
+    if (instructionsLeadEl) instructionsLeadEl.innerHTML = `<strong>Formato estricto requerido.</strong> ${config.instructionsLead}`;
+    if (previewTitleEl) previewTitleEl.textContent = `Vista previa de carga ${config.sourceLabel}`;
+
+    if (implementationEl) {
+      if (config.implementationNotice) {
+        implementationEl.innerHTML = config.implementationNotice;
+        implementationEl.style.display = '';
+      } else {
+        implementationEl.innerHTML = '';
+        implementationEl.style.display = 'none';
+      }
+    }
+
+    resetTabularPointPreviewState();
+    const previewPanel = document.getElementById('csvPreviewPanel');
+    if (previewPanel) previewPanel.style.display = 'none';
+    if (fileInputEl) fileInputEl.value = '';
+  }
+
   window.abrirCargaCsvPuntos = function () {
     bootstrap.Modal.getInstance(document.getElementById("modalCargaPuntos"))?.hide();
+    configurarModalCargaTabularPuntos('csv');
+    new bootstrap.Modal(document.getElementById("modalCargaPuntosCsv")).show();
+  };
+
+  window.abrirCargaExcelPuntos = function () {
+    bootstrap.Modal.getInstance(document.getElementById("modalCargaPuntos"))?.hide();
+    configurarModalCargaTabularPuntos('excel');
     new bootstrap.Modal(document.getElementById("modalCargaPuntosCsv")).show();
   };
 
@@ -2915,8 +3334,186 @@ if (btnWQI) {
     totalRows: 0,
     delimiter: ',',
     missingRequired: [],
-    coordinateWarning: null
+    coordinateWarning: null,
+    sourceLabel: '',
+    fileType: '',
+    sheetName: '',
+    implementationWarning: ''
   };
+
+  function resetTabularPointPreviewState() {
+    csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
+    csvPreviewTableState = {
+      headers: [],
+      rows: [],
+      recognized: [],
+      insufficientRows: [],
+      totalRows: 0,
+      delimiter: ',',
+      missingRequired: [],
+      coordinateWarning: null,
+      sourceLabel: '',
+      fileType: '',
+      sheetName: '',
+      implementationWarning: ''
+    };
+  }
+
+  function renderPreviewPanelFromState() {
+    const resumen = document.getElementById('csvPreviewResumen');
+    const columnas = document.getElementById('csvPreviewColumnas');
+    const faltantes = document.getElementById('csvPreviewFaltantes');
+    const panel = document.getElementById('csvPreviewPanel');
+    if (!resumen || !columnas || !faltantes || !panel) return;
+
+    const state = csvPreviewTableState;
+    if (!state.headers.length) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    const delimiterLabel = state.fileType === 'excel'
+      ? 'Excel'
+      : (state.delimiter === '\t' ? 'Tabulación' : (state.delimiter || ','));
+    const sheetHtml = state.sheetName
+      ? `<div class="csv-preview-card"><strong>Hoja</strong><span>${escapeHtml(state.sheetName)}</span></div>`
+      : '';
+
+    resumen.innerHTML = `
+      <div class="csv-preview-summary">
+        <div class="csv-preview-card">
+          <strong>Origen</strong>
+          <span>${escapeHtml(state.sourceLabel || 'Archivo tabular')}</span>
+        </div>
+        <div class="csv-preview-card">
+          <strong>Filas detectadas</strong>
+          <span>${state.totalRows}</span>
+        </div>
+        <div class="csv-preview-card">
+          <strong>Columnas detectadas</strong>
+          <span>${state.headers.length}</span>
+        </div>
+        <div class="csv-preview-card">
+          <strong>Separación</strong>
+          <span>${escapeHtml(delimiterLabel)}</span>
+        </div>
+        ${sheetHtml}
+      </div>
+    `;
+
+    columnas.innerHTML = state.recognized.length
+      ? `<div class="csv-preview-columns">${state.recognized.map(col => `<span class="badge bg-success">${escapeHtml(col)}</span>`).join('')}</div>`
+      : '<div class="csv-preview-alert csv-preview-alert--danger">No se reconoció ninguna columna compatible.</div>';
+
+    const advertencias = [];
+    if (state.implementationWarning) {
+      advertencias.push(`
+        <div class="csv-preview-alert csv-preview-alert--warning">
+          <strong>Fase de implementación</strong>
+          <div class="mt-1">${escapeHtml(state.implementationWarning)}</div>
+        </div>
+      `);
+    }
+    if (state.missingRequired.length) {
+      advertencias.push(`<div class="csv-preview-alert csv-preview-alert--danger"><strong>Faltan columnas requeridas.</strong><div class="mt-1">${state.missingRequired.map(escapeHtml).join(', ')}</div></div>`);
+    } else {
+      advertencias.push('<div class="csv-preview-alert csv-preview-alert--success"><strong>Estructura mínima válida.</strong><div class="mt-1">Se detectaron las columnas requeridas para importar puntos.</div></div>');
+    }
+    if (state.coordinateWarning) {
+      const samplesHtml = (state.coordinateWarning.samples || [])
+        .map(sample => `<li>Fila ${sample.rowIndex}: x=${escapeHtml(sample.x)}, y=${escapeHtml(sample.y)}</li>`)
+        .join('');
+      advertencias.unshift(`
+        <div class="csv-preview-alert csv-preview-alert--danger">
+          <strong>Posible sistema de coordenadas incorrecto.</strong>
+          <div class="mt-1">
+            Elegiste <code>EPSG:${state.coordinateWarning.selectedSrid}</code>, pero por el rango de coordenadas este archivo parece venir en <code>EPSG:${state.coordinateWarning.probableSrid}</code>.
+          </div>
+          <div class="mt-2 small">
+            Si elegís el SRID correcto de origen, el sistema convertirá automáticamente los puntos a <code>EPSG:4326</code> para que se vean en el mapa.
+          </div>
+          <ul class="mt-2 mb-0">${samplesHtml}</ul>
+        </div>
+      `);
+    }
+    if (state.insufficientRows.length) {
+      const detalle = state.insufficientRows
+        .slice(0, 8)
+        .map(item => `<li>${escapeHtml(item.name)} (${item.availableCount}/${WQI_PARAM_CONFIG.length} parámetros críticos)</li>`)
+        .join('');
+      const extra = state.insufficientRows.length > 8
+        ? `<div class="small text-muted mt-1">Y ${state.insufficientRows.length - 8} punto(s) más.</div>`
+        : '';
+      advertencias.push(`
+        <div class="csv-preview-alert csv-preview-alert--warning">
+          <strong>Advertencia WQI</strong>
+          <div class="mt-1">${state.insufficientRows.length} punto(s) no alcanzan el mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos para calcular WQI.</div>
+          <ul class="mb-0 mt-1">${detalle}</ul>
+          ${extra}
+        </div>
+      `);
+    } else if (state.totalRows > 0) {
+      advertencias.push(`<div class="csv-preview-alert csv-preview-alert--success"><strong>WQI disponible.</strong><div class="mt-1">Todos los puntos del archivo cumplen el mínimo de ${WQI_MIN_REQUIRED_PARAMS} parámetros críticos para WQI.</div></div>`);
+    }
+
+    faltantes.innerHTML = advertencias.join('');
+    panel.style.display = 'block';
+  }
+
+  async function solicitarPreviewPuntosTabular() {
+    const archivo = document.getElementById('archivoPuntosCsv')?.files?.[0];
+    const panel = document.getElementById('csvPreviewPanel');
+    if (!archivo) {
+      resetTabularPointPreviewState();
+      if (panel) panel.style.display = 'none';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    formData.append('srid', document.getElementById('sridPuntosCsv')?.value || '32721');
+
+    try {
+      const response = await fetch('/preview-puntos-tabular/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        body: formData
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(decodeMojibake(data.error || 'No se pudo generar la vista previa.'));
+      }
+
+      const preview = data.preview || {};
+      csvWqiPreviewState = {
+        insufficientRows: preview.insufficient_rows || [],
+        totalRows: preview.total_rows || 0
+      };
+      csvPreviewTableState = {
+        headers: preview.headers || [],
+        rows: preview.rows || [],
+        recognized: preview.recognized || [],
+        insufficientRows: preview.insufficient_rows || [],
+        totalRows: preview.total_rows || 0,
+        delimiter: preview.delimiter || ',',
+        missingRequired: preview.missing_required || [],
+        coordinateWarning: preview.coordinate_warning ? {
+          selectedSrid: preview.coordinate_warning.selected_srid,
+          probableSrid: preview.coordinate_warning.probable_srid,
+          samples: preview.coordinate_warning.samples || []
+        } : null,
+        sourceLabel: preview.source_label || '',
+        fileType: preview.file_type || '',
+        sheetName: preview.sheet_name || '',
+        implementationWarning: preview.implementation_warning || ''
+      };
+      renderPreviewPanelFromState();
+    } catch (error) {
+      resetTabularPointPreviewState();
+      if (panel) panel.style.display = 'none';
+      Swal.fire('Error', error.message || 'No se pudo leer el archivo para la vista previa.', 'error');
+    }
+  }
 
   function buildWqiWarningHtml(readiness, titleText = 'Advertencia WQI') {
     const available = readiness.availableParams.map(param => param.label).join(', ') || 'Ninguno';
@@ -3144,7 +3741,7 @@ if (btnWQI) {
     if (insufficientRows.length) {
       const detalle = insufficientRows
         .slice(0, 8)
-        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} par?metros cr?ticos)</li>`)
+        .map(item => `<li>${item.name} (${item.availableCount}/${WQI_PARAM_CONFIG.length} parámetros críticos)</li>`)
         .join('');
       const extra = insufficientRows.length > 8
         ? `<div class="small text-muted mt-1">Y ${insufficientRows.length - 8} punto(s) más.</div>`
@@ -3184,6 +3781,10 @@ if (btnWQI) {
       <div class="csv-preview-table-meta">
         <div class="csv-preview-summary">
           <div class="csv-preview-card">
+            <strong>Origen</strong>
+            <span>${escapeHtml(state.sourceLabel || 'Archivo tabular')}</span>
+          </div>
+          <div class="csv-preview-card">
             <strong>Filas a cargar</strong>
             <span>${state.totalRows}</span>
           </div>
@@ -3200,6 +3801,9 @@ if (btnWQI) {
     `;
 
     const alerts = [];
+    if (state.implementationWarning) {
+      alerts.push(`<div class="csv-preview-alert csv-preview-alert--warning"><strong>Fase de implementación</strong><div class="mt-1">${escapeHtml(state.implementationWarning)}</div></div>`);
+    }
     if (state.missingRequired.length) {
       alerts.push(`<div class="csv-preview-alert csv-preview-alert--danger"><strong>Faltan columnas requeridas.</strong><div class="mt-1">${state.missingRequired.join(', ')}</div></div>`);
     }
@@ -3227,22 +3831,22 @@ if (btnWQI) {
       alerts.push(`
         <div class="csv-preview-alert csv-preview-alert--warning">
           <strong>Advertencia WQI</strong>
-          <div class="mt-1">Estos puntos se pueden cargar, pero todav?a no van a poder calcular WQI.</div>
+          <div class="mt-1">Estos puntos se pueden cargar, pero todavía no van a poder calcular WQI.</div>
           <ul>${detalle}</ul>
           ${extra}
         </div>
       `);
     } else {
-      alerts.push('<div class="csv-preview-alert csv-preview-alert--success"><strong>Sin advertencias WQI.</strong><div class="mt-1">Todos los puntos de la vista previa cumplen el m?nimo para WQI.</div></div>');
+      alerts.push('<div class="csv-preview-alert csv-preview-alert--success"><strong>Sin advertencias WQI.</strong><div class="mt-1">Todos los puntos de la vista previa cumplen el mínimo para WQI.</div></div>');
     }
     alertas.innerHTML = alerts.join('');
 
     const headHtml = [
       '<tr>',
       '<th>#</th>',
-      '<th>Nombre / c?digo</th>',
+      '<th>Nombre / código</th>',
       '<th>WQI</th>',
-      '<th>Par?metros cr?ticos</th>',
+      '<th>Parámetros críticos</th>',
       ...state.headers.map(header => `<th>${escapeHtml(header)}</th>`),
       '</tr>'
     ].join('');
@@ -3279,7 +3883,8 @@ if (btnWQI) {
   window.abrirVistaPreviaCsv = function() {
     const archivo = document.getElementById('archivoPuntosCsv')?.files?.[0];
     if (!archivo) {
-      Swal.fire('Seleccioná un archivo CSV', 'Primero elegí el archivo que querés previsualizar.', 'warning');
+      const selectedType = POINT_UPLOAD_MODE_CONFIG[pointUploadMode]?.sourceLabel || 'archivo';
+      Swal.fire('Seleccioná un archivo', `Primero elegí el ${selectedType} que querés previsualizar.`, 'warning');
       return;
     }
     if (!csvPreviewTableState.headers.length) {
@@ -3567,7 +4172,7 @@ if (btnWQI) {
         title: 'Advertencia WQI del punto',
         html: buildWqiWarningHtml(
           readiness,
-          `Este punto no alcanza el m?nimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.`
+          `Este punto no alcanza el mínimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.`
         ),
         icon: 'warning',
         showCancelButton: true,
@@ -3661,12 +4266,12 @@ if (btnWQI) {
 
   window.solicitarCambioUbicacionPunto = async function () {
     const result = await Swal.fire({
-      title: 'Cambiar ubicacion',
-      text: 'Podes seleccionar la nueva ubicacion en el mapa o cargar las coordenadas manualmente en EPSG:4326.',
+      title: 'Cambiar ubicación',
+      text: 'Podés seleccionar la nueva ubicación en el mapa o cargar las coordenadas manualmente en EPSG:4326.',
       icon: 'question',
       showCancelButton: true,
       showDenyButton: true,
-      confirmButtonText: 'Si, seleccionar',
+      confirmButtonText: 'Sí, seleccionar',
       denyButtonText: 'Ingresar coordenadas',
       cancelButtonText: 'Cancelar'
     });
@@ -3676,7 +4281,7 @@ if (btnWQI) {
       resetMapInteractionModes();
       seleccionandoEdicionPunto = true;
       map.getContainer().style.cursor = 'crosshair';
-      Swal.fire('Selecciona en el mapa', 'Hace clic en la nueva ubicacion del punto.', 'info');
+      Swal.fire('Seleccioná en el mapa', 'Hacé clic en la nueva ubicación del punto.', 'info');
       return;
     }
 
@@ -3688,7 +4293,7 @@ if (btnWQI) {
       title: 'Ingresar coordenadas',
       html: `
         <div class="text-start">
-          <p class="small text-muted mb-3">Ingresa las coordenadas manualmente en <strong>EPSG:4326</strong> (latitud y longitud, formato GPS).</p>
+          <p class="small text-muted mb-3">Ingresá las coordenadas manualmente en <strong>EPSG:4326</strong> (latitud y longitud, formato GPS).</p>
           <label for="swal_editar_lat" class="form-label">Latitud</label>
           <input id="swal_editar_lat" class="swal2-input" type="number" step="any" placeholder="-25.263700" value="${latActual}">
           <label for="swal_editar_lng" class="form-label mt-2">Longitud</label>
@@ -3703,13 +4308,13 @@ if (btnWQI) {
         const lat = document.getElementById('swal_editar_lat').value.trim();
         const lng = document.getElementById('swal_editar_lng').value.trim();
         if (!lat || !lng) {
-          Swal.showValidationMessage('Completa latitud y longitud.');
+          Swal.showValidationMessage('Completá latitud y longitud.');
           return false;
         }
         const latNum = Number(lat);
         const lngNum = Number(lng);
         if (Number.isNaN(latNum) || Number.isNaN(lngNum)) {
-          Swal.showValidationMessage('Las coordenadas deben ser numericas.');
+          Swal.showValidationMessage('Las coordenadas deben ser numéricas.');
           return false;
         }
         if (latNum < -90 || latNum > 90) {
@@ -3729,7 +4334,7 @@ if (btnWQI) {
     document.getElementById('editar_lat').value = manualResult.value.lat;
     document.getElementById('editar_lng').value = manualResult.value.lng;
     document.getElementById('editar_coords_texto').textContent = `${manualResult.value.lat.toFixed(6)}, ${manualResult.value.lng.toFixed(6)}`;
-    Swal.fire('Coordenadas actualizadas', 'La nueva ubicacion quedo cargada. Guarda los cambios para aplicarla.', 'success');
+    Swal.fire('Coordenadas actualizadas', 'La nueva ubicación quedó cargada. Guardá los cambios para aplicarla.', 'success');
   };
 
   document.getElementById("formEditarPunto").addEventListener("submit", function (e) {
@@ -3887,8 +4492,6 @@ if (btnWQI) {
     formData.append('token', previewTiffToken);
     formData.append('nombre', nombre);
     formData.append('modo_despliegue', document.querySelector('input[name="modoDespliegueTiff"]:checked')?.value || 'png');
-    formData.append('publico', document.getElementById('publicoTiff')?.checked ? 'true' : 'false');
-
     fetch('/cargar-capa-tiff/', {
       method:'POST',
       headers:{ 'X-CSRFToken': getCSRFToken() },
@@ -3943,7 +4546,11 @@ if (btnWQI) {
 window.enviarPuntosCsv = async function(){
     const form = document.getElementById('formCargaPuntosCsv');
     const archivo = document.getElementById('archivoPuntosCsv').files[0];
-    if (!archivo) { Swal.fire('⚠️ Seleccioná un archivo CSV', '', 'warning'); return; }
+    if (!archivo) {
+      const selectedType = POINT_UPLOAD_MODE_CONFIG[pointUploadMode]?.sourceLabel || 'archivo';
+      Swal.fire('Seleccioná un archivo', `Elegí un ${selectedType} antes de continuar.`, 'warning');
+      return;
+    }
 
     let sridSeleccionado = Number(document.getElementById('sridPuntosCsv')?.value || '32721');
 
@@ -3965,11 +4572,11 @@ window.enviarPuntosCsv = async function(){
         title: 'Advertencia WQI en la carga',
         html: `
           <div class="text-start">
-            <p>Hay <strong>${csvWqiPreviewState.insufficientRows.length}</strong> punto(s) del archivo que no alcanzan el m?nimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> par?metros cr?ticos para calcular WQI.</p>
+            <p>Hay <strong>${csvWqiPreviewState.insufficientRows.length}</strong> punto(s) del archivo que no alcanzan el mínimo de <strong>${WQI_MIN_REQUIRED_PARAMS}</strong> parámetros críticos para calcular WQI.</p>
             <div class="small text-muted mb-2">Estos puntos se pueden cargar igual, pero no van a poder calcular WQI de inmediato.</div>
             <ul>${detalle}</ul>
             ${extra}
-            <p class="mb-0">Pod?s cargarlos igual si quer?s continuar.</p>
+            <p class="mb-0">Podés cargarlos igual si querés continuar.</p>
           </div>
         `,
         icon: 'warning',
@@ -4027,7 +4634,7 @@ window.enviarPuntosCsv = async function(){
         title: 'Error',
         html: `
           <div>
-            <p class="mb-0">${escapeHtml(decodeMojibake(err.message || 'No se pudo subir el CSV.'))}</p>
+            <p class="mb-0">${escapeHtml(decodeMojibake(err.message || 'No se pudo subir el archivo.'))}</p>
             ${detallesHtml}
           </div>
         `,
@@ -4041,29 +4648,17 @@ window.enviarPuntosCsv = async function(){
     const archivo = e.target.files?.[0];
     const panel = document.getElementById('csvPreviewPanel');
     if (!archivo) {
-      csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
-      csvPreviewTableState = { headers: [], rows: [], recognized: [], insufficientRows: [], totalRows: 0, delimiter: ',', missingRequired: [], coordinateWarning: null };
+      resetTabularPointPreviewState();
       if (panel) panel.style.display = 'none';
       return;
     }
-
-    const reader = new FileReader();
-    reader.onload = () => renderPreviewCsv(reader.result || '');
-    reader.onerror = () => {
-      csvWqiPreviewState = { insufficientRows: [], totalRows: 0 };
-      csvPreviewTableState = { headers: [], rows: [], recognized: [], insufficientRows: [], totalRows: 0, delimiter: ',', missingRequired: [], coordinateWarning: null };
-      if (panel) panel.style.display = 'none';
-      Swal.fire('Error', 'No se pudo leer el archivo para la vista previa.', 'error');
-    };
-    reader.readAsText(archivo, 'utf-8');
+    solicitarPreviewPuntosTabular();
   });
 
   document.getElementById('sridPuntosCsv')?.addEventListener('change', function () {
     const archivo = document.getElementById('archivoPuntosCsv')?.files?.[0];
     if (!archivo) return;
-    const reader = new FileReader();
-    reader.onload = () => renderPreviewCsv(reader.result || '');
-    reader.readAsText(archivo, 'utf-8');
+    solicitarPreviewPuntosTabular();
   });
 
   /* ================================
@@ -4206,7 +4801,7 @@ window.enviarPuntosCsv = async function(){
       return new GeoRasterLayer({
         georaster,
         pane: paneName,
-        opacity: 0.7,
+        opacity: 1,
         resolution: 128,
         pixelValuesToColorFn: (values) => {
           const value = values?.[0];
@@ -4217,7 +4812,7 @@ window.enviarPuntosCsv = async function(){
 
     return L.imageOverlay(raster.archivo_png_url, raster.bounds, {
       pane: paneName,
-      opacity: 0.7
+      opacity: 1
     });
   }
 
@@ -4800,6 +5395,19 @@ window.enviarPuntosCsv = async function(){
     wireDnD(li, listBase);
   });
 
+  const heatmapGroupSelect = document.getElementById('heatmapGroupSelect');
+  if (heatmapGroupSelect) {
+    heatmapGroupSelect.addEventListener('change', () => {
+      heatmapSelectedGroup = heatmapGroupSelect.value || '';
+      if (heatmapSelectedGroup) {
+        localStorage.setItem(HEATMAP_GROUP_STORAGE_KEY, heatmapSelectedGroup);
+      } else {
+        localStorage.removeItem(HEATMAP_GROUP_STORAGE_KEY);
+      }
+      reconstruirHeatmap();
+    });
+  }
+
   // cargar capas del backend (FeatureCollection con features adicionales)
  // cargar capas del backend (pero sin duplicar las â€œPatinoâ€ en el panel din?mico)
 const capasFC = {{ patino|safe }};
@@ -4810,6 +5418,7 @@ if (capasFC && capasFC.type === 'FeatureCollection' && Array.isArray(capasFC.fea
         // ðŸš« Si el nombre contiene â€œpatinoâ€ no lo mostramos en el panel
         const nombre = (props.nombre || '').toLowerCase();
         if (nombre.includes('patino')) return;
+        if (props.activo === false) return;
 
         const isOwn   = props.es_propia;
         const isPublic = props.es_publica;
@@ -4830,6 +5439,7 @@ if (capasFC && capasFC.type === 'FeatureCollection' && Array.isArray(capasFC.fea
 
 if (Array.isArray(rasterLayersData)) {
   rasterLayersData.forEach(raster => {
+    if (raster.activo === false) return;
     const isOwn = !!raster.es_propia;
     const isPublic = !!raster.publico;
     const target = isOwn ? listPropiasRaster : (isPublic ? listPublicas : null);
@@ -4867,6 +5477,9 @@ if (Array.isArray(rasterLayersData)) {
 
     [...estadoGruposPuntos.keys()].sort().forEach(grupo => {
       const meta = metadatosGruposPuntos.get(grupo) || { tienePropios:false, tienePublicos:false, estadoSolicitud:null, total:0, ownTotal:0, publicTotal:0 };
+      if (esVistaGestion && !meta.tienePropios) return;
+      if (!esVistaGestion && meta.tienePropios && meta.activoPropio === false) return;
+      if (!esVistaGestion && !meta.tienePropios && (meta.publicActiveTotal || 0) <= 0) return;
       const item = document.createElement('div');
       item.className = 'grupo-punto-item';
       if (esVistaGestion) item.classList.add('grupo-punto-item--gestion');
@@ -4916,14 +5529,18 @@ if (Array.isArray(rasterLayersData)) {
 
         const badge = document.createElement('span');
         const estadoSolicitud = meta.estadoSolicitud || null;
-        badge.textContent = meta.tienePublicos
+        badge.textContent = meta.activoPropio === false
+          ? 'Desactivado'
+          : meta.tienePublicos
           ? 'Público'
           : estadoSolicitud === 'pendiente'
             ? 'Pendiente'
             : estadoSolicitud === 'rechazada'
               ? 'Rechazado'
               : 'Privado';
-        badge.className = meta.tienePublicos
+        badge.className = meta.activoPropio === false
+          ? 'badge text-bg-dark'
+          : meta.tienePublicos
           ? 'badge text-bg-success'
           : estadoSolicitud === 'pendiente'
             ? 'badge text-bg-warning'
@@ -4978,6 +5595,13 @@ if (Array.isArray(rasterLayersData)) {
           btnDelete.textContent = 'Eliminar';
           btnDelete.addEventListener('click', () => eliminarGrupoPuntos(grupo));
           right.appendChild(btnDelete);
+
+          const btnActivo = document.createElement('button');
+          btnActivo.type = 'button';
+          btnActivo.className = meta.activoPropio === false ? 'btn btn-sm btn-outline-success' : 'btn btn-sm btn-outline-secondary';
+          btnActivo.textContent = meta.activoPropio === false ? 'Activar' : 'Desactivar';
+          btnActivo.addEventListener('click', () => cambiarActividadGrupoPuntos(grupo, meta.activoPropio === false));
+          right.appendChild(btnActivo);
         }
 
         if (esVistaGestion) {
@@ -5058,6 +5682,7 @@ if (Array.isArray(rasterLayersData)) {
           meta.comentarioSolicitud = json.comentario_revision || '';
         }
 
+        renderGruposPuntosPanel();
         renderGruposPuntosModal();
         window.renderGruposPuntosEnContenedor?.({
           containerId: 'listaGruposPuntosMisCapas'
@@ -5142,6 +5767,39 @@ if (Array.isArray(rasterLayersData)) {
           if (!json.success) throw new Error(json.error || 'No se pudo eliminar el grupo.');
           Swal.fire('Grupo eliminado', `Se eliminaron ${json.eliminados || 0} puntos del grupo ${grupo}.`, 'success')
             .then(() => window.location.reload());
+        })
+        .catch(err => Swal.fire('Error', err.message, 'error'));
+    });
+  };
+
+  window.cambiarActividadGrupoPuntos = function(grupo, activo){
+    const accion = activo ? 'activar' : 'desactivar';
+    Swal.fire({
+      title: `¿Querés ${accion} este grupo?`,
+      text: activo
+        ? `El grupo ${grupo} volverá a mostrarse en el mapa y en el panel lateral.`
+        : `El grupo ${grupo} dejará de mostrarse en el mapa y en el panel lateral, pero seguirá guardado en la base.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: activo ? 'Sí, activar' : 'Sí, desactivar',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      fetch('/puntos/grupo-actividad/', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ grupo, activo })
+      })
+        .then(r => r.json())
+        .then(json => {
+          if (!json.success) throw new Error(json.error || 'No se pudo actualizar el grupo.');
+          Swal.fire(
+            activo ? 'Grupo activado' : 'Grupo desactivado',
+            activo
+              ? `El grupo ${grupo} vuelve a estar visible.`
+              : `El grupo ${grupo} quedó oculto sin borrar sus datos.`,
+            'success'
+          ).then(() => window.location.reload());
         })
         .catch(err => Swal.fire('Error', err.message, 'error'));
     });
@@ -5264,12 +5922,195 @@ function wireFilaEventos(tr) {
   }
 }
 
+let capasAdminTabActiva = 'puntos';
+
+function setCapasAdminTab(tab) {
+  capasAdminTabActiva = tab;
+  ['puntos', 'capas', 'raster'].forEach(nombre => {
+    const btn = document.getElementById(`capasAdminTabBtn-${nombre}`);
+    const panel = document.getElementById(`capasAdminPanel-${nombre}`);
+    btn?.classList.toggle('is-active', nombre === tab);
+    panel?.classList.toggle('is-active', nombre === tab);
+  });
+}
+window.setCapasAdminTab = setCapasAdminTab;
+
+function formatAdminDate(value) {
+  return value ? new Date(value).toLocaleString() : '—';
+}
+
+function renderAdminPointGroupRow(grupo) {
+  const solicitud = grupo.estado_solicitud
+    ? `${grupo.estado_solicitud}${grupo.comentario_revision ? ` · ${grupo.comentario_revision}` : ''}`
+    : '—';
+  const acciones = [];
+  if (grupo.owner_id && grupo.visibilidad !== 'Público') {
+    acciones.push(`<button class="btn btn-sm btn-outline-primary" onclick="hacerPublicoGrupoAdmin('${encodeURIComponent(grupo.grupo)}', ${grupo.owner_id})">Hacer público</button>`);
+  }
+  return `
+    <tr>
+      <td>${grupo.grupo}</td>
+      <td>${grupo.owner_label || '— Público'}</td>
+      <td>${grupo.visibilidad || 'Privado'}</td>
+      <td>${solicitud}</td>
+      <td>${grupo.cantidad || 0}</td>
+      <td>${grupo.archivo_origen || '—'}</td>
+      <td>${formatAdminDate(grupo.fecha_ultima)}</td>
+      <td><div class="capas-admin-actions">${acciones.join('') || '—'}</div></td>
+    </tr>`;
+}
+
+function renderAdminVectorRow(capa) {
+  const acciones = [
+    !capa.es_publica ? `<button class="btn btn-sm btn-outline-primary" onclick="hacerPublicaCapaAdmin(${capa.ogc_fid})">Hacer pública</button>` : '',
+    `<button class="btn btn-sm btn-outline-danger" onclick="eliminarCapaAdmin(${capa.ogc_fid})">Borrar</button>`
+  ].filter(Boolean).join(' ');
+
+  return `
+    <tr>
+      <td>${capa.ogc_fid}</td>
+      <td>${capa.nombre || 'Sin nombre'}</td>
+      <td>${capa.owner_label || '— Público'}</td>
+      <td>${capa.estado || (capa.es_publica ? 'publica' : 'privada')}</td>
+      <td>${(Number(capa.area_km2 || 0)).toLocaleString()}</td>
+      <td>${formatAdminDate(capa.fecha_subida)}</td>
+      <td class="d-flex flex-wrap gap-2">${acciones}</td>
+    </tr>`;
+}
+
+function renderAdminRasterRow(raster) {
+  const acciones = [];
+  if (!raster.publico && raster.owner_id) {
+    acciones.push(`<button class="btn btn-sm btn-outline-primary" onclick="hacerPublicaCapaRasterAdmin(${raster.id})">Hacer pública</button>`);
+  }
+  if (raster.archivo_4326_url) {
+    acciones.push(`<a class="btn btn-sm btn-outline-primary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'geotiff' })}">GeoTIFF</a>`);
+  }
+  if (raster.archivo_png_url) {
+    acciones.push(`<a class="btn btn-sm btn-outline-secondary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' })}">PNG</a>`);
+  }
+  return `
+    <tr>
+      <td>${raster.id}</td>
+      <td>${raster.nombre || 'Raster sin nombre'}</td>
+      <td>${raster.owner_label || '— Público'}</td>
+      <td>${raster.modo_despliegue === 'geotiff' ? 'GeoTIFF' : 'PNG procesado'}</td>
+      <td>${raster.publico ? 'Pública' : 'Privada'}</td>
+      <td>${formatAdminDate(raster.created_at)}</td>
+      <td><div class="capas-admin-actions">${acciones.join('') || '—'}</div></td>
+    </tr>`;
+}
+
+window.hacerPublicoGrupoAdmin = function(grupoCodificado, ownerId) {
+  const grupo = decodeURIComponent(grupoCodificado || '');
+  Swal.fire({
+    title: '¿Hacer público este grupo?',
+    text: 'Todos los puntos del grupo pasarán a ser visibles para cualquier usuario.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, hacer público'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+    fetch('/puntos/grupo-publico-admin/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRFToken(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ grupo, owner_id: ownerId })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo publicar el grupo');
+        Swal.fire('Hecho', 'El grupo de puntos ahora es público.', 'success');
+        abrirModalCapas();
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+};
+
+window.hacerPublicaCapaRasterAdmin = function(rasterId) {
+  Swal.fire({
+    title: '¿Hacer pública esta capa raster?',
+    text: 'Quedará disponible para todos los usuarios en el visor.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, hacer pública'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+    fetch(`/capas-raster/${rasterId}/hacer-publica/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo actualizar el raster');
+        Swal.fire('Hecho', 'La capa raster ahora es pública.', 'success');
+        abrirModalCapas();
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+};
+
+window.hacerPublicaCapaAdmin = function(capaId) {
+  Swal.fire({
+    title: '¿Hacer pública esta capa?',
+    text: 'Pasará a ser visible para todos y dejará de tener dueño.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, hacer pública'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+    fetch(`/capas/${capaId}/hacer-publica/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo actualizar');
+        Swal.fire('Hecho', 'La capa ahora es pública.', 'success');
+        abrirModalCapas();
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+};
+
+window.eliminarCapaAdmin = function(capaId) {
+  Swal.fire({
+    title: '¿Eliminar capa?',
+    text: 'Esta acción no se puede deshacer.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    confirmButtonText: 'Sí, eliminar'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+    fetch(`/eliminar-capa/${capaId}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo eliminar');
+        Swal.fire('Eliminada', 'La capa fue eliminada correctamente.', 'success');
+        abrirModalCapas();
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+};
+
 function abrirModalCapas() {
-  const modal  = new bootstrap.Modal(document.getElementById('modalCapas'));
-  const tbody  = document.querySelector('#tablaCapas tbody');
+  const modalEl = document.getElementById('modalCapas');
+  const modal  = bootstrap.Modal.getOrCreateInstance(modalEl);
+  const tbodyCapas = document.querySelector('#tablaCapas tbody');
+  const tbodyPuntos = document.querySelector('#tablaCapasAdminPuntos tbody');
+  const tbodyRaster = document.querySelector('#tablaCapasAdminRaster tbody');
   const loader = document.getElementById('capasLoader');
 
-  tbody.innerHTML = '';
+  window.cerrarFabMenu?.();
+  tbodyCapas.innerHTML = '';
+  tbodyPuntos.innerHTML = '';
+  tbodyRaster.innerHTML = '';
   loader.style.display = 'block';
 
   fetch('/api/capas/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -5280,16 +6121,24 @@ function abrirModalCapas() {
       return r.json();
     })
     .then(data => {
-      const rowsHtml = (data.results || []).map(renderFilaCapa).join('');
-      tbody.innerHTML = rowsHtml || `<tr><td colspan="6" class="text-center text-muted">Sin capas.</td></tr>`;
-      // wire events
-      tbody.querySelectorAll('tr[data-id]').forEach(tr => wireFilaEventos(tr));
+      const gruposRows = (data.grupos_puntos || []).map(renderAdminPointGroupRow).join('');
+      const vectorRows = (data.vectoriales || []).map(renderAdminVectorRow).join('');
+      const rasterRows = (data.rasters || []).map(renderAdminRasterRow).join('');
+
+      tbodyPuntos.innerHTML = gruposRows || `<tr><td colspan="8" class="text-center text-muted">No hay grupos de puntos registrados.</td></tr>`;
+      tbodyCapas.innerHTML = vectorRows || `<tr><td colspan="7" class="text-center text-muted">No hay capas vectoriales registradas.</td></tr>`;
+      tbodyRaster.innerHTML = rasterRows || `<tr><td colspan="7" class="text-center text-muted">No hay capas raster registradas.</td></tr>`;
     })
     .catch(err => {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+      const errorRowPuntos = `<tr><td colspan="8" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+      const errorRow = `<tr><td colspan="7" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+      tbodyPuntos.innerHTML = errorRowPuntos;
+      tbodyCapas.innerHTML = errorRow;
+      tbodyRaster.innerHTML = errorRow;
     })
     .finally(() => loader.style.display = 'none');
 
+  setCapasAdminTab(capasAdminTabActiva || 'puntos');
   modal.show();
 }
 
@@ -5328,13 +6177,14 @@ function abrirModalMisCapas() {
       if (raster.archivo_png_url) {
         descargas.push(`<a class="btn btn-sm btn-outline-secondary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' })}">PNG</a>`);
       }
+      descargas.push(`<button class="btn btn-sm ${raster.activo === false ? 'btn-outline-success' : 'btn-outline-secondary'}" onclick="cambiarActividadRaster(${raster.id}, ${raster.activo === false ? 'true' : 'false'})">${raster.activo === false ? 'Activar' : 'Desactivar'}</button>`);
       descargas.push(`<button class="btn btn-sm btn-danger" onclick="window.eliminarRaster(${raster.id})">Eliminar</button>`);
       return `
         <tr>
           <td>${raster.id}</td>
           <td>${raster.nombre || 'Raster sin nombre'}</td>
           <td>${raster.modo_despliegue === 'geotiff' ? 'GeoTIFF' : 'PNG procesado'}</td>
-          <td>${raster.publico ? 'Pública' : 'Privada'}</td>
+          <td>${raster.publico ? 'Pública' : 'Privada'} · ${raster.activo === false ? 'Desactivada' : 'Activa'}</td>
           <td class="d-flex flex-wrap gap-2">${descargas.join('')}</td>
         </tr>`;
     }).join('');
@@ -5351,10 +6201,11 @@ function abrirModalMisCapas() {
         <tr>
           <td>${c.id}</td>
           <td>${c.nombre}</td>
-          <td>${c.estado}</td>
+          <td>${c.estado}${c.activo === false ? ' · desactivada' : ''}</td>
           <td>${c.comentario_revision || 'â€”'}</td>
           <td>${new Date(c.fecha_subida).toLocaleString()}</td>
           <td>
+            <button class="btn btn-sm ${c.activo === false ? 'btn-outline-success' : 'btn-outline-secondary'}" onclick="cambiarActividadCapa(${c.id}, ${c.activo === false ? 'true' : 'false'})">${c.activo === false ? 'Activar' : 'Desactivar'}</button>
             <button class="btn btn-sm btn-danger" onclick="eliminarCapa(${c.id})">🗑️ Eliminar</button>
             ${c.estado !== 'publica'
               ? (IS_ADMIN
@@ -5374,6 +6225,74 @@ function abrirModalMisCapas() {
 
   setMisCapasTab(misCapasTabActiva || 'puntos');
   modal.show();
+}
+
+function cambiarActividadCapa(capaId, activo) {
+  const activar = activo === true || activo === 'true';
+  Swal.fire({
+    title: activar ? '¿Activar capa?' : '¿Desactivar capa?',
+    text: activar
+      ? 'La capa volverá a mostrarse en el visor y en el panel lateral.'
+      : 'La capa dejará de mostrarse en el visor y en el panel lateral, pero no se eliminará.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: activar ? 'Sí, activar' : 'Sí, desactivar',
+    cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if (!result.isConfirmed) return;
+    fetch(`/capas/${capaId}/actividad/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({ activo: activar })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo actualizar la capa.');
+        Swal.fire(
+          activar ? 'Capa activada' : 'Capa desactivada',
+          activar ? 'La capa vuelve a estar visible.' : 'La capa quedó oculta sin borrarse.',
+          'success'
+        ).then(() => window.location.reload());
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+}
+
+function cambiarActividadRaster(rasterId, activo) {
+  const activar = activo === true || activo === 'true';
+  Swal.fire({
+    title: activar ? '¿Activar raster?' : '¿Desactivar raster?',
+    text: activar
+      ? 'La capa raster volverá a mostrarse en el visor y en el panel lateral.'
+      : 'La capa raster dejará de mostrarse en el visor y en el panel lateral, pero no se eliminará.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: activar ? 'Sí, activar' : 'Sí, desactivar',
+    cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if (!result.isConfirmed) return;
+    fetch(`/capas-raster/${rasterId}/actividad/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({ activo: activar })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo actualizar el raster.');
+        Swal.fire(
+          activar ? 'Raster activado' : 'Raster desactivado',
+          activar ? 'La capa raster vuelve a estar visible.' : 'La capa raster quedó oculta sin borrarse.',
+          'success'
+        ).then(() => window.location.reload());
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
 }
 
   document.addEventListener('click', (event) => {
@@ -5429,11 +6348,32 @@ function getSolicitudesPublicacionFilters() {
   };
 }
 
+let solicitudesTabActiva = 'publicacion';
+
+function formatSolicitudesDate(value) {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '-' : parsed.toLocaleString();
+}
+
 function solicitudCumpleFiltros(solicitud, filters) {
   const tipoOk = filters.tipo === '__all__' || solicitud.tipo === filters.tipo;
   const estadoActual = solicitud.estado || 'pendiente';
   const estadoOk = filters.estado === '__all__' || estadoActual === filters.estado;
   return tipoOk && estadoOk;
+}
+
+function cambiarTabSolicitudes(tab) {
+  solicitudesTabActiva = tab === 'usuarios' ? 'usuarios' : 'publicacion';
+  const btnPublicacion = document.getElementById('tabSolicitudesPublicacionBtn');
+  const btnUsuarios = document.getElementById('tabSolicitudesUsuariosBtn');
+  const panelPublicacion = document.getElementById('panelSolicitudesPublicacion');
+  const panelUsuarios = document.getElementById('panelSolicitudesUsuarios');
+
+  btnPublicacion?.classList.toggle('is-active', solicitudesTabActiva === 'publicacion');
+  btnUsuarios?.classList.toggle('is-active', solicitudesTabActiva === 'usuarios');
+  panelPublicacion?.classList.toggle('is-active', solicitudesTabActiva === 'publicacion');
+  panelUsuarios?.classList.toggle('is-active', solicitudesTabActiva === 'usuarios');
 }
 
 function renderSolicitudesPublicacion() {
@@ -5452,7 +6392,7 @@ function renderSolicitudesPublicacion() {
       <td>${s.tipo === 'capa' ? 'Capa' : 'Grupo de puntos'}</td>
       <td>${s.objetivo || 'Sin nombre'}</td>
       <td>${s.requester} (id ${s.requester_id})</td>
-      <td>${s.created_at ? new Date(s.created_at).toLocaleString() : '-'}</td>
+      <td>${formatSolicitudesDate(s.created_at)}</td>
       <td>${s.comentario_revision || '-'}</td>
       <td>
         <button class="btn btn-sm btn-success me-1" onclick="resolverSolicitudPublicacion(${s.id}, 'aprobar')">Aprobar</button>
@@ -5469,12 +6409,59 @@ function renderSolicitudesPublicacion() {
       <td>${s.objetivo || 'Sin nombre'}</td>
       <td>${s.requester} (id ${s.requester_id})</td>
       <td>${s.reviewed_by || '-'}</td>
-      <td>${s.reviewed_at ? new Date(s.reviewed_at).toLocaleString() : '-'}</td>
+      <td>${formatSolicitudesDate(s.reviewed_at)}</td>
       <td>${s.comentario_revision || '-'}</td>
     </tr>`).join('');
   tbodyResolved.innerHTML = rowsResolved || `<tr><td colspan="8" class="text-center text-muted">No hay solicitudes resueltas para estos filtros.</td></tr>`;
 
   resumen.textContent = `${pendingFiltered.length} pendientes y ${resolvedFiltered.length} resueltas coinciden con los filtros actuales.`;
+}
+
+function renderSolicitudesRegistroUsuario() {
+  const tbody = document.getElementById('tablaSolicitudesRegistro');
+  const tbodyResolved = document.getElementById('tablaSolicitudesRegistroResueltas');
+  const resumen = document.getElementById('resumenSolicitudesUsuarios');
+  if (!tbody || !tbodyResolved || !resumen) return;
+
+  const pendingRows = (solicitudesPublicacionState.userPending || []).map(s => `
+    <tr>
+      <td>${s.id}</td>
+      <td>${s.full_name || '-'}</td>
+      <td>
+        <div class="fw-semibold">@${s.username}</div>
+        <div class="small text-muted">id ${s.user_id}</div>
+      </td>
+      <td>${s.email || '-'}</td>
+      <td>${s.cedula || '-'}</td>
+      <td>${formatSolicitudesDate(s.created_at)}</td>
+      <td>${s.comentario_revision || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-success me-1" onclick="resolverSolicitudRegistroUsuario(${s.id}, 'aprobar')">Aprobar</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="resolverSolicitudRegistroUsuario(${s.id}, 'rechazar')">Rechazar</button>
+      </td>
+    </tr>
+  `).join('');
+  tbody.innerHTML = pendingRows || `<tr><td colspan="8" class="text-center text-muted">No hay solicitudes de acceso pendientes.</td></tr>`;
+
+  const resolvedRows = (solicitudesPublicacionState.userResolved || []).map(s => `
+    <tr>
+      <td>${s.id}</td>
+      <td><span class="badge ${s.estado === 'aprobada' ? 'text-bg-success' : 'text-bg-danger'}">${s.estado}</span></td>
+      <td>${s.full_name || '-'}</td>
+      <td>
+        <div class="fw-semibold">@${s.username}</div>
+        <div class="small text-muted">id ${s.user_id}</div>
+      </td>
+      <td>${s.email || '-'}</td>
+      <td>${s.cedula || '-'}</td>
+      <td>${s.reviewed_by || '-'}</td>
+      <td>${formatSolicitudesDate(s.reviewed_at)}</td>
+      <td>${s.comentario_revision || '-'}</td>
+    </tr>
+  `).join('');
+  tbodyResolved.innerHTML = resolvedRows || `<tr><td colspan="9" class="text-center text-muted">No hay solicitudes de acceso resueltas todav&iacute;a.</td></tr>`;
+
+  resumen.textContent = `${(solicitudesPublicacionState.userPending || []).length} solicitudes de acceso pendientes y ${(solicitudesPublicacionState.userResolved || []).length} resueltas.`;
 }
 
 function limpiarFiltrosSolicitudesPublicacion() {
@@ -5485,62 +6472,48 @@ function limpiarFiltrosSolicitudesPublicacion() {
   renderSolicitudesPublicacion();
 }
 
-function abrirModalSolicitudesPublicacion() {
-  const modal = new bootstrap.Modal(document.getElementById('modalSolicitudesPublicacion'));
+function cargarSolicitudesAdministrativas() {
   const tbody = document.getElementById('tablaSolicitudesPublicacion');
   const tbodyResolved = document.getElementById('tablaSolicitudesResueltas');
+  const tbodyUsers = document.getElementById('tablaSolicitudesRegistro');
+  const tbodyUsersResolved = document.getElementById('tablaSolicitudesRegistroResueltas');
   const loader = document.getElementById('solicitudesLoader');
-  if (!tbody || !tbodyResolved || !loader) return;
+  if (!tbody || !tbodyResolved || !tbodyUsers || !tbodyUsersResolved || !loader) return Promise.resolve();
 
   tbody.innerHTML = '';
   tbodyResolved.innerHTML = '';
-  limpiarFiltrosSolicitudesPublicacion();
+  tbodyUsers.innerHTML = '';
+  tbodyUsersResolved.innerHTML = '';
   loader.style.display = 'block';
 
-  fetch('/api/solicitudes-publicacion/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+  return fetch('/api/solicitudes-publicacion/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(r => r.json())
     .then(data => {
       solicitudesPublicacionState = {
         pending: data.pending || [],
-        resolved: data.resolved || []
+        resolved: data.resolved || [],
+        userPending: data.user_pending || [],
+        userResolved: data.user_resolved || []
       };
       renderSolicitudesPublicacion();
-      return;
-      const rows = (data.pending || []).map(s => `
-        <tr>
-          <td>${s.id}</td>
-          <td>${s.tipo === 'capa' ? 'Capa' : 'Grupo de puntos'}</td>
-          <td>${s.objetivo || 'Sin nombre'}</td>
-          <td>${s.requester} (id ${s.requester_id})</td>
-          <td>${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
-          <td>${s.comentario_revision || '-'}</td>
-          <td>
-            <button class="btn btn-sm btn-success me-1" onclick="resolverSolicitudPublicacion(${s.id}, 'aprobar')">Aprobar</button>
-            <button class="btn btn-sm btn-outline-danger" onclick="resolverSolicitudPublicacion(${s.id}, 'rechazar')">Rechazar</button>
-          </td>
-        </tr>`).join('');
-      tbody.innerHTML = rows || `<tr><td colspan="7" class="text-center text-muted">No hay solicitudes pendientes.</td></tr>`;
-
-      const rowsResolved = (data.resolved || []).map(s => `
-        <tr>
-          <td>${s.id}</td>
-          <td><span class="badge ${s.estado === 'aprobada' ? 'text-bg-success' : 'text-bg-danger'}">${s.estado}</span></td>
-          <td>${s.tipo === 'capa' ? 'Capa' : 'Grupo de puntos'}</td>
-          <td>${s.objetivo || 'Sin nombre'}</td>
-          <td>${s.requester} (id ${s.requester_id})</td>
-          <td>${s.reviewed_by || '-'}</td>
-          <td>${s.reviewed_at ? new Date(s.reviewed_at).toLocaleString() : '-'}</td>
-          <td>${s.comentario_revision || '-'}</td>
-        </tr>`).join('');
-      tbodyResolved.innerHTML = rowsResolved || `<tr><td colspan="8" class="text-center text-muted">No hay solicitudes resueltas todav?a.</td></tr>`;
+      renderSolicitudesRegistroUsuario();
     })
     .catch(err => {
       tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error: ${err.message}</td></tr>`;
       tbodyResolved.innerHTML = `<tr><td colspan="8" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+      tbodyUsers.innerHTML = `<tr><td colspan="8" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+      tbodyUsersResolved.innerHTML = `<tr><td colspan="9" class="text-danger text-center">Error: ${err.message}</td></tr>`;
     })
     .finally(() => {
       loader.style.display = 'none';
     });
+}
+
+function abrirModalSolicitudesPublicacion() {
+  const modal = new bootstrap.Modal(document.getElementById('modalSolicitudesPublicacion'));
+  limpiarFiltrosSolicitudesPublicacion();
+  cambiarTabSolicitudes(solicitudesTabActiva);
+  cargarSolicitudesAdministrativas();
 
   modal.show();
 }
@@ -5580,7 +6553,51 @@ function resolverSolicitudPublicacion(solicitudId, decision) {
       .then(j => {
         if (!j.success) throw new Error(j.error || 'No se pudo resolver la solicitud.');
         Swal.fire('Solicitud resuelta', 'La decisión fue guardada correctamente.', 'success')
-          .then(() => window.location.reload());
+          .then(() => cargarSolicitudesAdministrativas());
+      })
+      .catch(err => Swal.fire('Error', err.message, 'error'));
+  });
+}
+
+function resolverSolicitudRegistroUsuario(solicitudId, decision) {
+  const accionLabel = decision === 'aprobar' ? 'aprobar' : 'rechazar';
+  const modalTarget = document.getElementById('modalSolicitudesPublicacion') || document.body;
+  Swal.fire({
+    target: modalTarget,
+    input: 'textarea',
+    inputLabel: 'Comentario para la persona solicitante (opcional)',
+    inputPlaceholder: decision === 'aprobar'
+      ? 'Ej.: Tu cuenta fue habilitada. Ya podés ingresar al visor.'
+      : 'Ej.: Tu solicitud necesita revisión adicional antes de habilitar el acceso.',
+    title: `¿Querés ${accionLabel} esta solicitud de acceso?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: decision === 'aprobar' ? 'Sí, aprobar' : 'Sí, rechazar',
+    cancelButtonText: 'Cancelar',
+    focusConfirm: false,
+    didOpen: () => {
+      const input = document.querySelector('#swal2-textarea');
+      input?.focus();
+      input?.select?.();
+    }
+  }).then(result => {
+    if (!result.isConfirmed) return;
+    fetch(`/api/solicitudes-registro/${solicitudId}/resolver/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({ decision, comentario: result.value || '' })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'No se pudo resolver la solicitud de acceso.');
+        Swal.fire('Solicitud resuelta', 'La decisión fue guardada correctamente.', 'success')
+          .then(() => {
+            cambiarTabSolicitudes('usuarios');
+            return cargarSolicitudesAdministrativas();
+          });
       })
       .catch(err => Swal.fire('Error', err.message, 'error'));
   });
@@ -6046,9 +7063,18 @@ window.limpiarFiltro = function() {
 
 let puntoActual = null;
 
-function mostrarModalDetallePunto(props) {
+function actualizarAccionDetallePunto(modo) {
+  const btn = document.getElementById("btnCalcularWQI");
+  if (!btn) return;
+  const esVistaWqi = modo === 'wqi';
+  btn.dataset.mode = esVistaWqi ? 'wqi' : 'detalle';
+  btn.textContent = esVistaWqi ? 'Volver al detalle' : 'Calcular WQI';
+  btn.classList.toggle('btn-primary', !esVistaWqi);
+  btn.classList.toggle('btn-outline-primary', esVistaWqi);
+}
+
+function renderDetallePunto(props) {
   const isAdmin = !!(window.IS_ADMIN + false);
-  puntoActual = props; // guardamos datos globalmente
 
   const tbody = document.getElementById("detallePuntoBody");
   const title = document.getElementById("detallePuntoTitle");
@@ -6083,6 +7109,12 @@ function mostrarModalDetallePunto(props) {
         <td>${displayValue}</td>
       </tr>`;
   });
+  actualizarAccionDetallePunto('detalle');
+}
+
+function mostrarModalDetallePunto(props) {
+  puntoActual = props; // guardamos datos globalmente
+  renderDetallePunto(props);
 
   new bootstrap.Modal(document.getElementById("modalDetallePunto")).show();
 }
@@ -6103,6 +7135,7 @@ function mostrarModalDetallePunto(props) {
           <p>Eleg&iacute; c&oacute;mo quer&eacute;s cargar tus puntos.</p>
           <div class="d-grid gap-2">
             <button type="button" class="btn btn-primary" onclick="abrirCargaCsvPuntos()">Cargar desde CSV</button>
+            <button type="button" class="btn btn-outline-primary" onclick="abrirCargaExcelPuntos()">Cargar desde Excel</button>
             <button type="button" class="btn btn-outline-secondary" onclick="abrirCargaManualPuntos()">Cargar manualmente</button>
           </div>
           <small class="text-muted d-block mt-3">La opci&oacute;n manual te deja elegir la ubicaci&oacute;n en el mapa o cargar coordenadas manualmente en EPSG:4326.</small>
@@ -6115,22 +7148,24 @@ function mostrarModalDetallePunto(props) {
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalCargaPuntosCsvLabel">Carga masiva de puntos por CSV</h5>
+          <h5 class="modal-title" id="modalCargaPuntosCsvLabel">Carga masiva de puntos por CSV / Excel</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <div class="csv-upload-layout">
             <div class="csv-upload-card csv-upload-hero">
-              <h6>Subí el archivo sin perder tiempo</h6>
-              <p class="mb-3">Primero elegí el grupo, el archivo y el sistema de coordenadas de origen. La vista previa técnica se genera sola y las advertencias quedan resumidas abajo.</p>
+              <h6 id="pointUploadHeroTitle">Subí un CSV sin perder tiempo</h6>
+              <p class="mb-3" id="pointUploadHeroBody">Primero elegí el grupo, el archivo CSV y el sistema de coordenadas de origen. La vista previa técnica se genera sola y las advertencias quedan resumidas abajo.</p>
+              <div class="alert alert-info small mb-3" id="pointUploadImplementationNotice" style="display:none;">
+              </div>
               <form id="formCargaPuntosCsv" enctype="multipart/form-data">
                 <div class="mb-3">
                   <label for="grupoPuntosCsv" class="form-label">Nombre del grupo de puntos</label>
                   <input type="text" id="grupoPuntosCsv" name="grupo" class="form-control" value="PATINO1" required>
                 </div>
                 <div class="mb-3">
-                  <label for="archivoPuntosCsv" class="form-label">Archivo CSV</label>
-                  <input type="file" id="archivoPuntosCsv" name="archivo" accept=".csv,.txt" class="form-control" required>
+                  <label for="archivoPuntosCsv" class="form-label">Archivo CSV / Excel</label>
+                  <input type="file" id="archivoPuntosCsv" name="archivo" accept=".csv,.txt,.xlsx,.xlsm" class="form-control" required>
                 </div>
                 <div class="mb-3">
                   <label for="sridPuntosCsv" class="form-label">Sistema de coordenadas</label>
@@ -6182,10 +7217,11 @@ function mostrarModalDetallePunto(props) {
               <details class="csv-upload-details">
                 <summary>Ver instrucciones completas</summary>
                 <div class="csv-upload-details-body">
-                  <p><strong>Formato estricto requerido.</strong> El archivo debe ser <code>CSV</code> o <code>TSV</code> con encabezados en la primera fila.</p>
+                  <p id="pointUploadInstructionsLead"><strong>Formato estricto requerido.</strong> El archivo debe estar en formato <code>CSV</code> o <code>TSV</code>, con encabezados en la primera fila.</p>
                   <p><strong>Reglas rápidas.</strong> Cada fila representa un único punto, las coordenadas deben ser numéricas y las columnas faltantes o celdas vacías se guardan como <code>NULL</code>.</p>
+                  <p><strong>Excel.</strong> Por ahora usá una sola hoja, sin celdas fusionadas. Lo ideal es que la planilla tenga solo columnas de datos y luego las filas de puntos.</p>
                   <p><strong>Sobre las coordenadas.</strong> El valor que elegís en <code>EPSG:32721</code> o <code>EPSG:4326</code> indica cómo vienen las coordenadas en el archivo. Antes de guardar, el sistema las reproyecta a <code>EPSG:4326</code> para que los puntos puedan verse correctamente en el visor.</p>
-                  <p><strong>Columnas aceptadas.</strong> Se reconocen encabezados como <code>codigo_pozo</code>, <code>nombre_lugar</code>, <code>x</code>, <code>y</code>, <code>Fecha_muestreo</code>, <code>N-Amoniacal (mg/L)</code>, <code>N-Nitritos (mg/L)</code>, <code>N-Nitratos (mg/L)</code>, <code>Alcalinidad Total (mg/L)</code>, <code>Materia Organica (mg/L)</code>, <code>Conductividad (uS/cm)</code>, <code>pH</code>, <code>Bicarbonato (mg/L)</code>, <code>Carbonato (mg/L)</code>, <code>Sulfato (mg/L)</code>, <code>Magnesio (mg/L)</code>, <code>Calcio (mg/L)</code>, <code>Sodio (mg/L)</code>, <code>Potasio (mg/L)</code>, <code>Cloruro (mg/L)</code>, <code>Arsenico (mg/L)</code>, <code>Mercurio (mg/L)</code>, <code>Manganeso (mg/L)</code>, <code>Cobre (mg/L)</code>, <code>Cromo Total (mg/L)</code> y <code>Coliformes Fecales (UFC/100 mL)</code>.</p>
+                  <p><strong>Columnas aceptadas.</strong> Se reconocen encabezados como <code>codigo_pozo</code>, <code>nombre_lugar</code>, <code>x</code>, <code>y</code>, <code>Fecha_muestreo</code>, <code>N-Amoniacal (mg/L)</code>, <code>N-Nitritos (mg/L)</code>, <code>N-Nitratos (mg/L)</code>, <code>Alcalinidad Total (mg/L)</code>, <code>Materia Organica (mg/L)</code>, <code>Conductividad (uS/cm)</code>, <code>pH</code>, <code>Bicarbonato (mg/L)</code>, <code>Carbonato (mg/L)</code>, <code>Sulfato (mg/L)</code>, <code>Magnesio (mg/L)</code>, <code>Calcio (mg/L)</code>, <code>Sodio (mg/L)</code>, <code>Potasio (mg/L)</code>, <code>Cloruro (mg/L)</code>, <code>Arsenico (mg/L)</code>, <code>Mercurio (mg/L)</code>, <code>Manganeso (mg/L)</code>, <code>Cobre (mg/L)</code>, <code>Cromo Total (mg/L)</code> y variantes de <code>Coliformes fecales</code> aunque venga abreviado como <code>Col Fec</code> o con unidades en el nombre de la columna.</p>
                   <p><strong>Recomendación práctica.</strong> Si ya tenés archivos <code>_para_subir.csv</code>, reutilizalos con los mismos encabezados para evitar errores.</p>
                 </div>
               </details>
@@ -6205,7 +7241,7 @@ function mostrarModalDetallePunto(props) {
     <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="modalVistaPreviaCsvLabel">Vista previa de carga CSV</h5>
+          <h5 class="modal-title" id="modalVistaPreviaCsvLabel">Vista previa de carga tabular</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
@@ -6233,7 +7269,7 @@ function mostrarModalDetallePunto(props) {
           <form id="formNuevoPunto">
             <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <strong>Ubicaci?n del nuevo punto</strong><br>
+                <strong>Ubicación del nuevo punto</strong><br>
                 <span id="nuevo_punto_coords_texto">Sin ubicación definida todavía.</span>
               </div>
               <button type="button" class="btn btn-outline-primary btn-sm" onclick="solicitarUbicacionNuevoPunto()">
@@ -6242,11 +7278,11 @@ function mostrarModalDetallePunto(props) {
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label for="nuevo_estacionid" class="form-label">C?digo de pozo</label>
+                <label for="nuevo_estacionid" class="form-label">Código de pozo</label>
                 <input type="text" class="form-control" id="nuevo_estacionid">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="nuevo_codigoorig" class="form-label">C?digo origen</label>
+                <label for="nuevo_codigoorig" class="form-label">Código origen</label>
                 <input type="text" class="form-control" id="nuevo_codigoorig">
               </div>
             </div>
@@ -6273,17 +7309,17 @@ function mostrarModalDetallePunto(props) {
               <div class="accordion-item">
                 <h2 class="accordion-header" id="headingNuevoWqi">
                   <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNuevoWqi" aria-expanded="true" aria-controls="collapseNuevoWqi">
-                    Par?metros clave para WQI
+                    Parámetros clave para WQI
                   </button>
                 </h2>
                 <div id="collapseNuevoWqi" class="accordion-collapse collapse show" aria-labelledby="headingNuevoWqi" data-bs-parent="#accordionNuevoPunto">
                   <div class="accordion-body">
                     <div class="alert alert-info py-2 small">
-                      Para poder calcular WQI despu?s, este punto deber?a tener al menos <strong>6 de estos 8 par?metros cr?ticos</strong>.
+                      Para poder calcular WQI después, este punto debería tener al menos <strong>6 de estos 8 parámetros críticos</strong>.
                     </div>
                     <div class="row">
                       <div class="col-md-6 mb-3">
-                        <label for="conductivi" class="form-label">Conductividad el?ctrica</label>
+                        <label for="conductivi" class="form-label">Conductividad eléctrica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="conductivi">
                           <span class="input-group-text">uS/cm</span>
@@ -6322,7 +7358,7 @@ function mostrarModalDetallePunto(props) {
                         <input type="number" step="any" class="form-control" id="ph">
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_materia_or" class="form-label">Materia org?nica</label>
+                        <label for="nuevo_materia_or" class="form-label">Materia orgánica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_materia_or">
                           <span class="input-group-text">mg/L</span>
@@ -6343,7 +7379,7 @@ function mostrarModalDetallePunto(props) {
               <div class="accordion-item mt-2">
                 <h2 class="accordion-header" id="headingNuevoExtras">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNuevoExtras" aria-expanded="false" aria-controls="collapseNuevoExtras">
-                    Otros par?metros disponibles
+                    Otros parámetros disponibles
                   </button>
                 </h2>
                 <div id="collapseNuevoExtras" class="accordion-collapse collapse" aria-labelledby="headingNuevoExtras" data-bs-parent="#accordionNuevoPunto">
@@ -6406,7 +7442,7 @@ function mostrarModalDetallePunto(props) {
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="arsenico" class="form-label">Ars?nico</label>
+                        <label for="arsenico" class="form-label">Arsénico</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="arsenico">
                           <span class="input-group-text">mg/L</span>
@@ -6451,7 +7487,7 @@ function mostrarModalDetallePunto(props) {
                         <label for="nuevo_temperatur" class="form-label">Temperatura</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_temperatur">
-                          <span class="input-group-text">?C</span>
+                          <span class="input-group-text">°C</span>
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
@@ -6476,14 +7512,14 @@ function mostrarModalDetallePunto(props) {
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_dureza_cal" class="form-label">Dureza c?lcica</label>
+                        <label for="nuevo_dureza_cal" class="form-label">Dureza cálcica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_dureza_cal">
                           <span class="input-group-text">mg/L</span>
                         </div>
                       </div>
                       <div class="col-md-6 mb-3">
-                        <label for="nuevo_dureza_mag" class="form-label">Dureza magn?sica</label>
+                        <label for="nuevo_dureza_mag" class="form-label">Dureza magnésica</label>
                         <div class="input-group">
                           <input type="number" step="any" class="form-control" id="nuevo_dureza_mag">
                           <span class="input-group-text">mg/L</span>
@@ -6523,7 +7559,7 @@ function mostrarModalDetallePunto(props) {
             <input type="hidden" id="editar_lng">
             <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
-                <strong>Ubicaci?n actual</strong><br>
+                <strong>Ubicación actual</strong><br>
                 <span id="editar_coords_texto">Sin coordenadas</span>
               </div>
               <button type="button" class="btn btn-outline-primary btn-sm" onclick="solicitarCambioUbicacionPunto()">
@@ -6532,11 +7568,11 @@ function mostrarModalDetallePunto(props) {
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label for="editar_estacionid" class="form-label">C?digo de pozo</label>
+                <label for="editar_estacionid" class="form-label">Código de pozo</label>
                 <input type="text" class="form-control" id="editar_estacionid">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_codigoorig" class="form-label">C?digo origen</label>
+                <label for="editar_codigoorig" class="form-label">Código origen</label>
                 <input type="text" class="form-control" id="editar_codigoorig">
               </div>
             </div>
@@ -6574,7 +7610,7 @@ function mostrarModalDetallePunto(props) {
                 <input type="number" step="any" class="form-control" id="editar_alcalinida">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_materia_or" class="form-label">Materia org?nica</label>
+                <label for="editar_materia_or" class="form-label">Materia orgánica</label>
                 <input type="number" step="any" class="form-control" id="editar_materia_or">
               </div>
               <div class="col-md-6 mb-3">
@@ -6618,7 +7654,7 @@ function mostrarModalDetallePunto(props) {
                 <input type="number" step="any" class="form-control" id="editar_cloruro">
               </div>
               <div class="col-md-6 mb-3">
-                <label for="editar_arsenico" class="form-label">Ars?nico</label>
+                <label for="editar_arsenico" class="form-label">Arsénico</label>
                 <input type="number" step="any" class="form-control" id="editar_arsenico">
               </div>
               <div class="col-md-6 mb-3">
@@ -6711,9 +7747,8 @@ function mostrarModalDetallePunto(props) {
               <label class="form-check-label" for="modoTiffGeo">Render directo usando el raster georreferenciado</label>
             </div>
           </div>
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="publicoTiff">
-            <label class="form-check-label" for="publicoTiff">Hacer pública esta capa raster</label>
+          <div class="alert alert-secondary small mb-3">
+            La capa raster se guarda como <strong>privada</strong>. Si después querés publicarla, podés hacerlo desde los flujos de administración o solicitud de publicación.
           </div>
 
           <button type="button" class="btn btn-outline-primary mb-3" onclick="previsualizarTiff()">Analizar TIFF</button>
@@ -6810,30 +7845,100 @@ function mostrarModalDetallePunto(props) {
   </div>
   {% endif %}
 
-  {% if es_admin %}
+{% if es_admin %}
 <div class="modal fade" id="modalCapas" tabindex="-1" aria-labelledby="modalCapasLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalCapasLabel">🗂️ Capas de usuarios</h5>
+        <h5 class="modal-title" id="modalCapasLabel">Todas las capas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body capas-admin-modal-body">
+        <div class="mis-capas-intro">
+          Desde este espacio podés revisar todos los grupos de puntos, capas vectoriales y capas raster disponibles en la plataforma.
+        </div>
+        <div class="mis-capas-switch">
+          <button type="button" class="mis-capas-tab is-active" id="capasAdminTabBtn-puntos" onclick="setCapasAdminTab('puntos')">Puntos</button>
+          <button type="button" class="mis-capas-tab" id="capasAdminTabBtn-capas" onclick="setCapasAdminTab('capas')">Capas</button>
+          <button type="button" class="mis-capas-tab" id="capasAdminTabBtn-raster" onclick="setCapasAdminTab('raster')">Raster</button>
+        </div>
         <div id="capasLoader" class="text-center my-3" style="display:none;">Cargando...</div>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle" id="tablaCapas">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Due?o</th>
-                <th>?rea (km?)</th>
-                <th>Subida</th>
-                <th style="width:180px;">Acciones</th>
-              </tr>
-            </thead>
-            <tbody><!-- filas din?micas --></tbody>
-          </table>
+        <div class="capas-admin-panels-wrap">
+          <div class="mis-capas-panel is-active capas-admin-panel-card" id="capasAdminPanel-puntos">
+            <div class="download-section-card">
+              <div class="mb-2">
+                <div class="fw-semibold">Grupos de puntos</div>
+                <div class="download-row-subtitle">Listado global de grupos con propietario, visibilidad, cantidad y publicación directa.</div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle" id="tablaCapasAdminPuntos">
+                  <thead>
+                    <tr>
+                      <th>Grupo</th>
+                      <th>Dueño</th>
+                      <th>Visibilidad</th>
+                      <th>Solicitud</th>
+                      <th>Cantidad</th>
+                      <th>Archivo origen</th>
+                      <th>Última carga</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="mis-capas-panel capas-admin-panel-card" id="capasAdminPanel-capas">
+            <div class="download-section-card">
+              <div class="mb-2">
+                <div class="fw-semibold">Capas vectoriales</div>
+                <div class="download-row-subtitle">Capas superficiales cargadas por usuarios o publicadas en el visor.</div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle" id="tablaCapas">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Dueño</th>
+                      <th>Estado</th>
+                      <th>Área (km²)</th>
+                      <th>Subida</th>
+                      <th style="width:180px;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="mis-capas-panel capas-admin-panel-card" id="capasAdminPanel-raster">
+            <div class="download-section-card">
+              <div class="mb-2">
+                <div class="fw-semibold">Capas raster</div>
+                <div class="download-row-subtitle">Rasters disponibles con su modo de despliegue, visibilidad, publicación directa y descargas asociadas.</div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle" id="tablaCapasAdminRaster">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Dueño</th>
+                      <th>Modo</th>
+                      <th>Visibilidad</th>
+                      <th>Subida</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -6849,71 +7954,123 @@ function mostrarModalDetallePunto(props) {
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalSolicitudesPublicacionLabel">Solicitudes de publicaci?n</h5>
+        <h5 class="modal-title" id="modalSolicitudesPublicacionLabel">Solicitudes administrativas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <div id="solicitudesLoader" class="text-center my-3" style="display:none;">Cargando...</div>
-        <div class="row g-3 align-items-end mb-4">
-          <div class="col-md-4">
-            <label for="filtroSolicitudesTipo" class="form-label">Tipo</label>
-            <select id="filtroSolicitudesTipo" class="form-select" onchange="renderSolicitudesPublicacion()">
-              <option value="__all__">Todos los tipos</option>
-              <option value="capa">Solo capas</option>
-              <option value="grupo_puntos">Solo grupos de puntos</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label for="filtroSolicitudesEstado" class="form-label">Estado</label>
-            <select id="filtroSolicitudesEstado" class="form-select" onchange="renderSolicitudesPublicacion()">
-              <option value="__all__">Todos los estados</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="aprobada">Aprobadas</option>
-              <option value="rechazada">Rechazadas</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <button type="button" class="btn btn-outline-secondary w-100" onclick="limpiarFiltrosSolicitudesPublicacion()">Limpiar filtros</button>
-          </div>
+        <div class="auth-mode-switch mb-4" role="tablist" aria-label="Tipos de solicitudes">
+          <button type="button" class="auth-mode-btn is-active" id="tabSolicitudesPublicacionBtn" onclick="cambiarTabSolicitudes('publicacion')">Publicación</button>
+          <button type="button" class="auth-mode-btn" id="tabSolicitudesUsuariosBtn" onclick="cambiarTabSolicitudes('usuarios')">Usuarios</button>
         </div>
-        <div id="resumenSolicitudesPublicacion" class="small text-muted mb-3"></div>
-        <div class="mb-4">
-          <h6 class="fw-semibold mb-2">Pendientes</h6>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tipo</th>
-                <th>Objetivo</th>
-                <th>Solicitante</th>
-                <th>Fecha</th>
-                <th>Comentario</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="tablaSolicitudesPublicacion"><!-- filas din?micas --></tbody>
-          </table>
-        </div>
-        </div>
-        <div>
-          <h6 class="fw-semibold mb-2">Historial resuelto</h6>
+
+        <div id="panelSolicitudesPublicacion" class="solicitudes-panel is-active">
+          <div class="row g-3 align-items-end mb-4">
+            <div class="col-md-4">
+              <label for="filtroSolicitudesTipo" class="form-label">Tipo</label>
+              <select id="filtroSolicitudesTipo" class="form-select" onchange="renderSolicitudesPublicacion()">
+                <option value="__all__">Todos los tipos</option>
+                <option value="capa">Solo capas</option>
+                <option value="grupo_puntos">Solo grupos de puntos</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="filtroSolicitudesEstado" class="form-label">Estado</label>
+              <select id="filtroSolicitudesEstado" class="form-select" onchange="renderSolicitudesPublicacion()">
+                <option value="__all__">Todos los estados</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="aprobada">Aprobadas</option>
+                <option value="rechazada">Rechazadas</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <button type="button" class="btn btn-outline-secondary w-100" onclick="limpiarFiltrosSolicitudesPublicacion()">Limpiar filtros</button>
+            </div>
+          </div>
+          <div id="resumenSolicitudesPublicacion" class="small text-muted mb-3"></div>
+          <div class="mb-4">
+            <h6 class="fw-semibold mb-2">Pendientes</h6>
           <div class="table-responsive">
             <table class="table table-sm align-middle">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Estado</th>
                   <th>Tipo</th>
                   <th>Objetivo</th>
                   <th>Solicitante</th>
-                  <th>Revisado por</th>
-                  <th>Fecha resoluci?n</th>
+                  <th>Fecha</th>
                   <th>Comentario</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody id="tablaSolicitudesResueltas"><!-- filas din?micas --></tbody>
+              <tbody id="tablaSolicitudesPublicacion"><!-- filas din?micas --></tbody>
             </table>
+          </div>
+          </div>
+          <div>
+            <h6 class="fw-semibold mb-2">Historial resuelto</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Estado</th>
+                    <th>Tipo</th>
+                    <th>Objetivo</th>
+                    <th>Solicitante</th>
+                    <th>Revisado por</th>
+                    <th>Fecha resoluci?n</th>
+                    <th>Comentario</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaSolicitudesResueltas"><!-- filas din?micas --></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="panelSolicitudesUsuarios" class="solicitudes-panel">
+          <div id="resumenSolicitudesUsuarios" class="small text-muted mb-3"></div>
+          <div class="mb-4">
+            <h6 class="fw-semibold mb-2">Solicitudes de acceso pendientes</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre completo</th>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>C&eacute;dula</th>
+                    <th>Fecha</th>
+                    <th>Comentario</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaSolicitudesRegistro"><!-- filas dinámicas --></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h6 class="fw-semibold mb-2">Historial de solicitudes de acceso</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Estado</th>
+                    <th>Nombre completo</th>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>C&eacute;dula</th>
+                    <th>Revisado por</th>
+                    <th>Fecha resolución</th>
+                    <th>Comentario</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaSolicitudesRegistroResueltas"><!-- filas dinámicas --></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
