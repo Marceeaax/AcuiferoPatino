@@ -662,8 +662,65 @@
           padding: 8px 12px;
         }
 
-        #mapCoordinatesReadout .coords-value{
-          font-size: .82rem;
+      #mapCoordinatesReadout .coords-value{
+        font-size: .82rem;
+      }
+    }
+
+      #rasterValueReadout{
+        position: fixed;
+        left: -9999px;
+        top: -9999px;
+        z-index: 9997;
+        min-width: 180px;
+        max-width: min(82vw, 320px);
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: rgba(17, 24, 39, .94);
+        border: 1px solid rgba(94, 234, 212, 0.26);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+        color: #f8fafc;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .12s ease;
+        backdrop-filter: blur(8px);
+      }
+
+      #rasterValueReadout.is-visible{
+        opacity: 1;
+      }
+
+      #rasterValueReadout .raster-readout-title{
+        font-size: .76rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        color: #99f6e4;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+      }
+
+      #rasterValueReadout .raster-readout-value{
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+      }
+
+      #rasterValueReadout .raster-readout-sub{
+        font-size: .78rem;
+        color: #cbd5e1;
+        margin-top: 2px;
+      }
+
+      @media (max-width: 768px) {
+        #rasterValueReadout{
+          min-width: 160px;
+          padding: 8px 10px;
+        }
+
+        #rasterValueReadout .raster-readout-value{
+          font-size: .92rem;
         }
       }
 
@@ -1552,6 +1609,11 @@
       <div class="coords-title">Coordenadas del mapa · EPSG:4326</div>
       <div class="coords-value" id="mapCoordinatesValue">Mové el cursor sobre el mapa</div>
     </div>
+    <div id="rasterValueReadout" aria-live="polite" aria-hidden="true">
+      <div class="raster-readout-title" id="rasterValueTitle">Raster</div>
+      <div class="raster-readout-value" id="rasterValueDisplay">N/D</div>
+      <div class="raster-readout-sub" id="rasterValueMeta">Valor del píxel</div>
+    </div>
 
     {% if not user.is_authenticated %}
     <div class="modal fade" id="modalLogin" tabindex="-1" aria-labelledby="modalLoginLabel" aria-hidden="true">
@@ -1988,6 +2050,7 @@ document.addEventListener('DOMContentLoaded', function () {
      Inicializaci?n del mapa
   ================================= */
   const centro = {{ centro_mapa|default:"null"|safe }};
+  const SERVER_LAYER_VISIBILITY_STATE = {{ preferencias_visibilidad|default:"{}"|safe }};
   const map = L.map('map', { zoomControl: false }).setView(
     centro ? [centro.lat, centro.lng] : [-25.2637, -57.5759], 10
   );
@@ -2031,11 +2094,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
   map.on('mousemove', function (event) {
     updateMapCoordinatesReadout(event.latlng);
+    updateRasterValueReadout(event);
   });
 
-  map.getContainer().addEventListener('mouseleave', resetMapCoordinatesReadout);
+  map.getContainer().addEventListener('mouseleave', () => {
+    resetMapCoordinatesReadout();
+    hideRasterValueReadout();
+  });
   document.querySelectorAll('.modal').forEach((modalEl) => {
-    modalEl.addEventListener('show.bs.modal', resetMapCoordinatesReadout);
+    modalEl.addEventListener('show.bs.modal', () => {
+      resetMapCoordinatesReadout();
+      hideRasterValueReadout();
+    });
   });
 
   /* ================================
@@ -2073,6 +2143,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const WQI_MIN_REQUIRED_PARAMS = 6;
   const HEATMAP_GROUP_STORAGE_KEY = 'mapa_muestreo_heatmap_group_v1';
+  const RASTER_VALUE_INSPECTOR_STORAGE_KEY = 'mapa_muestreo_raster_value_inspector_v1';
+  const LAYER_VISIBILITY_STORAGE_KEY = 'mapa_muestreo_layer_visibility_v1';
   const WQI_PARAM_CONFIG = [
     { key: 'conductivi', label: 'Conductividad eléctrica', unit: 'uS/cm', standard: 1250, weight: 5 },
     { key: 'alcalinida', label: 'Alcalinidad total', unit: 'mg/L', standard: 250, weight: 5 },
@@ -2089,6 +2161,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const POINT_COLOR_STORAGE_KEY = 'mapa_muestreo_point_colors_v1';
   const LAYER_COLOR_STORAGE_KEY = 'mapa_muestreo_layer_colors_v1';
   const RASTER_MARKER_IMAGE_URL = "{% static 'mapas/img/tesisraster.png' %}";
+  const rasterValueReadoutEl = document.getElementById('rasterValueReadout');
+  const rasterValueTitleEl = document.getElementById('rasterValueTitle');
+  const rasterValueDisplayEl = document.getElementById('rasterValueDisplay');
+  const rasterValueMetaEl = document.getElementById('rasterValueMeta');
+  const rasterAnalysisCache = new Map();
+  let activeRasterValueInspectorId = localStorage.getItem(RASTER_VALUE_INSPECTOR_STORAGE_KEY) || '';
 
   function loadColorState(storageKey) {
     try {
@@ -2107,6 +2185,88 @@ document.addEventListener('DOMContentLoaded', function () {
   let pointColorState = loadColorState(POINT_COLOR_STORAGE_KEY);
   let layerColorState = loadColorState(LAYER_COLOR_STORAGE_KEY);
   let heatmapSelectedGroup = localStorage.getItem(HEATMAP_GROUP_STORAGE_KEY) || '';
+
+  function normalizeLayerVisibilityState(rawState) {
+    if (!rawState || typeof rawState !== 'object' || Array.isArray(rawState)) return {};
+    const normalized = {};
+    Object.entries(rawState).forEach(([key, value]) => {
+      const keyText = String(key || '').trim();
+      if (!/^(base:(MUESTREOS|HEAT|PATINO)|vector:\d+|raster:\d+|group:[A-Z0-9_]+)$/.test(keyText)) return;
+      normalized[keyText] = !!value;
+    });
+    return normalized;
+  }
+
+  function loadLayerVisibilityState() {
+    if (IS_AUTH) {
+      return normalizeLayerVisibilityState(SERVER_LAYER_VISIBILITY_STATE);
+    }
+    return normalizeLayerVisibilityState(loadColorState(LAYER_VISIBILITY_STORAGE_KEY));
+  }
+
+  let layerVisibilityState = loadLayerVisibilityState();
+  let layerVisibilityPersistTimer = null;
+
+  function getBaseLayerVisibilityKey(layerId) {
+    return `base:${layerId}`;
+  }
+
+  function getVectorLayerVisibilityKey(layerId) {
+    return `vector:${layerId}`;
+  }
+
+  function getRasterLayerVisibilityKey(rasterId) {
+    return `raster:${rasterId}`;
+  }
+
+  function buildPointGroupVisibilityToken(group) {
+    const normalizedGroup = normalizePointGroupKey(group)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return normalizedGroup || 'SIN_GRUPO';
+  }
+
+  function getPointGroupVisibilityKey(group) {
+    return `group:${buildPointGroupVisibilityToken(group)}`;
+  }
+
+  function getLayerVisibilityPreference(key, fallback = true) {
+    if (!key) return fallback;
+    if (Object.prototype.hasOwnProperty.call(layerVisibilityState, key)) {
+      return !!layerVisibilityState[key];
+    }
+    return fallback;
+  }
+
+  function persistLayerVisibilityState() {
+    saveColorState(LAYER_VISIBILITY_STORAGE_KEY, layerVisibilityState);
+    if (!IS_AUTH) return Promise.resolve();
+    return fetch('/guardar-visibilidad-capas/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify({ visibility: layerVisibilityState })
+    }).catch(() => null);
+  }
+
+  function schedulePersistLayerVisibilityState() {
+    saveColorState(LAYER_VISIBILITY_STORAGE_KEY, layerVisibilityState);
+    if (!IS_AUTH) return;
+    if (layerVisibilityPersistTimer) clearTimeout(layerVisibilityPersistTimer);
+    layerVisibilityPersistTimer = setTimeout(() => {
+      persistLayerVisibilityState();
+    }, 250);
+  }
+
+  function setLayerVisibilityPreference(key, isVisible) {
+    if (!key) return;
+    layerVisibilityState[key] = !!isVisible;
+    schedulePersistLayerVisibilityState();
+  }
 
   function normalizePointGroupKey(group) {
     return (group || 'SIN_GRUPO').trim().toUpperCase();
@@ -2142,6 +2302,228 @@ document.addEventListener('DOMContentLoaded', function () {
   function getLayerColor(layerId) {
     return layerColorState[String(layerId)] || '#ff6b6b';
   }
+
+  function getRasterById(rasterId) {
+    return Array.isArray(window.rasterLayersData)
+      ? window.rasterLayersData.find(raster => String(raster.id) === String(rasterId))
+      : null;
+  }
+
+  function setActiveRasterValueInspector(rasterId) {
+    activeRasterValueInspectorId = rasterId ? String(rasterId) : '';
+    if (activeRasterValueInspectorId) {
+      localStorage.setItem(RASTER_VALUE_INSPECTOR_STORAGE_KEY, activeRasterValueInspectorId);
+    } else {
+      localStorage.removeItem(RASTER_VALUE_INSPECTOR_STORAGE_KEY);
+    }
+  }
+
+  function isRasterValueInspectorActive(rasterId) {
+    return !!activeRasterValueInspectorId && String(activeRasterValueInspectorId) === String(rasterId);
+  }
+
+  function inferRasterReadoutUnit(raster) {
+    const text = `${raster?.nombre || ''}`.toLowerCase();
+    if (text.includes('alcalin')) return 'mg/L';
+    if (text.includes('conduct')) return 'uS/cm';
+    if (text.includes('nitrat')) return 'mg/L';
+    if (text.includes('nitrit')) return 'mg/L';
+    if (text.includes('magnes')) return 'mg/L';
+    if (text.includes('calcio')) return 'mg/L';
+    if (text.includes('sodio')) return 'mg/L';
+    if (text.includes('potasio')) return 'mg/L';
+    if (text.includes('cloruro')) return 'mg/L';
+    if (text.includes('sulfato')) return 'mg/L';
+    if (text.includes('arsen')) return 'mg/L';
+    if (text.includes('coliform')) return 'CFU/100ml';
+    if (text === 'ph' || /\bph\b/.test(text)) return '';
+    return '';
+  }
+
+  function formatRasterReadoutValue(value) {
+    if (!Number.isFinite(value)) return 'N/D';
+    if (Math.abs(value) >= 1000) return value.toFixed(0);
+    if (Math.abs(value) >= 100) return value.toFixed(1);
+    return value.toFixed(2);
+  }
+
+  function hideRasterValueReadout() {
+    if (!rasterValueReadoutEl) return;
+    rasterValueReadoutEl.classList.remove('is-visible');
+    rasterValueReadoutEl.setAttribute('aria-hidden', 'true');
+    rasterValueReadoutEl.style.left = '-9999px';
+    rasterValueReadoutEl.style.top = '-9999px';
+  }
+
+  function positionRasterValueReadout(containerPoint) {
+    if (!rasterValueReadoutEl || !containerPoint) return;
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const readoutWidth = rasterValueReadoutEl.offsetWidth || 220;
+    const readoutHeight = rasterValueReadoutEl.offsetHeight || 64;
+    const desiredLeft = mapRect.left + containerPoint.x + 18;
+    const desiredTop = mapRect.top + containerPoint.y + 18;
+    const clampedLeft = Math.max(12, Math.min(desiredLeft, viewportWidth - readoutWidth - 12));
+    const clampedTop = Math.max(12, Math.min(desiredTop, viewportHeight - readoutHeight - 12));
+    rasterValueReadoutEl.style.left = `${clampedLeft}px`;
+    rasterValueReadoutEl.style.top = `${clampedTop}px`;
+  }
+
+  function getRasterPixelSampleAtLatLng(georaster, latlng) {
+    if (!georaster || !latlng) return null;
+    const lng = latlng.lng;
+    const lat = latlng.lat;
+    const xmin = Number(georaster.xmin);
+    const xmax = Number(georaster.xmax);
+    const ymin = Number(georaster.ymin);
+    const ymax = Number(georaster.ymax);
+    const pixelWidth = Math.abs(Number(georaster.pixelWidth));
+    const pixelHeight = Math.abs(Number(georaster.pixelHeight));
+    const width = Number(georaster.width);
+    const height = Number(georaster.height);
+
+    if (![xmin, xmax, ymin, ymax, pixelWidth, pixelHeight, width, height].every(Number.isFinite)) {
+      return null;
+    }
+    if (lng < xmin || lng > xmax || lat < ymin || lat > ymax) return null;
+
+    const col = Math.floor((lng - xmin) / pixelWidth);
+    const row = Math.floor((ymax - lat) / pixelHeight);
+    if (row < 0 || col < 0 || row >= height || col >= width) return null;
+
+    const band = georaster.values?.[0];
+    const rawValue = band?.[row]?.[col];
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) return null;
+
+    const noDataValue = georaster.noDataValue;
+    if (Number.isFinite(Number(noDataValue)) && value === Number(noDataValue)) return null;
+
+    return { value, row, col };
+  }
+
+  async function ensureRasterAnalysisSource(raster) {
+    if (!raster?.archivo_4326_url) {
+      throw new Error('El raster no tiene un GeoTIFF analítico disponible para leer valores.');
+    }
+    if (raster.__analysisGeoraster) return raster.__analysisGeoraster;
+    if (rasterAnalysisCache.has(String(raster.id))) {
+      return rasterAnalysisCache.get(String(raster.id));
+    }
+
+    const promise = fetch(raster.archivo_4326_url)
+      .then(response => {
+        if (!response.ok) throw new Error('No se pudo cargar la fuente analítica del raster.');
+        return response.arrayBuffer();
+      })
+      .then(arrayBuffer => parseGeoraster(arrayBuffer))
+      .then(georaster => {
+        raster.__analysisGeoraster = georaster;
+        return georaster;
+      })
+      .catch(error => {
+        rasterAnalysisCache.delete(String(raster.id));
+        throw error;
+      });
+
+    rasterAnalysisCache.set(String(raster.id), promise);
+    return promise;
+  }
+
+  function updateRasterValueReadout(event) {
+    if (!activeRasterValueInspectorId || !rasterValueReadoutEl || document.body.classList.contains('ui-modal-open')) {
+      hideRasterValueReadout();
+      return;
+    }
+
+    const raster = getRasterById(activeRasterValueInspectorId);
+    const entry = dynamicLayers.get(`RASTER_${activeRasterValueInspectorId}`);
+    if (!raster || raster.activo === false || !entry?.layer || !map.hasLayer(entry.layer)) {
+      hideRasterValueReadout();
+      return;
+    }
+
+    const georaster = raster.__analysisGeoraster;
+    if (!georaster) {
+      hideRasterValueReadout();
+      return;
+    }
+
+    const sample = getRasterPixelSampleAtLatLng(georaster, event.latlng);
+    if (!sample) {
+      hideRasterValueReadout();
+      return;
+    }
+
+    const unit = inferRasterReadoutUnit(raster);
+    if (rasterValueTitleEl) rasterValueTitleEl.textContent = raster.nombre || 'Raster';
+    if (rasterValueDisplayEl) {
+      rasterValueDisplayEl.textContent = `${formatRasterReadoutValue(sample.value)}${unit ? ` ${unit}` : ''}`;
+    }
+    if (rasterValueMetaEl) {
+      rasterValueMetaEl.textContent = `Valor del píxel · fila ${sample.row + 1}, columna ${sample.col + 1}`;
+    }
+    positionRasterValueReadout(event.containerPoint);
+    rasterValueReadoutEl.classList.add('is-visible');
+    rasterValueReadoutEl.setAttribute('aria-hidden', 'false');
+  }
+
+  async function toggleRasterValueInspector(rasterId) {
+    if (isRasterValueInspectorActive(rasterId)) {
+      setActiveRasterValueInspector('');
+      hideRasterValueReadout();
+      if (document.getElementById('tablaMisRasters')) renderMisCapasRasterTable();
+      return;
+    }
+
+    const raster = getRasterById(rasterId);
+    if (!raster) {
+      Swal.fire('Raster no disponible', 'No se encontró la capa raster seleccionada.', 'info');
+      return;
+    }
+    if (raster.activo === false) {
+      Swal.fire('Raster desactivado', 'Primero activá la capa raster para poder leer sus valores en el mapa.', 'info');
+      return;
+    }
+
+    try {
+      await ensureRasterAnalysisSource(raster);
+      setActiveRasterValueInspector(rasterId);
+      if (document.getElementById('tablaMisRasters')) renderMisCapasRasterTable();
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Lectura activada para ${raster.nombre || 'el raster'}`,
+        text: 'Mové el cursor sobre la capa para ver el valor del píxel.',
+        showConfirmButton: false,
+        timer: 2200,
+        timerProgressBar: true
+      });
+    } catch (error) {
+      Swal.fire('No se pudo activar la lectura', error.message || 'Error inesperado.', 'error');
+    }
+  }
+
+  window.rasterInspectorApi = {
+    getActiveId() {
+      return activeRasterValueInspectorId || '';
+    },
+    isActive(rasterId) {
+      return isRasterValueInspectorActive(rasterId);
+    },
+    clear() {
+      setActiveRasterValueInspector('');
+      hideRasterValueReadout();
+    },
+    hide() {
+      hideRasterValueReadout();
+    },
+    toggle(rasterId) {
+      return toggleRasterValueInspector(rasterId);
+    }
+  };
 
   function applyImageMarker(marker, imageUrl) {
     if (!marker || !imageUrl) return;
@@ -2706,6 +3088,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function aplicarToggleTodosMisPuntos(checked) {
     getOwnPointGroups().forEach(grupo => {
       estadoGruposPuntos.set(grupo, checked);
+      setLayerVisibilityPreference(getPointGroupVisibilityKey(grupo), checked);
       actualizarCheckboxesGrupoPuntos(grupo, checked);
     });
     mostrarTodosLosPuntos = checked;
@@ -2723,6 +3106,7 @@ document.addEventListener('DOMContentLoaded', function () {
     cb.checked = estadoGruposPuntos.get(grupo) !== false;
     cb.addEventListener('change', () => {
       estadoGruposPuntos.set(grupo, cb.checked);
+      setLayerVisibilityPreference(getPointGroupVisibilityKey(grupo), cb.checked);
       actualizarCheckboxesGrupoPuntos(grupo, cb.checked);
       if (meta?.tienePropios) {
         sincronizarToggleMisPuntosDesdeGrupos();
@@ -2849,9 +3233,11 @@ document.addEventListener('DOMContentLoaded', function () {
       p.grupo = obtenerGrupoPunto(p);
       p.publico = !!p.publico || !p.user;
       p.activo = p.activo !== false;
+      const visibilityKey = getPointGroupVisibilityKey(p.grupo);
+      const hasStoredGroupVisibility = Object.prototype.hasOwnProperty.call(layerVisibilityState, visibilityKey);
       if (!estadoGruposPuntos.has(p.grupo)) {
-        estadoGruposPuntos.set(p.grupo, p.activo);
-      } else if (p.activo) {
+        estadoGruposPuntos.set(p.grupo, hasStoredGroupVisibility ? getLayerVisibilityPreference(visibilityKey, true) : p.activo);
+      } else if (!hasStoredGroupVisibility && p.activo) {
         estadoGruposPuntos.set(p.grupo, true);
       }
       const metaGrupo = metadatosGruposPuntos.get(p.grupo) || {
@@ -4798,6 +5184,7 @@ window.enviarPuntosCsv = async function(){
       const response = await fetch(raster.archivo_4326_url);
       const arrayBuffer = await response.arrayBuffer();
       const georaster = await parseGeoraster(arrayBuffer);
+      raster.__analysisGeoraster = georaster;
       return new GeoRasterLayer({
         georaster,
         pane: paneName,
@@ -4926,14 +5313,16 @@ window.enviarPuntosCsv = async function(){
 
   function createListItem({feature, targetList, isOwn}){
     const props  = feature.properties || {};
-    const capaId = (props.id + props.pk + props.ogc_fid + crypto.randomUUID());
+    const capaId = String(props.id ?? props.pk ?? props.ogc_fid ?? '');
+    if (!capaId) return;
     const name   = props.nombre || 'Capa sin nombre';
+    const visibilityKey = getVectorLayerVisibilityKey(capaId);
 
     const li = document.createElement('li');
     li.setAttribute('draggable','true');
     li.dataset.layer = `CAPA_${capaId}`;
 
-    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true;
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = getLayerVisibilityPreference(visibilityKey, true);
     const marker = createLayerMarker({ background: getLayerColor(capaId), title: `Color de ${name}` });
     const label = document.createElement('span'); label.className='layer-item-label'; label.textContent = name;
     const tools = document.createElement('div'); tools.className='tools';
@@ -4959,10 +5348,14 @@ window.enviarPuntosCsv = async function(){
     targetList.appendChild(li);
 
     const paneName = `paneCAPA_${capaId}`; makePane(paneName, 550);
-    const layer = buildLeafletLayer(feature, paneName).addTo(map);
-    dynamicLayers.set(String(capaId), { layer, paneName, li, markerEl: marker, isRaster: false });
+    const layer = buildLeafletLayer(feature, paneName);
+    if (cb.checked) layer.addTo(map);
+    dynamicLayers.set(String(capaId), { layer, paneName, li, markerEl: marker, isRaster: false, visibilityKey });
 
-    cb.addEventListener('change', ()=> { cb.checked ? map.addLayer(layer) : map.removeLayer(layer); });
+    cb.addEventListener('change', ()=> {
+      setLayerVisibilityPreference(visibilityKey, cb.checked);
+      cb.checked ? map.addLayer(layer) : map.removeLayer(layer);
+    });
     btnZoom.addEventListener('click', ()=> { try{ const b=layer.getBounds(); if(b.isValid()) map.fitBounds(b,{padding:[20,20]}); }catch{} });
     btnColor.addEventListener('click', ()=> personalizarColorCapa(capaId, name));
     if (btnDelete) btnDelete.addEventListener('click', ()=> eliminarCapa(capaId, li, layer));
@@ -4974,12 +5367,13 @@ window.enviarPuntosCsv = async function(){
   async function createRasterListItem({raster, targetList, isOwn}){
     const rasterId = raster.id;
     const name = raster.nombre || 'Raster sin nombre';
+    const visibilityKey = getRasterLayerVisibilityKey(rasterId);
 
     const li = document.createElement('li');
     li.setAttribute('draggable', 'true');
     li.dataset.layer = `RASTER_${rasterId}`;
 
-    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true;
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = getLayerVisibilityPreference(visibilityKey, true);
     const marker = createLayerMarker({
       imageUrl: RASTER_MARKER_IMAGE_URL,
       title: raster.modo_despliegue === 'geotiff' ? 'Raster georreferenciado' : 'Imagen raster'
@@ -5006,9 +5400,21 @@ window.enviarPuntosCsv = async function(){
     const paneName = `paneRASTER_${rasterId}`; makePane(paneName, 545);
     const layer = await buildRasterLeafletLayer(raster, paneName);
     if (cb.checked) layer.addTo(map);
-    dynamicLayers.set(`RASTER_${rasterId}`, { layer, paneName, li, isRaster: true, markerEl: marker });
+    dynamicLayers.set(`RASTER_${rasterId}`, { layer, paneName, li, isRaster: true, markerEl: marker, rasterData: raster, visibilityKey });
 
-    cb.addEventListener('change', ()=> { cb.checked ? map.addLayer(layer) : map.removeLayer(layer); });
+    if (isRasterValueInspectorActive(rasterId) && raster.archivo_4326_url && !raster.__analysisGeoraster) {
+      ensureRasterAnalysisSource(raster).catch(() => {
+        if (isRasterValueInspectorActive(rasterId)) {
+          setActiveRasterValueInspector('');
+          hideRasterValueReadout();
+        }
+      });
+    }
+
+    cb.addEventListener('change', ()=> {
+      setLayerVisibilityPreference(visibilityKey, cb.checked);
+      cb.checked ? map.addLayer(layer) : map.removeLayer(layer);
+    });
     btnZoom.addEventListener('click', ()=> {
       try {
         const b = L.latLngBounds(raster.bounds);
@@ -5033,6 +5439,10 @@ window.enviarPuntosCsv = async function(){
           const entry = dynamicLayers.get(String(capaId));
           const targetLayer = layer || entry?.layer;
           const targetLi = li || entry?.li;
+          if (entry?.visibilityKey && Object.prototype.hasOwnProperty.call(layerVisibilityState, entry.visibilityKey)) {
+            delete layerVisibilityState[entry.visibilityKey];
+            schedulePersistLayerVisibilityState();
+          }
           if (targetLayer) { try { map.removeLayer(targetLayer); } catch {} }
           if (targetLi) { try { targetLi.remove(); } catch {} }
           dynamicLayers.delete(String(capaId));
@@ -5058,9 +5468,17 @@ window.enviarPuntosCsv = async function(){
           const entry = dynamicLayers.get(`RASTER_${rasterId}`);
           const targetLayer = layer || entry?.layer;
           const targetLi = li || entry?.li;
+          if (entry?.visibilityKey && Object.prototype.hasOwnProperty.call(layerVisibilityState, entry.visibilityKey)) {
+            delete layerVisibilityState[entry.visibilityKey];
+            schedulePersistLayerVisibilityState();
+          }
           if (targetLayer) { try { map.removeLayer(targetLayer); } catch {} }
           if (targetLi) { try { targetLi.remove(); } catch {} }
           dynamicLayers.delete(`RASTER_${rasterId}`);
+          if (isRasterValueInspectorActive(rasterId)) {
+            setActiveRasterValueInspector('');
+            hideRasterValueReadout();
+          }
           const rasterIndex = Array.isArray(rasterLayersData) ? rasterLayersData.findIndex(raster => Number(raster.id) === Number(rasterId)) : -1;
           if (rasterIndex >= 0) {
             rasterLayersData.splice(rasterIndex, 1);
@@ -5090,6 +5508,7 @@ window.enviarPuntosCsv = async function(){
         map.addLayer(layer);
         const checkbox = entry.li?.querySelector('input[type=checkbox]');
         if (checkbox) checkbox.checked = true;
+        if (entry.visibilityKey) setLayerVisibilityPreference(entry.visibilityKey, true);
       }
 
       const bounds = layer.getBounds?.();
@@ -5376,13 +5795,22 @@ window.enviarPuntosCsv = async function(){
   [...listBase.querySelectorAll('li')].forEach(li=>{
     const id = li.dataset.layer;
     const cb = li.querySelector('input[type=checkbox]');
+    const visibilityKey = getBaseLayerVisibilityKey(id);
     const layer =
       id === 'MUESTREOS' ? muestreoLayer :
       id === 'HEAT'      ? heatLayer :
       id === 'PATINO'    ? patinoLayer :
       null;
     if (!layer || !cb) return;
+    cb.checked = getLayerVisibilityPreference(visibilityKey, cb.checked);
+    if (cb.checked) {
+      if (!map.hasLayer(layer)) map.addLayer(layer);
+      if (id === 'HEAT') reconstruirHeatmap();
+    } else if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    }
     cb.addEventListener('change', ()=> {
+      setLayerVisibilityPreference(visibilityKey, cb.checked);
       if (id === 'HEAT') {
         reconstruirHeatmap();
       }
@@ -5501,6 +5929,7 @@ if (Array.isArray(rasterLayersData)) {
         input.checked = estadoGruposPuntos.get(grupo);
         input.addEventListener('change', () => {
           estadoGruposPuntos.set(grupo, input.checked);
+          setLayerVisibilityPreference(getPointGroupVisibilityKey(grupo), input.checked);
           actualizarCheckboxesGrupoPuntos(grupo, input.checked);
           if (meta.tienePropios) {
             sincronizarToggleMisPuntosDesdeGrupos();
@@ -6155,41 +6584,57 @@ function setMisCapasTab(tab) {
 }
 window.setMisCapasTab = setMisCapasTab;
 
+function renderMisCapasRasterTable() {
+  const tbodyRasters = document.getElementById('tablaMisRasters');
+  if (!tbodyRasters) return;
+  const rasterInspectorApi = window.rasterInspectorApi || null;
+
+  const rastersPropios = Array.isArray(window.rasterLayersData)
+    ? window.rasterLayersData.filter(raster => !!raster.es_propia)
+    : [];
+  const activeInspectorId = rasterInspectorApi?.getActiveId?.() || '';
+  if (activeInspectorId && !rastersPropios.some(raster => String(raster.id) === String(activeInspectorId))) {
+    rasterInspectorApi?.clear?.();
+  }
+
+  const rowsRasters = rastersPropios.map(raster => {
+    const descargas = [];
+    const lecturaActiva = !!rasterInspectorApi?.isActive?.(raster.id);
+    const lecturaDisabled = raster.activo === false || !raster.archivo_4326_url;
+
+    if (raster.archivo_4326_url) {
+      descargas.push(`<a class="btn btn-sm btn-outline-primary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'geotiff' })}">GeoTIFF</a>`);
+    }
+    if (raster.archivo_png_url) {
+      descargas.push(`<a class="btn btn-sm btn-outline-secondary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' })}">PNG</a>`);
+    }
+    descargas.push(`<button class="btn btn-sm ${lecturaActiva ? 'btn-dark' : 'btn-outline-dark'}" ${lecturaDisabled ? 'disabled' : ''} onclick="window.rasterInspectorApi && window.rasterInspectorApi.toggle(${raster.id})">${lecturaActiva ? 'Desactivar lectura' : 'Leer valor'}</button>`);
+    descargas.push(`<button class="btn btn-sm ${raster.activo === false ? 'btn-outline-success' : 'btn-outline-secondary'}" onclick="cambiarActividadRaster(${raster.id}, ${raster.activo === false ? 'true' : 'false'})">${raster.activo === false ? 'Activar' : 'Desactivar'}</button>`);
+    descargas.push(`<button class="btn btn-sm btn-danger" onclick="window.eliminarRaster(${raster.id})">Eliminar</button>`);
+    return `
+      <tr>
+        <td>${raster.id}</td>
+        <td>${raster.nombre || 'Raster sin nombre'}</td>
+        <td>${raster.modo_despliegue === 'geotiff' ? 'GeoTIFF' : 'PNG procesado'}</td>
+        <td>${raster.publico ? 'Pública' : 'Privada'} · ${raster.activo === false ? 'Desactivada' : 'Activa'}${lecturaActiva ? ' · lectura activa' : ''}</td>
+        <td class="d-flex flex-wrap gap-2">${descargas.join('')}</td>
+      </tr>`;
+  }).join('');
+  tbodyRasters.innerHTML = rowsRasters || `<tr><td colspan="5" class="text-center">No tienes capas raster cargadas</td></tr>`;
+}
+
 function abrirModalMisCapas() {
   window.cerrarFabMenu?.();
   const modalEl = document.getElementById('modalMisCapas');
   const modal  = bootstrap.Modal.getOrCreateInstance(modalEl);
   const tbody  = document.getElementById('tablaMisCapas');
-  const tbodyRasters = document.getElementById('tablaMisRasters');
   const loader = document.getElementById('misCapasLoader');
 
   window.renderGruposPuntosEnContenedor?.({
     containerId: 'listaGruposPuntosMisCapas'
   });
 
-  if (tbodyRasters) {
-    const rastersPropios = Array.isArray(window.rasterLayersData) ? window.rasterLayersData.filter(raster => !!raster.es_propia) : [];
-    const rowsRasters = rastersPropios.map(raster => {
-      const descargas = [];
-      if (raster.archivo_4326_url) {
-        descargas.push(`<a class="btn btn-sm btn-outline-primary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'geotiff' })}">GeoTIFF</a>`);
-      }
-      if (raster.archivo_png_url) {
-        descargas.push(`<a class="btn btn-sm btn-outline-secondary" href="${window.buildDownloadUrl(`/descargas/rasters/${raster.id}/`, { formato: 'png' })}">PNG</a>`);
-      }
-      descargas.push(`<button class="btn btn-sm ${raster.activo === false ? 'btn-outline-success' : 'btn-outline-secondary'}" onclick="cambiarActividadRaster(${raster.id}, ${raster.activo === false ? 'true' : 'false'})">${raster.activo === false ? 'Activar' : 'Desactivar'}</button>`);
-      descargas.push(`<button class="btn btn-sm btn-danger" onclick="window.eliminarRaster(${raster.id})">Eliminar</button>`);
-      return `
-        <tr>
-          <td>${raster.id}</td>
-          <td>${raster.nombre || 'Raster sin nombre'}</td>
-          <td>${raster.modo_despliegue === 'geotiff' ? 'GeoTIFF' : 'PNG procesado'}</td>
-          <td>${raster.publico ? 'Pública' : 'Privada'} · ${raster.activo === false ? 'Desactivada' : 'Activa'}</td>
-          <td class="d-flex flex-wrap gap-2">${descargas.join('')}</td>
-        </tr>`;
-    }).join('');
-    tbodyRasters.innerHTML = rowsRasters || `<tr><td colspan="5" class="text-center">No tienes capas raster cargadas</td></tr>`;
-  }
+  renderMisCapasRasterTable();
 
   tbody.innerHTML = '';
   loader.style.display = 'block';
@@ -6285,6 +6730,10 @@ function cambiarActividadRaster(rasterId, activo) {
       .then(r => r.json())
       .then(j => {
         if (!j.success) throw new Error(j.error || 'No se pudo actualizar el raster.');
+        if (!activar && isRasterValueInspectorActive(rasterId)) {
+          setActiveRasterValueInspector('');
+          hideRasterValueReadout();
+        }
         Swal.fire(
           activar ? 'Raster activado' : 'Raster desactivado',
           activar ? 'La capa raster vuelve a estar visible.' : 'La capa raster quedó oculta sin borrarse.',

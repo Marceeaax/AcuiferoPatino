@@ -259,7 +259,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
 
     @patch("mapas.views.render")
     @patch("mapas.views.serialize")
-    @patch("mapas.views.SolicitudPublicacion.objects.filter")
+    @patch("mapas.views._pending_admin_requests_count", return_value=0)
     @patch("mapas.views._latest_request_map_for_user", return_value={})
     @patch("mapas.views.PreferenciasMapa.objects.get", side_effect=views.PreferenciasMapa.DoesNotExist)
     @patch("mapas.views.CapaRaster.objects.filter")
@@ -272,7 +272,7 @@ class MapaMuestreoViewTests(SimpleTestCase):
         mock_raster_filter,
         _mock_pref_get,
         _mock_latest_requests,
-        mock_request_filter,
+        _mock_pending_admin_requests,
         mock_serialize,
         mock_render,
     ):
@@ -295,7 +295,6 @@ class MapaMuestreoViewTests(SimpleTestCase):
         mock_muestreo_filter.return_value.distinct.return_value = mock_muestreo_qs
         mock_capa_filter.return_value = []
         mock_raster_filter.return_value = []
-        mock_request_filter.return_value.count.return_value = 0
         mock_serialize.return_value = json.dumps({
             "type": "FeatureCollection",
             "features": [
@@ -1987,3 +1986,75 @@ class AuthAndPreferencesIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.content)
         self.assertFalse(data["success"])
+
+    def test_guardar_visibilidad_capas_crea_preferencia_real(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            "/guardar-visibilidad-capas/",
+            data=json.dumps({
+                "visibility": {
+                    "base:HEAT": False,
+                    "base:PATINO": True,
+                    "vector:7": False,
+                    "raster:4": True,
+                    "group:MUESTREO_2025": False,
+                    "invalido": False,
+                }
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data["success"])
+        self.assertEqual(
+            data["visibility"],
+            {
+                "base:HEAT": False,
+                "base:PATINO": True,
+                "vector:7": False,
+                "raster:4": True,
+                "group:MUESTREO_2025": False,
+            },
+        )
+
+        pref = PreferenciasMapa.objects.get(user=self.user)
+        self.assertEqual(
+            pref.visibilidad_capas,
+            {
+                "base:HEAT": False,
+                "base:PATINO": True,
+                "vector:7": False,
+                "raster:4": True,
+                "group:MUESTREO_2025": False,
+            },
+        )
+
+    def test_guardar_visibilidad_capas_actualiza_preferencia_existente(self):
+        self.client.force_login(self.user)
+        PreferenciasMapa.objects.create(
+            user=self.user,
+            visibilidad_capas={"base:HEAT": True, "vector:9": True},
+        )
+
+        response = self.client.post(
+            "/guardar-visibilidad-capas/",
+            data=json.dumps({
+                "visibility": {
+                    "base:HEAT": False,
+                    "raster:2": False,
+                }
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        pref = PreferenciasMapa.objects.get(user=self.user)
+        self.assertEqual(
+            pref.visibilidad_capas,
+            {
+                "base:HEAT": False,
+                "raster:2": False,
+            },
+        )

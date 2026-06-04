@@ -148,6 +148,7 @@ class Capa(AuditFieldsMixin, models.Model):
 class PreferenciasMapa(AuditFieldsMixin, models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     centro_mapa = models.PointField(null=True, blank=True)
+    visibilidad_capas = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "preferencias_mapa"

@@ -41,6 +41,7 @@ urlpatterns = [
         name='password_reset_complete',
     ),
     path('guardar-centro/', views.guardar_centro_mapa, name='guardar_centro'),
+    path('guardar-visibilidad-capas/', views.guardar_visibilidad_capas, name='guardar_visibilidad_capas'),
     path('guardar-nuevo-punto/', views.guardar_nuevo_punto, name='guardar_nuevo_punto'),
     path('editar-punto/<int:id>/', views.editar_punto_view, name='editar_punto'),
     path('descargas/puntos/', views.descargar_puntos, name='descargar_puntos'),

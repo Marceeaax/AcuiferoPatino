@@ -20,6 +20,8 @@ La estructura de la aplicaci\'on no responde a un dise\~no monol\'itico purament
 
 En t\'erminos conceptuales, la plataforma fue dise\~nada para soportar tres necesidades principales: en primer lugar, la representaci\'on visual del territorio y de los puntos de muestreo; en segundo lugar, la administraci\'on estructurada de capas y grupos de datos por parte de distintos tipos de usuarios; y, en tercer lugar, la normalizaci\'on de datos heterog\'eneos provenientes de campa\~nas de muestreo, archivos CSV, GeoJSON, Shapefile y GeoTIFF. La integraci\'on de estas necesidades da lugar a una estructura de aplicaci\'on que debe ser comprendida tanto desde el punto de vista tecnol\'ogico como desde el punto de vista funcional.
 
+La evoluci\'on reciente del sistema incorpor\'o adem\'as funciones que exceden la publicaci\'on convencional de mapas, tales como persistencia de preferencias visuales por usuario, flujo de aprobaci\'on administrativa para nuevas cuentas, recuperaci\'on de contrase\~na por correo electr\'onico, lectura anal\'itica de valores raster por p\'ixel y administraci\'on unificada de recursos propios y p\'ublicos mediante modales tabulados. Por ello, la estructura de la aplicaci\'on debe leerse como una arquitectura viva, en expansi\'on, donde las necesidades funcionales del dominio de calidad de agua fueron modelando progresivamente la soluci\'on t\'ecnica.
+
 \section{Prop\'osito general de la arquitectura}
 
 La arquitectura de la aplicaci\'on fue concebida con el objetivo de mantener un equilibrio entre flexibilidad funcional, reutilizaci\'on de componentes, interoperabilidad geoespacial y sostenibilidad t\'ecnica. En lugar de depender de una plataforma SIG cerrada, la soluci\'on se construy\'o sobre herramientas de c\'odigo abierto ampliamente difundidas, lo que facilita su mantenimiento, extensi\'on y posible adaptaci\'on a otros escenarios acad\'emicos o institucionales.
@@ -32,6 +34,8 @@ La estructura general persigue los siguientes prop\'ositos:
     \item Permitir la carga y transformaci\'on de datos georreferenciados en m\'ultiples formatos de uso habitual en proyectos SIG.
     \item Incorporar mecanismos de control de acceso y de revisi\'on de contenidos antes de su publicaci\'on.
     \item Registrar evidencias de inserciones, modificaciones y eliminaciones mediante un esquema formal de auditor\'ia.
+    \item Recordar preferencias operativas del usuario, tales como el centro del mapa y el estado visible u oculto de capas y grupos, para reducir fricciones de uso.
+    \item Integrar capacidades de inspecci\'on anal\'itica sobre datos raster y de consulta inmediata sobre indicadores ambientales sin abandonar el visor principal.
     \item Ofrecer una base tecnol\'ogica suficientemente general como para ser reutilizada en otros estudios de aguas subterr\'aneas, recursos h\'idricos o variables ambientales continuas.
 \end{itemize}
 
@@ -134,6 +138,22 @@ El archivo principal de rutas delega la mayor parte de la funcionalidad a la apl
 
 La aplicaci\'on \texttt{mapas} es el n\'ucleo operativo del sistema. Dentro de ella se implementan los modelos de datos, las vistas, las rutas, los formularios, la l\'ogica de permisos y la interfaz principal del visor.
 
+\subsection{Organizaci\'on interna de la app \texttt{mapas}}
+
+Aunque funcionalmente la app se presenta al usuario como un solo visor integrado, internamente se apoya en varios archivos con responsabilidades diferenciadas:
+
+\begin{itemize}
+    \item \texttt{models.py}: define las entidades persistentes del dominio, como puntos de muestreo, capas vectoriales, raster, preferencias, solicitudes y auditor\'ia.
+    \item \texttt{views.py}: concentra la l\'ogica de negocio del sistema, incluyendo autenticaci\'on, carga de datos, transformaciones espaciales, publicaci\'on, descargas y respuestas JSON para la interfaz.
+    \item \texttt{urls.py}: organiza y expone las rutas HTTP que enlazan la interfaz con los servicios del backend.
+    \item \texttt{roles.py}: encapsula criterios de administraci\'on y validaci\'on de privilegios.
+    \item \texttt{tests.py}: re\'une pruebas unitarias e integrales sobre rutas, permisos, carga de datos, auditor\'ia y solicitudes.
+    \item \texttt{templates/mapas/}: contiene las plantillas HTML del visor principal y de las pantallas auxiliares vinculadas al dominio de mapas.
+    \item \texttt{static/mapas/}: almacena im\'agenes, \'iconos y recursos visuales propios del sistema.
+\end{itemize}
+
+Esta distribuci\'on mantiene una coherencia razonable con el patr\'on de aplicaciones Django, pero con un peso particularmente alto en \texttt{views.py} y en la plantilla principal del visor, dado que una gran parte de la experiencia de usuario est\'a orientada a interacciones ricas sobre una sola pantalla cartogr\'afica.
+
 \subsection{Rutas funcionales}
 
 El archivo \texttt{mapas/urls.py} agrupa los servicios que componen la aplicaci\'on. Desde el punto de vista funcional, estas rutas pueden clasificarse en las siguientes categor\'ias:
@@ -141,12 +161,14 @@ El archivo \texttt{mapas/urls.py} agrupa los servicios que componen la aplicaci\
 \begin{enumerate}
     \item \textbf{Acceso y sesi\'on}: inicio de sesi\'on, cierre de sesi\'on, registro y recuperaci\'on de contrase\~na.
     \item \textbf{Visor principal}: carga del mapa de muestreo.
-    \item \textbf{Puntos de muestreo}: guardado manual, edici\'on, eliminaci\'on, carga masiva por CSV y gesti\'on de grupos de puntos.
+    \item \textbf{Puntos de muestreo}: guardado manual, edici\'on, eliminaci\'on, carga masiva por CSV, carga masiva por Excel y gesti\'on de grupos de puntos.
     \item \textbf{Capas vectoriales}: carga de GeoJSON, carga de Shapefile, eliminaci\'on y publicaci\'on.
     \item \textbf{Capas raster}: previsualizaci\'on de TIFF, carga de TIFF y eliminaci\'on de raster.
-    \item \textbf{Solicitudes de publicaci\'on}: env\'io, listado, aprobaci\'on y rechazo.
-    \item \textbf{Administraci\'on}: listado de usuarios, promoci\'on y revocaci\'on de privilegios.
+    \item \textbf{Solicitudes de publicaci\'on}: env\'io, listado, aprobaci\'on y rechazo de capas y grupos de puntos.
+    \item \textbf{Solicitudes de acceso}: registro pendiente, aprobaci\'on o rechazo administrativo y notificaci\'on por correo.
+    \item \textbf{Administraci\'on}: listado de usuarios, promoci\'on y revocaci\'on de privilegios, y tablero unificado de todas las capas del sistema.
     \item \textbf{Descargas}: exportaci\'on de puntos, capas y raster.
+    \item \textbf{Preferencias}: guardado del centro del mapa, persistencia del estado visual del panel de capas y otras configuraciones de interfaz dependientes del usuario.
 \end{enumerate}
 
 Esta segmentaci\'on muestra que la aplicaci\'on no se reduce a una sola p\'agina con funciones accesorias, sino que expone un conjunto relativamente amplio de servicios HTTP coherentes con el dominio de un sistema de informaci\'on geoespacial colaborativo.
@@ -183,14 +205,17 @@ El modelo \texttt{Capa} representa una capa vectorial superficial almacenada en 
     \item geometr\'ia multipoligonal en \texttt{EPSG:4326};
     \item nombre y descripci\'on;
     \item usuario propietario, cuando la capa no es p\'ublica;
-    \item estado funcional de la capa, tal como privada, pendiente, p\'ublica o rechazada.
+    \item estado funcional de la capa, tal como privada, pendiente, p\'ublica o rechazada;
+    \item estado activo o inactivo para ocultar temporalmente la capa sin eliminarla.
 \end{itemize}
 
 Al igual que \texttt{Muestreo}, este modelo tambi\'en trabaja sobre una tabla no gestionada enteramente por Django.
 
 \subsection{Modelo \texttt{PreferenciasMapa}}
 
-Este modelo almacena una preferencia espacial simple: el centro del mapa asociado a un usuario. Su funci\'on es mejorar la experiencia de uso, recordando el \'ultimo centro relevante o preferido para el usuario autenticado.
+Este modelo almacena preferencias de interfaz asociadas a un usuario autenticado. En una primera etapa se utiliz\'o para persistir el centro del mapa; posteriormente se extendi\'o para recordar tambi\'en el estado visible u oculto de capas base, capas vectoriales, raster y grupos de puntos. Su funci\'on es mejorar la continuidad de uso, evitando que el usuario deba reconstruir manualmente su contexto de trabajo en cada sesi\'on o recarga de la p\'agina.
+
+Desde el punto de vista estructural, este modelo cumple un rol importante porque desacopla la l\'ogica cartogr\'afica temporal del navegador de una persistencia estable por usuario. Esto permite que el visor deje de ser completamente ef\'imero y adquiera una memoria operativa m\'inima.
 
 \subsection{Modelo \texttt{CapaRaster}}
 
@@ -200,6 +225,7 @@ El modelo \texttt{CapaRaster} registra capas raster cargadas por usuarios, espec
     \item nombre del raster;
     \item usuario propietario;
     \item indicador de publicidad;
+    \item estado activo o inactivo;
     \item modo de despliegue;
     \item ruta al archivo original;
     \item ruta al archivo reproyectado a \texttt{EPSG:4326};
@@ -225,6 +251,24 @@ La publicaci\'on de capas y grupos de puntos se gestiona mediante solicitudes fo
 \end{itemize}
 
 Su existencia introduce un flujo de moderaci\'on expl\'icito, evitando que cualquier usuario convierta unilateralmente sus recursos en contenido p\'ublico sin intervenci\'on administrativa.
+
+\subsection{Modelo \texttt{SolicitudRegistroUsuario}}
+
+El registro de nuevos usuarios ya no se resuelve como alta autogestionada inmediata, sino como un proceso sujeto a aprobaci\'on administrativa. Para ello se incorpor\'o el modelo \texttt{SolicitudRegistroUsuario}, que almacena:
+
+\begin{itemize}
+    \item usuario de Django asociado;
+    \item nombre solicitado;
+    \item apellido solicitado;
+    \item n\'umero de c\'edula;
+    \item correo electr\'onico solicitado;
+    \item estado de la solicitud;
+    \item comentario de revisi\'on;
+    \item administrador que resolvi\'o la solicitud;
+    \item fechas de creaci\'on, revisi\'on y actualizaci\'on.
+\end{itemize}
+
+Este modelo convierte el registro en un procedimiento de admisi\'on controlada. Desde el punto de vista de la gobernanza del sistema, esto es relevante porque la plataforma deja de operar como un portal abierto y pasa a comportarse como un entorno institucional moderado, donde el acceso al espacio de carga y administraci\'on requiere aprobaci\'on formal.
 
 \subsection{Modelo \texttt{AuditoriaEvento}}
 
@@ -274,6 +318,8 @@ El usuario autenticado puede:
     \item descargar sus propios recursos adem\'as de los p\'ublicos.
 \end{itemize}
 
+Adem\'as, cuando un usuario crea una cuenta nueva, su acceso no se habilita de inmediato. La cuenta queda inicialmente inactiva y s\'olo puede utilizarse una vez que un administrador aprueba la solicitud correspondiente. Esto introduce una distinci\'on entre \emph{solicitante de acceso} y \emph{usuario operativo habilitado}.
+
 \subsection{Administrador de mapas}
 
 El administrador de mapas est\'a vinculado al grupo \texttt{map\_admin} y, en ciertos flujos, a atributos administrativos de Django. Este rol puede:
@@ -308,6 +354,17 @@ Los elementos principales de la interfaz incluyen:
 
 La concentraci\'on de estas funciones en una sola vista responde a una estrategia de experiencia de usuario donde la mayor parte de las acciones se realiza en continuidad visual sobre el mapa, minimizando transiciones innecesarias entre p\'aginas.
 
+\subsection{Modales principales y unificaci\'on funcional}
+
+La interfaz fue evolucionando hacia una l\'ogica de modales grandes y tabulados para concentrar operaciones relacionadas en un mismo espacio. Dos ejemplos relevantes son:
+
+\begin{itemize}
+    \item \textbf{\texttt{Mis capas}}, que unifica la administraci\'on de grupos de puntos, capas vectoriales y raster propios en pesta\~nas diferenciadas;
+    \item \textbf{\texttt{Todas las capas}}, disponible para administradores, que replica una organizaci\'on semejante pero sobre el universo completo de capas y grupos del sistema.
+\end{itemize}
+
+Este redise\~no responde a una necesidad concreta de escalabilidad de interfaz: a medida que creci\'o la cantidad de recursos gestionables, dej\'o de ser suficiente utilizar modales peque\~nos o listas aisladas. La tabulaci\'on permite reducir superposici\'on visual, separar contextos de acci\'on y disminuir la carga cognitiva del usuario.
+
 \subsection{Panel de capas}
 
 El panel lateral de capas fue dise\~nado para soportar una jerarqu\'ia funcional, no solo visual. En su configuraci\'on actual, organiza la informaci\'on en bloques tales como:
@@ -328,12 +385,53 @@ Adicionalmente, el panel soporta:
     \item personalizaci\'on de color de grupos y capas;
     \item reordenamiento visual de capas;
     \item activaci\'on y desactivaci\'on de visibilidad;
-    \item sincronizaci\'on entre estados l\'ogicos y representaci\'on cartogr\'afica.
+    \item sincronizaci\'on entre estados l\'ogicos y representaci\'on cartogr\'afica;
+    \item persistencia del estado visible u oculto entre recargas de la p\'agina;
+    \item minimizaci\'on del panel con transici\'on visual y recuperaci\'on posterior.
 \end{itemize}
+
+La persistencia de visibilidad no es un detalle meramente est\'etico. En el contexto de una aplicaci\'on con m\'ultiples capas, grupos y overlays, recordar el estado del panel evita que el usuario pierda el contexto anal\'itico construido en la sesi\'on previa. Esta decisi\'on mejora la usabilidad y reduce operaciones repetitivas.
+
+\subsection{Persistencia del estado de la interfaz}
+
+Una de las mejoras recientes del visor consiste en que el estado visual ya no se considera completamente ef\'imero. Cuando un usuario autenticado activa u oculta capas base, capas vectoriales, raster o grupos de puntos, esa decisi\'on se almacena como preferencia persistente. Si el usuario no est\'a autenticado, el sistema recurre a un almacenamiento local en el navegador.
+
+En t\'erminos arquitect\'onicos, esta estrategia introduce una doble capa de estado:
+
+\begin{itemize}
+    \item un estado transitorio de interfaz, mantenido en JavaScript mientras el visor est\'a abierto;
+    \item un estado persistente, guardado en base de datos o en \texttt{localStorage}, que permite reconstruir la sesi\'on visual posterior.
+\end{itemize}
+
+Esto transforma al panel de capas en algo m\'as que un simple control visual: pasa a ser un mecanismo de configuraci\'on personalizada del entorno de trabajo del usuario.
 
 \subsection{Men\'u flotante}
 
 El men\'u flotante concentra operaciones orientadas a la gesti\'on de datos y a la administraci\'on del visor. Entre sus opciones se incluyen la carga de puntos, la carga de capas, la carga de TIFF, la gesti\'on de grupos, el filtrado, la consulta de descargas y funcionalidades administrativas. La decisi\'on de agrupar estas acciones en un men\'u flotante permite ahorrar espacio en pantalla y mantener el mapa como componente visual central.
+
+\subsection{Coordinaci\'on entre cliente y servidor}
+
+Aunque el visor opera mayoritariamente sobre una sola p\'agina, la interfaz no funciona de manera aislada. Una parte importante de sus acciones se apoya en llamadas as\'incronas al backend para cargar datos, persistir preferencias, validar archivos o resolver operaciones administrativas. Esto genera un patr\'on de trabajo h\'ibrido:
+
+\begin{itemize}
+    \item el render inicial proviene del servidor mediante plantilla;
+    \item las operaciones posteriores se realizan mediante peticiones as\'incronas y actualizaci\'on din\'amica del DOM;
+    \item el estado visual del mapa se sincroniza con respuestas JSON del backend.
+\end{itemize}
+
+Este patr\'on evita una arquitectura completamente desacoplada de tipo SPA con framework adicional, pero conserva una experiencia de interacci\'on rica y continua.
+
+\subsection{Lectura de coordenadas y overlays auxiliares}
+
+El visor incorpora elementos de apoyo que no forman parte del mapa base ni de las capas tem\'aticas, pero mejoran la interacci\'on anal\'itica. Entre ellos se incluyen:
+
+\begin{itemize}
+    \item lector de coordenadas geogr\'aficas en tiempo real bajo el cursor;
+    \item tooltip flotante para consulta de valores de p\'ixel raster;
+    \item indicadores visuales del grupo activo del heatmap y de estados de capa.
+\end{itemize}
+
+Estos elementos funcionan como una capa de interpretaci\'on complementaria, acercando al navegador algunas capacidades de inspecci\'on que son habituales en SIG de escritorio.
 
 \section{Gest\'ion de puntos de muestreo}
 
@@ -371,6 +469,23 @@ La carga masiva de puntos es uno de los componentes m\'as relevantes de la aplic
 
 La carga CSV no se limita a leer columnas fijas. El sistema admite variantes de encabezados y reconoce distintos nombres equivalentes para las mismas variables. Esta estrategia es esencial cuando se trabaja con series hist\'oricas provenientes de campa\~nas, laboratorios o planillas de origen heterog\'eneo.
 
+\subsection{Carga masiva por Excel}
+
+Como extensi\'on natural del flujo CSV, la plataforma incorpor\'o una tercera modalidad de carga orientada a planillas Excel. Esta funcionalidad se presenta como una opci\'on separada en el modal de carga masiva y se encuentra pensada para escenarios donde los datos provienen de hojas de c\'alculo acad\'emicas o institucionales.
+
+La carga por Excel contempla:
+
+\begin{enumerate}
+    \item detecci\'on del formato \texttt{.xlsx} o \texttt{.xlsm};
+    \item lectura tabular de la hoja principal;
+    \item previsualizaci\'on del contenido;
+    \item reutilizaci\'on del mismo sistema de alias y normalizaci\'on de encabezados usado para CSV;
+    \item identificaci\'on flexible de columnas con variaciones ortogr\'aficas, abreviaturas o unidades, por ejemplo en el caso de coliformes fecales;
+    \item validaci\'on del SRID y transformaci\'on posterior a \texttt{EPSG:4326}.
+\end{enumerate}
+
+Esta ampliaci\'on es importante porque reduce la necesidad de preprocesar archivos fuera de la plataforma y acerca el sistema a las pr\'acticas reales de gesti\'on de datos observadas en laboratorios o grupos de investigaci\'on.
+
 \subsection{Conversi\'on de coordenadas}
 
 Un aspecto cr\'itico del flujo CSV es la interpretaci\'on de coordenadas. El usuario selecciona un SRID de origen, por ejemplo \texttt{EPSG:32721} o \texttt{EPSG:4326}. A partir de esta definici\'on, el sistema transforma los puntos a \texttt{EPSG:4326} para garantizar que puedan representarse en el mapa web. Adem\'as, se incluye una verificaci\'on heur\'istica del rango de coordenadas para detectar cuando el archivo parece haber sido clasificado con un SRID err\'oneo.
@@ -382,6 +497,27 @@ Este detalle es metodol\'ogicamente importante: la aplicaci\'on no solo almacena
 La plataforma contempla un c\'alculo de WQI condicionado por la disponibilidad de un conjunto m\'inimo de par\'ametros cr\'iticos. Cuando un punto no cumple con el umbral definido, la aplicaci\'on no bloquea necesariamente la inserci\'on, pero emite advertencias para informar que ese registro no podr\'a ser utilizado inmediatamente para el c\'alculo del indicador.
 
 Este comportamiento muestra una decisi\'on de dise\~no orientada a la trazabilidad de datos incompletos: el sistema no rechaza autom\'aticamente registros potencialmente valiosos, pero deja constancia de su limitaci\'on anal\'itica.
+
+\subsection{Visualizaci\'on detallada del c\'alculo WQI}
+
+El c\'alculo de WQI no se limita a producir un valor final. La interfaz incluye un modal de detalle donde se presentan:
+
+\begin{itemize}
+    \item los par\'ametros efectivamente utilizados;
+    \item los pesos aplicados;
+    \item los sub\'indices parciales;
+    \item el rango o est\'andar utilizado para cada variable;
+    \item la clasificaci\'on resultante;
+    \item una interpretaci\'on t\'ecnica resumida.
+\end{itemize}
+
+Esta decisi\'on tiene valor metodol\'ogico, porque vuelve observable el procedimiento de c\'alculo y evita que el WQI se perciba como una ``caja negra'' algor\'itmica. El usuario no solo obtiene un n\'umero, sino tambi\'en una explicaci\'on trazable del proceso que lo gener\'o.
+
+\subsection{Heatmap WQI por grupo}
+
+La plataforma tambi\'en incorpora un mapa de calor del WQI. Sin embargo, en lugar de mezclar indistintamente todos los grupos de muestreo, la interfaz permite seleccionar qu\'e grupo alimentar\'a la interpolaci\'on. Este comportamiento responde a una decisi\'on metodol\'ogica deliberada: evitar superponer o promediar campa\~nas de naturaleza temporal distinta en una sola superficie, salvo que el usuario lo haga conscientemente en una versi\'on futura.
+
+En la pr\'actica, esto significa que el heatmap se comporta como una vista anal\'itica focalizada sobre una campa\~na o grupo particular, lo que mejora tanto la interpretaci\'on espacial como la rigurosidad del an\'alisis.
 
 \section{Gest\'ion de grupos de puntos}
 
@@ -397,6 +533,8 @@ Los grupos de puntos constituyen una abstracci\'on funcional que permite organiz
 \end{itemize}
 
 En t\'erminos de arquitectura, esto significa que la plataforma no gestiona solo puntos individuales, sino colecciones sem\'anticas de puntos, lo cual mejora la usabilidad y simplifica operaciones masivas.
+
+Adem\'as, los grupos pueden activarse o desactivarse sin ser eliminados, y su visibilidad pasa a formar parte del estado persistente del usuario. Este detalle es relevante porque vincula la organizaci\'on tem\'atica de los datos con la personalizaci\'on operativa del visor.
 
 \section{Gest\'ion de capas vectoriales}
 
@@ -423,6 +561,10 @@ Este flujo demuestra la capacidad del sistema para integrarse con formatos cl\'a
 
 Las capas vectoriales cargadas por usuarios pueden permanecer privadas o solicitarse para publicaci\'on. El administrador eval\'ua la solicitud y puede aprobarla o rechazarla, agregando un comentario. En caso de aprobaci\'on, la capa pasa al conjunto de recursos visibles para invitados y usuarios generales.
 
+\subsection{Activaci\'on, desactivaci\'on y publicaci\'on directa}
+
+Adem\'as del flujo de solicitud de publicaci\'on por parte de usuarios generales, la capa vectorial puede ser activada o desactivada sin eliminaci\'on f\'isica. Esto permite retirarla temporalmente del panel y del mapa sin perder el recurso. En el caso de los administradores, tambi\'en existen acciones de publicaci\'on directa dentro de los tableros de administraci\'on, lo que acelera tareas de curadur\'ia o visibilizaci\'on institucional.
+
 \section{Gest\'ion de capas raster}
 
 \subsection{Previsualizaci\'on de TIFF}
@@ -442,6 +584,23 @@ Una vez aceptado, el raster puede ser:
 
 El almacenamiento tanto del archivo original como de sus derivados constituye una estrategia de preservaci\'on del dato fuente y de adaptaci\'on para el consumo web.
 
+\subsection{Inspecci\'on de valores raster por p\'ixel}
+
+Una funcionalidad incorporada recientemente consiste en la lectura interactiva de valores raster directamente sobre el mapa, de manera an\'aloga a la inspecci\'on puntual realizada en software SIG de escritorio. Cuando esta funci\'on est\'a activa para una capa raster:
+
+\begin{itemize}
+    \item el usuario mueve el cursor sobre el raster visible;
+    \item el sistema identifica el p\'ixel subyacente;
+    \item se consulta el valor correspondiente sobre el GeoTIFF anal\'itico reproyectado;
+    \item se muestra un tooltip flotante con el nombre de la capa, el valor del p\'ixel y su ubicaci\'on matricial.
+\end{itemize}
+
+La implementaci\'on fue dise\~nada para permitir que el raster se siga visualizando como PNG, pero que la lectura t\'ecnica del valor provenga del archivo georreferenciado en \texttt{EPSG:4326}. Este desacople entre representaci\'on visual y fuente anal\'itica es una decisi\'on de dise\~no importante, porque conserva rendimiento visual sin perder capacidad de consulta.
+
+\subsection{Activaci\'on, desactivaci\'on y persistencia de raster}
+
+Las capas raster, al igual que las capas vectoriales y los grupos de puntos, pueden activarse o desactivarse sin ser eliminadas de la base de datos. Esta funcionalidad permite retirar temporalmente un recurso del panel y del mapa sin perderlo. En conjunto con la persistencia del estado de visibilidad por usuario, el raster pasa a formar parte de un entorno personalizable y recordable.
+
 \section{Solicitudes de publicaci\'on y moderaci\'on}
 
 El sistema incorpora una capa de gobernanza de contenidos mediante el modelo de solicitudes de publicaci\'on. Esta funcionalidad es especialmente relevante porque introduce una distinci\'on entre \emph{cargar} y \emph{publicar}. Un usuario puede generar y administrar sus datos, pero la exposici\'on p\'ublica de los mismos requiere un paso adicional de revisi\'on.
@@ -458,6 +617,25 @@ El administrador dispone de un modal para:
 
 Esta estructura es equivalente, a peque\~na escala, a un flujo editorial o de moderaci\'on de contenidos, lo que aporta control de calidad y claridad institucional sobre qu\'e informaci\'on pasa a ser p\'ublica.
 
+\subsection{Tableros administrativos unificados}
+
+La moderaci\'on no se realiza mediante pantallas dispersas. El sistema evolucion\'o hacia tableros administrativos centralizados, donde el administrador puede alternar entre solicitudes de publicaci\'on, solicitudes de acceso y vistas consolidadas de todos los recursos del sistema. Esto incluye puntos, capas vectoriales y raster.
+
+Desde el punto de vista de la estructura de interfaz, esta decisi\'on es importante porque reduce fragmentaci\'on funcional. En lugar de obligar al administrador a navegar por m\'ultiples pantallas desconectadas, se concentra la supervisi\'on operativa en un conjunto reducido de modales grandes y tabulados.
+
+\subsection{Solicitudes de acceso de nuevos usuarios}
+
+La l\'ogica de moderaci\'on fue extendida tambi\'en al registro de cuentas. El usuario completa una solicitud de acceso con nombre, apellido, c\'edula, correo, nombre de usuario y contrase\~na, pero la cuenta permanece inactiva hasta que un administrador la apruebe. El mismo modal administrativo de solicitudes presenta una pesta\~na espec\'ifica para:
+
+\begin{itemize}
+    \item visualizar solicitudes de acceso pendientes;
+    \item aprobar o rechazar nuevos registros;
+    \item agregar comentarios de revisi\'on;
+    \item consultar historial de solicitudes resueltas.
+\end{itemize}
+
+Con ello, el sistema adopta un esquema de acceso controlado que resulta coherente con un contexto acad\'emico o institucional, donde no se busca un registro completamente abierto.
+
 \section{Mecanismos de descarga}
 
 La aplicaci\'on permite descargar diferentes recursos en formatos adecuados a su naturaleza:
@@ -471,6 +649,31 @@ La aplicaci\'on permite descargar diferentes recursos en formatos adecuados a su
 
 La l\'ogica de permisos distingue recursos propios, p\'ublicos y no accesibles. De este modo, la plataforma no solo funciona como visor y editor, sino tambi\'en como repositorio de intercambio de datos geoespaciales.
 
+\section{Gesti\'on de autenticaci\'on, recuperaci\'on y correo}
+
+La autenticaci\'on se apoya en el subsistema de usuarios de Django, pero fue extendida con reglas propias del proyecto. Entre los flujos implementados se encuentran:
+
+\begin{itemize}
+    \item inicio de sesi\'on desde modal;
+    \item solicitud de acceso sujeta a aprobaci\'on administrativa;
+    \item mensajes diferenciados para cuentas pendientes o rechazadas;
+    \item recuperaci\'on de contrase\~na mediante correo electr\'onico;
+    \item notificaci\'on por correo cuando una solicitud de acceso es aprobada o rechazada.
+\end{itemize}
+
+Desde el punto de vista arquitect\'onico, esto implica que el sistema no solo administra recursos geoespaciales, sino tambi\'en el ciclo de vida de la identidad del usuario dentro de un entorno regulado.
+
+\subsection{Integraci\'on del correo electr\'onico}
+
+La incorporaci\'on de notificaciones por correo agrega una capa de comunicaci\'on institucional al proyecto. T\'ecnicamente, esto se apoya en el subsistema de correo de Django parametrizado por variables de entorno, de modo que el mismo c\'odigo puede utilizar un backend de consola en desarrollo o un servidor SMTP real en despliegue.
+
+Esta decisi\'on tiene dos efectos estructurales:
+
+\begin{itemize}
+    \item desacopla la l\'ogica de negocio del detalle del proveedor de correo;
+    \item permite reutilizar la misma infraestructura tanto para aprobaci\'on de cuentas como para recuperaci\'on de contrase\~na.
+\end{itemize}
+
 \section{Persistencia y transformaci\'on espacial}
 
 Una de las fortalezas centrales de la arquitectura es que la persistencia no se limita al almacenamiento bruto de archivos o filas, sino que incorpora transformaciones y validaciones espaciales. Entre las operaciones m\'as relevantes se encuentran:
@@ -480,7 +683,8 @@ Una de las fortalezas centrales de la arquitectura es que la persistencia no se 
     \item serializaci\'on GeoJSON para consumo del frontend;
     \item reproyecci\'on de raster;
     \item incorporaci\'on de geometr\'ias desde OGR a PostGIS;
-    \item c\'alculo de extensiones y metadatos raster.
+    \item c\'alculo de extensiones y metadatos raster;
+    \item lectura anal\'itica de valores raster por p\'ixel en el cliente a partir del GeoTIFF procesado.
 \end{itemize}
 
 Esto ubica a la base de datos y a las utilidades GDAL/OGR como componentes activos del comportamiento del sistema, y no como meros repositorios pasivos.
@@ -503,6 +707,23 @@ La incorporaci\'on del modelo \texttt{AuditoriaEvento} permite documentar operac
 
 La auditor\'ia implementada corresponde a una trazabilidad de nivel aplicaci\'on. Esto significa que registra cambios efectuados a trav\'es del sistema web. Si en el futuro se desea auditar tambi\'en modificaciones directas realizadas desde herramientas externas sobre la base de datos, ser\'ia necesario complementar esta capa con disparadores (\emph{triggers}) SQL.
 
+\section{Pruebas autom\'aticas y validaci\'on de comportamiento}
+
+La evoluci\'on funcional del sistema hizo necesario complementar el desarrollo con una base de pruebas automatizadas. La suite actual cubre, entre otros aspectos:
+
+\begin{itemize}
+    \item validaci\'on de cargas de puntos por CSV y Excel;
+    \item verificaci\'on de roles y permisos;
+    \item flujos de solicitudes de publicaci\'on;
+    \item aprobaci\'on y rechazo de solicitudes de acceso;
+    \item preferencias persistentes del visor;
+    \item activaci\'on y desactivaci\'on de capas;
+    \item auditor\'ia de eventos relevantes;
+    \item descargas y respuestas principales del backend.
+\end{itemize}
+
+Si bien a\'un queda espacio para ampliar pruebas de interfaz completamente automatizadas sobre Leaflet y los modales del navegador, la existencia de esta suite representa un cambio estructural importante: el proyecto deja de depender exclusivamente de verificaci\'on manual y pasa a contar con una red de seguridad parcial frente a regresiones.
+
 \section{Seguridad funcional}
 
 La seguridad de la plataforma se apoya en varios mecanismos complementarios:
@@ -513,7 +734,9 @@ La seguridad de la plataforma se apoya en varios mecanismos complementarios:
     \item restricci\'on de operaciones seg\'un propietario del recurso;
     \item verificaci\'on de roles administrativos;
     \item separaci\'on entre recursos privados y p\'ublicos;
-    \item moderaci\'on previa de contenidos publicables.
+    \item moderaci\'on previa de contenidos publicables;
+    \item aprobaci\'on administrativa de nuevas cuentas;
+    \item recuperaci\'on controlada de contrase\~na por correo electr\'onico.
 \end{itemize}
 
 Si bien se trata de una aplicaci\'on acad\'emica en desarrollo, la presencia de estas medidas muestra una preocupaci\'on concreta por el control de integridad y la gesti\'on responsable de la informaci\'on espacial.
@@ -527,7 +750,9 @@ La arquitectura actual fue dise\~nada para un escenario acad\'emico y de desarro
     \item separaci\'on entre recursos vectoriales, raster y puntos;
     \item posibilidad de parametrizar el entorno de despliegue;
     \item soporte inicial para contenerizaci\'on con Docker;
-    \item uso de formatos abiertos y ampliamente interoperables.
+    \item uso de formatos abiertos y ampliamente interoperables;
+    \item carga diferida y en cach\'e de fuentes raster anal\'iticas para lectura por p\'ixel;
+    \item persistencia de estado de interfaz para reducir operaciones repetitivas.
 \end{itemize}
 
 No obstante, tambi\'en existen desaf\'ios t\'ecnicos asociados al crecimiento futuro, entre ellos:
@@ -564,8 +789,11 @@ Para enriquecer esta secci\'on del documento, se recomienda incorporar posterior
     \item esquema entidad--relaci\'on simplificado de los modelos principales;
     \item captura del visor principal con identificaci\'on de sus componentes;
     \item flujo de carga masiva de puntos por CSV;
+    \item flujo de carga masiva de puntos por Excel;
     \item flujo de revisi\'on y publicaci\'on de capas o grupos;
+    \item flujo de solicitud, aprobaci\'on o rechazo de nuevos usuarios;
     \item esquema del procesamiento de un GeoTIFF desde archivo original hasta despliegue web;
+    \item esquema de lectura de valores raster por p\'ixel;
     \item diagrama del circuito de auditor\'ia.
 \end{itemize}
 

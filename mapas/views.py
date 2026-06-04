@@ -235,6 +235,24 @@ def load_boolean_column_map(table_name, id_column, ids, column_name="activo"):
         return {int(row[0]): bool(row[1]) for row in cursor.fetchall()}
 
 
+LAYER_VISIBILITY_KEY_PATTERN = re.compile(
+    r"^(base:(MUESTREOS|HEAT|PATINO)|vector:\d+|raster:\d+|group:[A-Z0-9_]+)$"
+)
+
+
+def sanitize_layer_visibility_state(raw_state):
+    if not isinstance(raw_state, dict):
+        return {}
+
+    sanitized = {}
+    for key, value in raw_state.items():
+        key_text = str(key).strip()
+        if not LAYER_VISIBILITY_KEY_PATTERN.match(key_text):
+            continue
+        sanitized[key_text] = bool(value)
+    return sanitized
+
+
 def build_point_export_filename(group=None, formato="csv"):
     base = f"puntos_{slugify(group) if group else 'todos'}"
     ext = "geojson" if formato == "geojson" else "csv"
@@ -1259,8 +1277,10 @@ def mapa_muestreo_view(request):
         try:
             pref = PreferenciasMapa.objects.get(user=request.user)
             centro_mapa = {'lat': pref.centro_mapa.y, 'lng': pref.centro_mapa.x}
+            preferencias_visibilidad = sanitize_layer_visibility_state(getattr(pref, "visibilidad_capas", {}) or {})
         except PreferenciasMapa.DoesNotExist:
             centro_mapa = None
+            preferencias_visibilidad = {}
         group_request_states = {}
         try:
             group_request_states = {
@@ -1295,6 +1315,7 @@ def mapa_muestreo_view(request):
             rasters_qs = []
             rasters_activo_map = {}
         centro_mapa = None
+        preferencias_visibilidad = {}
         group_request_states = {}
         pending_admin_requests_count = 0
 
@@ -1368,6 +1389,7 @@ def mapa_muestreo_view(request):
         'patino': json.dumps(capas_fc),
         'rasters': json.dumps(rasters),
         'centro_mapa': centro_mapa,
+        'preferencias_visibilidad': json.dumps(preferencias_visibilidad),
         'es_admin': es_admin(request.user),
         'solicitudes_grupo': json.dumps(group_request_states),
         'solicitudes_admin_pendientes_count': pending_admin_requests_count,
@@ -1779,6 +1801,41 @@ def guardar_centro_mapa(request):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+
+# =========================
+# Persistencia de visibilidad de capas
+# =========================
+@csrf_exempt
+@login_required
+def guardar_visibilidad_capas(request):
+    """Guarda el estado visible/oculto de capas del layer panel para el usuario actual."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body or "{}")
+        visibilidad = sanitize_layer_visibility_state(data.get("visibility"))
+        ahora = timestamp_auditoria()
+        preferencias, creada = PreferenciasMapa.objects.get_or_create(
+            user=request.user,
+            defaults={
+                **audit_create_kwargs(request.user, ahora),
+                "visibilidad_capas": visibilidad,
+            },
+        )
+        before = None if creada else serialize_instance_for_audit(preferencias)
+        preferencias.visibilidad_capas = visibilidad
+        if not creada:
+            mark_instance_modified(preferencias, request.user, ahora)
+        preferencias.save()
+        if creada:
+            audit_instance_insert(preferencias, request.user, request=request)
+        else:
+            audit_instance_update(preferencias, request.user, before, request=request)
+        return JsonResponse({'success': True, 'visibility': visibilidad})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # =========================
