@@ -239,6 +239,14 @@ LAYER_VISIBILITY_KEY_PATTERN = re.compile(
     r"^(base:(MUESTREOS|HEAT|PATINO)|vector:\d+|raster:\d+|group:[A-Z0-9_]+)$"
 )
 
+DEFAULT_VIEWER_SETTINGS = {
+    "heat_radius_scale": 1.0,
+    "heat_opacity": 0.9,
+    "patino_fill_opacity": 0.18,
+    "point_radius": 6.5,
+    "point_opacity": 0.95,
+}
+
 
 def sanitize_layer_visibility_state(raw_state):
     if not isinstance(raw_state, dict):
@@ -250,6 +258,29 @@ def sanitize_layer_visibility_state(raw_state):
         if not LAYER_VISIBILITY_KEY_PATTERN.match(key_text):
             continue
         sanitized[key_text] = bool(value)
+    return sanitized
+
+
+def sanitize_viewer_settings(raw_state):
+    sanitized = DEFAULT_VIEWER_SETTINGS.copy()
+    if not isinstance(raw_state, dict):
+        return sanitized
+
+    ranges = {
+        "heat_radius_scale": (0.55, 1.65),
+        "heat_opacity": (0.35, 1.0),
+        "patino_fill_opacity": (0.05, 0.45),
+        "point_radius": (4.0, 10.0),
+        "point_opacity": (0.55, 1.0),
+    }
+
+    for key, (minimum, maximum) in ranges.items():
+        try:
+            numeric_value = float(raw_state.get(key, sanitized[key]))
+        except (TypeError, ValueError):
+            continue
+        sanitized[key] = round(max(minimum, min(maximum, numeric_value)), 4)
+
     return sanitized
 
 
@@ -1278,9 +1309,11 @@ def mapa_muestreo_view(request):
             pref = PreferenciasMapa.objects.get(user=request.user)
             centro_mapa = {'lat': pref.centro_mapa.y, 'lng': pref.centro_mapa.x}
             preferencias_visibilidad = sanitize_layer_visibility_state(getattr(pref, "visibilidad_capas", {}) or {})
+            preferencias_visor = getattr(pref, "ajustes_visor", {}) or {}
         except PreferenciasMapa.DoesNotExist:
             centro_mapa = None
             preferencias_visibilidad = {}
+            preferencias_visor = {}
         group_request_states = {}
         try:
             group_request_states = {
@@ -1316,6 +1349,7 @@ def mapa_muestreo_view(request):
             rasters_activo_map = {}
         centro_mapa = None
         preferencias_visibilidad = {}
+        preferencias_visor = {}
         group_request_states = {}
         pending_admin_requests_count = 0
 
@@ -1390,6 +1424,7 @@ def mapa_muestreo_view(request):
         'rasters': json.dumps(rasters),
         'centro_mapa': centro_mapa,
         'preferencias_visibilidad': json.dumps(preferencias_visibilidad),
+        'preferencias_visor': json.dumps(preferencias_visor),
         'es_admin': es_admin(request.user),
         'solicitudes_grupo': json.dumps(group_request_states),
         'solicitudes_admin_pendientes_count': pending_admin_requests_count,
@@ -1834,6 +1869,41 @@ def guardar_visibilidad_capas(request):
         else:
             audit_instance_update(preferencias, request.user, before, request=request)
         return JsonResponse({'success': True, 'visibility': visibilidad})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# =========================
+# Ajustes visuales del visor
+# =========================
+@csrf_exempt
+@login_required
+def guardar_ajustes_visor(request):
+    """Guarda los ajustes visuales del visor para el usuario actual."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'MÃ©todo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body or "{}")
+        ajustes = sanitize_viewer_settings(data.get("settings"))
+        ahora = timestamp_auditoria()
+        preferencias, creada = PreferenciasMapa.objects.get_or_create(
+            user=request.user,
+            defaults={
+                **audit_create_kwargs(request.user, ahora),
+                "ajustes_visor": ajustes,
+            },
+        )
+        before = None if creada else serialize_instance_for_audit(preferencias)
+        preferencias.ajustes_visor = ajustes
+        if not creada:
+            mark_instance_modified(preferencias, request.user, ahora)
+        preferencias.save()
+        if creada:
+            audit_instance_insert(preferencias, request.user, request=request)
+        else:
+            audit_instance_update(preferencias, request.user, before, request=request)
+        return JsonResponse({'success': True, 'settings': ajustes})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 

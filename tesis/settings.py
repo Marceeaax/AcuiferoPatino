@@ -212,10 +212,10 @@ USE_TZ = True
 
 STATIC_URL = os.getenv("STATIC_URL", "/static/")
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "mapas", "static")]
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(BASE_DIR, "staticfiles"))
 
 MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 
 if WHITENOISE_AVAILABLE and USE_WHITENOISE:
     STORAGES = {

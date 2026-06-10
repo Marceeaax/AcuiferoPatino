@@ -2058,3 +2058,68 @@ class AuthAndPreferencesIntegrationTests(TestCase):
                 "raster:2": False,
             },
         )
+
+    def test_guardar_ajustes_visor_crea_preferencia_real(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            "/guardar-ajustes-visor/",
+            data=json.dumps({
+                "settings": {
+                    "heat_radius_scale": 1.25,
+                    "heat_opacity": 0.72,
+                    "patino_fill_opacity": 0.21,
+                    "point_radius": 7.5,
+                    "point_opacity": 0.88,
+                    "desconocido": 99,
+                }
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data["success"])
+        self.assertEqual(
+            data["settings"],
+            {
+                "heat_radius_scale": 1.25,
+                "heat_opacity": 0.72,
+                "patino_fill_opacity": 0.21,
+                "point_radius": 7.5,
+                "point_opacity": 0.88,
+            },
+        )
+
+        pref = PreferenciasMapa.objects.get(user=self.user)
+        self.assertEqual(pref.ajustes_visor, data["settings"])
+
+    def test_guardar_ajustes_visor_sanitiza_rangos(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            "/guardar-ajustes-visor/",
+            data=json.dumps({
+                "settings": {
+                    "heat_radius_scale": 99,
+                    "heat_opacity": -4,
+                    "patino_fill_opacity": "0.8",
+                    "point_radius": 1,
+                    "point_opacity": 3,
+                }
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(
+            data["settings"],
+            {
+                "heat_radius_scale": 1.65,
+                "heat_opacity": 0.35,
+                "patino_fill_opacity": 0.45,
+                "point_radius": 4.0,
+                "point_opacity": 1.0,
+            },
+        )

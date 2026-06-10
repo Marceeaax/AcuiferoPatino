@@ -1,5 +1,6 @@
 .git
 .gitignore
+.env
 .pytest_cache
 __pycache__
 *.pyc
@@ -13,3 +14,7 @@ media
 staticfiles
 node_modules
 *.sqlite3
+libro
+document.*
+Muestreo_*.csv
+Muestreo_*.xlsx

@@ -30,15 +30,18 @@ Opcionales:
 - `build.sh`
 - `Dockerfile`
 - `start.sh`
+- `render.yaml`
 - `.env.example`
+- `RENDER_DB_MIGRATION.md`
 
 ## Observaciones importantes
 
-1. `muestreo` y `patino` siguen siendo tablas no gestionadas por Django.
-   Si desplegas una base nueva, esas tablas no se crean solas con `migrate`.
+1. `muestreo` y `patino` no quedan totalmente reproducidos desde cero solo con `migrate`.
+   El esquema real actual necesita una estrategia de bootstrap adicional
+   si se despliega sobre una base nueva de Render.
 
 2. Si usas Render, verifica que tu base soporte PostGIS.
-   Si no, necesitas una base PostgreSQL externa con la extension PostGIS activa.
+   En este proyecto conviene usar PostgreSQL 16 para quedar alineados con tu entorno local.
 
 3. El flujo TIFF y Shapefile depende de binarios del sistema:
    - `gdalinfo`
@@ -47,11 +50,17 @@ Opcionales:
    - `gdal_translate`
    - `ogr2ogr`
 
+4. `MEDIA_ROOT` debe vivir en un disco persistente.
+   El blueprint `render.yaml` ya monta `/app/media` como persistent disk.
+
+5. Para este proyecto, la forma mas segura de poblar la base en Render no es empezar desde cero, sino restaurar un dump de la base local actual.
+
 ## Siguiente paso sugerido
 
 Antes de un deploy real:
 
-1. Crear una base de datos con PostGIS disponible.
-2. Confirmar variables de entorno.
-3. Probar localmente con Docker.
-4. Recien despues conectar Render.
+1. Crear el servicio desde `render.yaml`.
+2. Confirmar que la base tenga `postgis` activa.
+3. Restaurar la base local con la guia de `RENDER_DB_MIGRATION.md`.
+4. Probar localmente con Docker cuando tengas Docker disponible.
+5. Recien despues compartir la URL publica.
